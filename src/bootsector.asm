@@ -67,13 +67,13 @@ bootloader:
 		
 		hang: jmp hang
 		
-printf:	lodsb
+printf:		lodsb
 		or al, al
 		jz done
 		mov ah, 0x0E
 		int 0x10
 		jmp printf
-	done: ret
+	done: 	ret
 
 hexprintbyte:
 		push ax
@@ -131,8 +131,8 @@ repeatw:mov ax, [es:bx]
 		jne repeatw
 		ret
 		
-msg		db 'Welcome to RECaA boot loader version 0.01!', 13, 10, 0
-msg2:	db 'Loaded second stage', 13, 10, 0
+msg		db 'Welcome to LN-DOS  boot loader version 0.01!', 13, 10, 0
+msg2:		db 'Loaded second stage', 13, 10, 0
 		times 510 - ($ - $$) db 0
 		db 0x55
 		db 0xAA
