@@ -68,7 +68,7 @@ bootloader:
 		call printf
 		;now load the system into the memory
 		;jmp loadsecondstage
-		mov ax, 0x0001
+		mov ax, 0x0014
 		call loadsector
 		mov ax, [es:0000h]
 		call hexprintbyte
@@ -127,7 +127,8 @@ loadsector:	;sector number in AX, result in ES:0000h
 		mov ch, al	;track
 
 		mov al, ah
-		mov bl, (SECTPERTRACK)
+		xor ah, ah
+		mov bl, SECTPERTRACK
 		div bl
 		mov dh, al	;head number
 		mov cl, ah	;sector
