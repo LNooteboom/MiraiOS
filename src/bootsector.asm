@@ -3,6 +3,10 @@ INITSEG	equ	0x9000
 SYSSEG	equ	0x1000
 SYSSIZE	equ	0x1000
 ENDSEG	equ	SYSSEG + SYSSIZE
+
+SECTPERTRACK	equ	0x0012
+NROFHEADS	equ	0x0002
+
 		ORG BOOTSEG
 		;first we need to setup the BIOS parameter block:
 		;the first 3 bytes must be a short jmp and a nop
@@ -11,27 +15,27 @@ ENDSEG	equ	SYSSEG + SYSSIZE
 		;then we get an 8 byte OEM id, for a linux formatted disk, this contains mkdosfs(space)
 		db 'mkdosfs '
 		;next we need to define the number of bytes per sector, in this case 512
-		dw 0x0200
+bpersect:	dw 0x0200
 		;now we need to define the amount of sectors per cluster, in this case (3.5 HD floppy) set this to 1
-		db 0x01
+sectpercl:	db 0x01
 		;number of reserved sectors, this value must at least be 1 for the bootsector
-		dw 0x0001
+nrressect:	dw 0x0001
 		;number of file allocation tables, almost always 2
-		db 2
+nrofFATs:	db 2
 		;number of root directory entries????
-		dw 0x00E0
+nrrootdirent:	dw 0x00E0
 		;total logical sectors
-		dw 2880
+nrofsect:	dw 2880
 		;media descriptor
-		db 0xF0
+med_desc:	db 0xF0
 		;sectors for FAT
-		dw 0x0009
+nrFATsects:	dw 0x0009
 		;number of sectors per track
 		dw 0x0012
 		;number of heads
 		dw 0x0002
 		;number of hidden sectors
-		dd 0x00000000
+nrofhid:	dd 0x00000000
 		;large amount of sectors
 		dd 0x00000000
 		;drive number
@@ -43,7 +47,7 @@ ENDSEG	equ	SYSSEG + SYSSIZE
 		;volumeID serial number (random I guess)
 		dd 0x130C2E45
 		;volume label 11 chars
-		db 'LukeOS Boot'
+vollabel:	db 'LukeOS Boot'
 		;system identifier string 8 chars
 		db 'FAT12   '
 		
@@ -56,12 +60,18 @@ bootloader:
 		mov es, ax
 		mov sp, 0x9c00
 		
+		mov [drivenumber], dl
+
 		cld
 		
 		mov si, msg
 		call printf
 		;now load the system into the memory
-		jmp loadsecondstage
+		;jmp loadsecondstage
+		mov ax, 0x0001
+		call loadsector
+		mov ax, [es:0000h]
+		call hexprintbyte
 		;mov si, msg2
 		
 		
@@ -103,36 +113,49 @@ translatenibble:
 		ret
 		
 loadsecondstage:
-		mov ah, 0
-		mov dl, 0
-		int 0x13
-		
-		;mov ax, 0x0900
-		;mov es, ax
-		mov ah, 02h
-		mov al, 01h
-		mov cl, 02h
-		mov ch, 00h
-		mov dl, 00h
-		mov dh, 00h
-		mov bx, 0000h
-		int 0x13
-		call movemem
 		;jmp 0x1000
 		
+loadsector:	;sector number in AX, result in ES:0000h
+		push ax
+		mov ah, 0
+		mov dl, [drivenumber]
+		int 0x13
+		
+		pop ax
+		mov bl, SECTPERTRACK*NROFHEADS
+		div bl
+		mov ch, al	;track
+
+		mov al, ah
+		mov bl, (SECTPERTRACK)
+		div bl
+		mov dh, al	;head number
+		mov cl, ah	;sector
+
+		mov al, 01h	;sectors to read
+		mov bx, 0000h	;dest. memory offset
+		mov ah, 02h	;instruction code
+		mov dl, [drivenumber]
+		int 0x13
+		;call movemem
+		ret
+
 movemem:
 		mov ax, 0x0100
 		mov gs, ax
 		mov bx, 0
-repeatw:mov ax, [es:bx]
+repeatw:	mov ax, [es:bx]
 		mov [gs:bx], ax
 		add bx, 1
 		cmp bx, 0x0100
 		jne repeatw
 		ret
+
+initFAT:	
 		
 msg		db 'Welcome to LN-DOS  boot loader version 0.01!', 13, 10, 0
 msg2:		db 'Loaded second stage', 13, 10, 0
+drivenumber:	db 0
 		times 510 - ($ - $$) db 0
 		db 0x55
 		db 0xAA
