@@ -6,6 +6,10 @@ ENDSEG	equ	SYSSEG + SYSSIZE
 
 SECTPERTRACK	equ	0x0012
 NROFHEADS	equ	0x0002
+RESSECTORS	equ	0x0001
+NROFFATS	equ	0x0002
+NROFFATSECTS	equ	0x0009
+NROFROOTDIRENTS	equ	0x00E0
 
 		ORG BOOTSEG
 		;first we need to setup the BIOS parameter block:
@@ -19,17 +23,17 @@ bpersect:	dw 0x0200
 		;now we need to define the amount of sectors per cluster, in this case (3.5 HD floppy) set this to 1
 sectpercl:	db 0x01
 		;number of reserved sectors, this value must at least be 1 for the bootsector
-nrressect:	dw 0x0001
+nrressect:	dw RESSECTORS
 		;number of file allocation tables, almost always 2
-nrofFATs:	db 2
+nrofFATs:	db NROFFATS
 		;number of root directory entries????
-nrrootdirent:	dw 0x00E0
+nrrootdirent:	dw NROFROOTDIRENTS
 		;total logical sectors
 nrofsect:	dw 2880
 		;media descriptor
 med_desc:	db 0xF0
 		;sectors for FAT
-nrFATsects:	dw 0x0009
+nrFATsects:	dw NROFFATSECTS
 		;number of sectors per track
 		dw 0x0012
 		;number of heads
@@ -68,22 +72,18 @@ bootloader:
 		call printf
 		;now load the system into the memory
 		;jmp loadsecondstage
-		mov ax, 0x0014
-		call loadsector
-		mov ax, [es:0000h]
-		call hexprintbyte
-		;mov si, msg2
+		call getfile
 		
 		
 		hang: jmp hang
 		
 printf:		lodsb
 		or al, al
-		jz done
+		jz .done
 		mov ah, 0x0E
 		int 0x10
 		jmp printf
-	done: 	ret
+	.done: 	ret
 
 hexprintbyte:
 		push ax
@@ -115,7 +115,8 @@ translatenibble:
 loadsecondstage:
 		;jmp 0x1000
 		
-loadsector:	;sector number in AX, result in ES:0000h
+loadsector:	;sector number in AX, result in ES:0000h, sectors to read in bl
+		push bx
 		push ax
 		mov ah, 0
 		mov dl, [drivenumber]
@@ -133,7 +134,8 @@ loadsector:	;sector number in AX, result in ES:0000h
 		mov dh, al	;head number
 		mov cl, ah	;sector
 
-		mov al, 01h	;sectors to read
+		pop bx
+		mov al, bl	;sectors to read
 		mov bx, 0000h	;dest. memory offset
 		mov ah, 02h	;instruction code
 		mov dl, [drivenumber]
@@ -152,15 +154,57 @@ repeatw:	mov ax, [es:bx]
 		jne repeatw
 		ret
 
-initFAT:	
+getfile:	mov ax, INITSEG
+		mov es, ax
+		mov bx, NROFROOTDIRENTS/16
+		mov ax, RESSECTORS+(NROFFATS * NROFFATSECTS)+1
+		;call hexprintbyte
+		;ret
+		call loadsector
+		mov al, [es:0000h]
+		call hexprintbyte
+		mov cl, 5
+		xor al, al
+
+	.loop:	
 		
-msg		db 'Welcome to LN-DOS  boot loader version 0.01!', 13, 10, 0
+		ret
+		
+		
+
+checkentry:	;al = entry number, ES = dir entries
+		mov si, sect2name
+		xor ah, ah
+		;dir entry size = 32 bytes
+		shl ax, 5
+		mov bx, ax
+
+	.loop:	lodsb
+		or al, al
+		je .true
+		mov ah, [es:bx]
+		cmp al, ah
+		jne .false
+		inc bx
+		jmp .loop
+		
+	.false:	xor al, al
+		;call hexprintbyte
+		ret
+	.true:	add bx, 0x0F
+		mov al, [es:bx]
+		call hexprintbyte
+		mov al, 1
+		ret
+		
+msg		db 'Welcome to LN-DOS  boot loader version 0.02!', 13, 10, 0
 msg2:		db 'Loaded second stage', 13, 10, 0
+sect2name	db 'BTST2   BIN', 0
 drivenumber:	db 0
 		times 510 - ($ - $$) db 0
 		db 0x55
 		db 0xAA
-		;sector 1
+sect1:		;sector 1
 		;mov si, msg2
 		; call printf
 ; lol:	jmp lol
@@ -171,8 +215,8 @@ drivenumber:	db 0
 		db 0xFF
 		;cluster 1
 		db 0xFF
-		db 0xFF
-		db 0xFF
+		db 0x0F
+		db 0x00
 		
 		times 5120 - ($ - $$) db 0
 		;FAT TABLE 2
@@ -181,14 +225,14 @@ drivenumber:	db 0
 		db 0xFF
 		
 		db 0xFF
-		db 0xFF
-		db 0xFF
+		db 0x0F
+		db 0x00
 		
 		
 		
 		times 0x2600 - ($ - $$) db 0
 		;root dir
-		db 'LukeOS     ' ;dir name
+		db 'LN-DOS     ' ;dir name
 		db 0x08 ;directory+volume
 		db 0x00 ;NT flags
 		db 0x00 ;creation time in 10ths of a second
