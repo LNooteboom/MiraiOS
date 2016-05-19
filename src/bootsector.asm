@@ -158,16 +158,16 @@ getfile:	mov ax, INITSEG
 		mov es, ax
 		mov bx, NROFROOTDIRENTS/16
 		mov ax, RESSECTORS+(NROFFATS * NROFFATSECTS)+1
-		;call hexprintbyte
-		;ret
 		call loadsector
 		mov al, [es:0000h]
-		call hexprintbyte
+		;call hexprintbyte
 		mov cl, 5
 		xor al, al
 
 	.loop:	
-		
+		call checkentry
+		mov al, 1
+		call checkentry
 		ret
 		
 		
@@ -186,15 +186,16 @@ checkentry:	;al = entry number, ES = dir entries
 		cmp al, ah
 		jne .false
 		inc bx
+		mov al, ah
+		call hexprintbyte
 		jmp .loop
 		
 	.false:	xor al, al
+		mov al, ah
 		;call hexprintbyte
 		ret
-	.true:	add bx, 0x0F
-		mov al, [es:bx]
+	.true:	mov al, 0xAB
 		call hexprintbyte
-		mov al, 1
 		ret
 		
 msg		db 'Welcome to LN-DOS  boot loader version 0.02!', 13, 10, 0
