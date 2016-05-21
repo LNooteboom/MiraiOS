@@ -112,6 +112,8 @@ translatenibble:
 		add al, 'A' - 10
 		ret
 		
+loadsecondstage:
+		;jmp 0x1000
 		
 loadsector:	;sector number in AX, result in ES:0000h, sectors to read in bl
 		push bx
@@ -159,32 +161,17 @@ getfile:	mov ax, INITSEG
 		call loadsector
 		mov al, [es:0000h]
 		;call hexprintbyte
-		mov al, 0
-		xor cl, cl
-	.loop:	inc cl
-		cmp cl, NROFROOTDIRENTS
-		je .error
-		mov al, cl
-		call checkentry
-		cmp ax, 0x0000
-		je .loop
-		push ax
-		mov bp, sp
-		jmp loadsecondstage
-		
-	.error:	mov ax, err
-		mov si, err
-		call printf
-		jmp $
+		mov cl, 5
+		xor al, al
 
-loadsecondstage:
-		;load fat table
-		xor ah, ah
-		mov al, RESSECTORS + 1
-		mov bl, NROFFATSECTS
-		call loadsector
-		;jump to clusternr in stack
-		pop ax
+	.loop:	
+		call checkentry
+		mov al, 1
+		call checkentry
+		mov al, ah
+		call hexprintbyte
+		
+		
 
 checkentry:	;al = entry number, ES = dir entries
 		mov si, sect2name
@@ -204,7 +191,7 @@ checkentry:	;al = entry number, ES = dir entries
 		;call hexprintbyte
 		jmp .loop
 		
-	.false:	xor ax, ax
+	.false:	xor al, al
 		;mov al, ah
 		;call hexprintbyte
 		ret
@@ -215,7 +202,7 @@ checkentry:	;al = entry number, ES = dir entries
 		ret
 		
 msg		db 'Welcome to LN-DOS  boot loader version 0.02!', 13, 10, 0
-err:		db 'Error: BTST2.BIN not found', 13, 10, 0
+msg2:		db 'Loaded second stage', 13, 10, 0
 sect2name	db 'BTST2   BIN', 0
 drivenumber:	db 0
 		times 510 - ($ - $$) db 0

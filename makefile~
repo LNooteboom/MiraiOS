@@ -4,10 +4,9 @@ all:	out.img
 	cp BTST2.BIN temp/
 	
 	umount temp/
-	cp out.img vmmount/
 
 out.img: src/bootsector.asm
 	nasm -f bin -o out.img src/bootsector.asm
 
 clean:
-	rm -rf temp
+	rm -r temp
