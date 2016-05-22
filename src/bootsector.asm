@@ -163,7 +163,7 @@ getfile:	mov ax, INITSEG
 		xor cl, cl
 	.loop:	inc cl
 		cmp cl, NROFROOTDIRENTS
-		je .error
+		je error
 		mov al, cl
 		call checkentry
 		cmp ax, 0x0000
@@ -172,7 +172,7 @@ getfile:	mov ax, INITSEG
 		mov bp, sp
 		jmp loadsecondstage
 		
-	.error:	mov ax, err
+	error:	mov ax, err
 		mov si, err
 		call printf
 		jmp $
@@ -184,7 +184,48 @@ loadsecondstage:
 		mov bl, NROFFATSECTS
 		call loadsector
 		;jump to clusternr in stack
+		mov ax, [ss:bp] ;clusternr
+		call getposfromcluster
+		mov bx, ax
+		jnc .inpos1
+		jmp .inpos2
+
+	.inpos1:mov al, [es:bx]
+		mov ah, [es:bx+1]
+		and ax, 0x0FFF
+		jmp .next
+
+	.inpos2:add bx, 1
+		mov al, [es:bx]
+		mov ah, [es:bx+1]
+		and ax, 0xFFF0
+		shr ax, 4
+
+	.next:	cmp ax, 0
+		je error
+		mov bx, 1
+		mov ax, SYSSEG
+		mov es, ax
+		mov ax, [ss:bp]
+		add ax, RESSECTORS+(NROFFATSECTS*NROFFATS)+(NROFROOTDIRENTS/16)-1
+		call loadsector
+		mov al, [es:0]
+		call hexprintbyte
 		pop ax
+		jmp far [es:0]
+		
+getposfromcluster: ;ax = clusternr, carry = offset 0 or 1
+		sub ax, 1
+		push ax
+		shr ax, 1
+		mov bx, ax
+		pop ax
+		pushf
+		;add bx, ax
+		add ax, bx
+		xor bx, bx
+		popf
+	.end:	ret
 
 checkentry:	;al = entry number, ES = dir entries
 		mov si, sect2name
@@ -210,7 +251,7 @@ checkentry:	;al = entry number, ES = dir entries
 		ret
 	.true:	mov al, 0xAB
 		call hexprintbyte
-		add bx, 0x0E
+		add bx, 0x0F
 		mov ax, [es:bx]
 		ret
 		
