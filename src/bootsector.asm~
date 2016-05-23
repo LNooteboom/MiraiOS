@@ -112,8 +112,6 @@ translatenibble:
 		add al, 'A' - 10
 		ret
 		
-loadsecondstage:
-		;jmp 0x1000
 		
 loadsector:	;sector number in AX, result in ES:0000h, sectors to read in bl
 		push bx
@@ -161,17 +159,73 @@ getfile:	mov ax, INITSEG
 		call loadsector
 		mov al, [es:0000h]
 		;call hexprintbyte
-		mov cl, 5
-		xor al, al
+		mov al, 0
+		xor cl, cl
+	.loop:	inc cl
+		cmp cl, NROFROOTDIRENTS
+		je error
+		mov al, cl
+		call checkentry
+		cmp ax, 0x0000
+		je .loop
+		push ax
+		mov bp, sp
+		jmp loadsecondstage
+		
+	error:	mov ax, err
+		mov si, err
+		call printf
+		jmp $
 
-	.loop:	
-		call checkentry
-		mov al, 1
-		call checkentry
-		mov al, ah
+loadsecondstage:
+		;load fat table
+		xor ah, ah
+		mov al, RESSECTORS + 1
+		mov bl, NROFFATSECTS
+		call loadsector
+		;jump to clusternr in stack
+		mov ax, [ss:bp] ;clusternr
+		call getposfromcluster
+		mov bx, ax
+		jnc .inpos1
+		jmp .inpos2
+
+	.inpos1:mov al, [es:bx]
+		mov ah, [es:bx+1]
+		and ax, 0x0FFF
+		jmp .next
+
+	.inpos2:add bx, 1
+		mov al, [es:bx]
+		mov ah, [es:bx+1]
+		and ax, 0xFFF0
+		shr ax, 4
+
+	.next:	cmp ax, 0
+		je error
+		mov bx, 1
+		mov ax, SYSSEG
+		mov es, ax
+		mov ax, [ss:bp]
+		add ax, RESSECTORS+(NROFFATSECTS*NROFFATS)+(NROFROOTDIRENTS/16)-1
+		call loadsector
+		mov al, [es:0]
 		call hexprintbyte
+		pop ax
+		jmp far [es:0]
 		
-		
+getposfromcluster: ;ax = clusternr, carry = offset 0 or 1
+		sub ax, 1
+		push ax
+		shr ax, 1
+		mov bx, ax
+		pop ax
+		pushf
+		;add bx, ax
+		add ax, bx
+		xor bx, bx
+		popf
+	.end:	ret
 
 checkentry:	;al = entry number, ES = dir entries
 		mov si, sect2name
@@ -191,18 +245,18 @@ checkentry:	;al = entry number, ES = dir entries
 		;call hexprintbyte
 		jmp .loop
 		
-	.false:	xor al, al
+	.false:	xor ax, ax
 		;mov al, ah
 		;call hexprintbyte
 		ret
-	.true:	mov al, 0xAB
-		call hexprintbyte
-		add bx, 0x0E
+	.true:	;mov al, 0xAB
+		;call hexprintbyte
+		add bx, 0x0F
 		mov ax, [es:bx]
 		ret
 		
 msg		db 'Welcome to LN-DOS  boot loader version 0.02!', 13, 10, 0
-msg2:		db 'Loaded second stage', 13, 10, 0
+err:		db 'Error: BTST2.BIN not found', 13, 10, 0
 sect2name	db 'BTST2   BIN', 0
 drivenumber:	db 0
 		times 510 - ($ - $$) db 0

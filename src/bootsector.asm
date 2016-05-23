@@ -209,8 +209,8 @@ loadsecondstage:
 		mov ax, [ss:bp]
 		add ax, RESSECTORS+(NROFFATSECTS*NROFFATS)+(NROFROOTDIRENTS/16)-1
 		call loadsector
-		mov al, [es:0]
-		call hexprintbyte
+		;mov al, [es:0]
+		;call hexprintbyte
 		pop ax
 		jmp far [es:0]
 		
@@ -249,8 +249,8 @@ checkentry:	;al = entry number, ES = dir entries
 		;mov al, ah
 		;call hexprintbyte
 		ret
-	.true:	mov al, 0xAB
-		call hexprintbyte
+	.true:	;mov al, 0xAB
+		;call hexprintbyte
 		add bx, 0x0F
 		mov ax, [es:bx]
 		ret
