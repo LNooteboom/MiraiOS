@@ -209,9 +209,10 @@ loadsecondstage:
 		mov ax, [ss:bp]
 		add ax, RESSECTORS+(NROFFATSECTS*NROFFATS)+(NROFROOTDIRENTS/16)-1
 		call loadsector
-		mov al, [es:0]
-		call hexprintbyte
+		;mov al, [es:0]
+		;call hexprintbyte
 		pop ax
+		mov bl, [drivenumber]
 		jmp far [es:0]
 		
 getposfromcluster: ;ax = clusternr, carry = offset 0 or 1
@@ -255,7 +256,7 @@ checkentry:	;al = entry number, ES = dir entries
 		mov ax, [es:bx]
 		ret
 		
-msg		db 'Welcome to LN-DOS  boot loader version 0.02!', 13, 10, 0
+msg		db 'Welcome to LN-DOS  boot loader version 0.03!', 13, 10, 0
 err:		db 'Error: BTST2.BIN not found', 13, 10, 0
 sect2name	db 'BTST2   BIN', 0
 drivenumber:	db 0
