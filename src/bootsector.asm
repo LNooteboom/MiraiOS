@@ -69,7 +69,7 @@ bootloader:
 		cld
 		
 		mov si, msg
-		call printf
+		call print
 		;now load the system into the memory
 		;jmp loadsecondstage
 		call getfile
@@ -77,12 +77,12 @@ bootloader:
 		
 		hang: jmp hang
 		
-printf:		lodsb
+print:		lodsb
 		or al, al
 		jz .done
 		mov ah, 0x0E
 		int 0x10
-		jmp printf
+		jmp print
 	.done: 	ret
 
 hexprintbyte:
@@ -174,7 +174,7 @@ getfile:	mov ax, INITSEG
 		
 	error:	mov ax, err
 		mov si, err
-		call printf
+		call print
 		jmp $
 
 loadsecondstage:
@@ -212,6 +212,7 @@ loadsecondstage:
 		mov bl, [drivenumber]
 		mov sp, bp
 		pop ax
+		;call hexprintbyte
 		push es
 		push 0x0000
 		retf

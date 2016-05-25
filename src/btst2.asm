@@ -10,22 +10,26 @@ NROFFATSECTS	equ	0x0009
 NROFROOTDIRENTS	equ	0x00E0
 
 
-start:		;mov ax, cs
-		;mov ds, ax
-		;mov [drivenumber], bl
+start:		push ax
+		mov ax, CURRENTSEG
+		mov ds, ax
 		mov [drivenumber], bl
+		pop ax
 		mov [currentsector], ax
-		call hexprintbyte
+		;call hexprintbyte
 		mov ax, EXTRASEG
 		mov es, ax
 		call loadfattable
-		pop ax
+		mov ax, [currentsector]
+		;mov si, stage2loadedmsg
+		;call print
 
 	.loop:	push ax
-		;add ax, RESSECTORS+(NROFFATSECTS*NROFFATS)+(NROFROOTDIRENTS/16)-1
-		;call loadsector
+		add ax, RESSECTORS+(NROFFATSECTS*NROFFATS)+(NROFROOTDIRENTS/16)-1
+		call loadsector
 		pop ax
 		call getfatentry
+		call hexprintbyte
 		cmp ax, 0x0FF8
 		jge .eof
 		cmp ax, 0x0FF0
@@ -35,35 +39,52 @@ start:		;mov ax, cs
 		jmp .loop
 
 	.err:	;pointing to bad/reserved sector
+		mov si, badsectormsg
+		call print
+		jmp $
 
-	.eof:	jmp $
+	.eof:	mov si, stage2loadedmsg
+		call print
+		jmp $
 
-hexprintbyte:	push ax
+hexprintbyte:	push bp
 		mov bp, sp
+		push ax
 		and al, 0xF0
 		shr al, 4
 		call translatenibble
 		mov ah, 0x0E
 		int 0x10
 		
-		pop ax
+		mov ax, [ss:bp-2]
+		;pop ax
 		and al, 0x0F
 		call translatenibble
 		mov ah, 0x0E
 		int 0x10
 		mov al, ' '
 		int 0x10
+		pop ax
+		pop bp
 		ret
 		
 translatenibble:
 		cmp al, 10
-		jge hexchar
+		jge .hexchar
 		;0-9
 		add al, '0'
 		ret
-	hexchar: ; A-F
+	.hexchar: ; A-F
 		add al, 'A' - 10
 		ret
+
+print:		lodsb
+		or al, al
+		jz .done
+		mov ah, 0x0E
+		int 0x10
+		jmp print
+	.done: 	ret
 
 loadfattable:	xor ah, ah
 		mov al, RESSECTORS + 1
@@ -135,3 +156,5 @@ loadsector:	;sector number in AX, result in ES:0000h, sectors to read in bl
 
 drivenumber:	db	0
 currentsector:	dw	0
+stage2loadedmsg:db	"Loaded stage 2", 13, 10, 0
+badsectormsg:	db	"ERROR: bad sector detected!", 13, 10, 0
