@@ -209,13 +209,12 @@ loadsecondstage:
 		mov ax, [ss:bp]
 		add ax, RESSECTORS+(NROFFATSECTS*NROFFATS)+(NROFROOTDIRENTS/16)-1
 		call loadsector
-		;mov al, [es:0]
-		;call hexprintbyte
-		pop ax
-		;mov [es:0], al
-		;call hexprintbyte
 		mov bl, [drivenumber]
-		jmp far [es:0x0000]
+		mov sp, bp
+		pop ax
+		push es
+		push 0x0000
+		retf
 		
 getposfromcluster: ;ax = clusternr, carry = offset 0 or 1
 		sub ax, 1

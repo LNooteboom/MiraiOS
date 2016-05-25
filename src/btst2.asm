@@ -1,7 +1,4 @@
 ORG	0x10000
-nop
-nop
-jmp start
 CURRENTSEG	equ	0x1000
 EXTRASEG	equ	0x7000
 
@@ -13,10 +10,12 @@ NROFFATSECTS	equ	0x0009
 NROFROOTDIRENTS	equ	0x00E0
 
 
-start:		mov bl, drivenumber
-		;pop ax
+start:		;mov ax, cs
+		;mov ds, ax
+		;mov [drivenumber], bl
+		mov [drivenumber], bl
+		mov [currentsector], ax
 		call hexprintbyte
-		push ax
 		mov ax, EXTRASEG
 		mov es, ax
 		call loadfattable
@@ -39,24 +38,21 @@ start:		mov bl, drivenumber
 
 	.eof:	jmp $
 
-hexprintbyte:	push bp
+hexprintbyte:	push ax
 		mov bp, sp
-		push ax
 		and al, 0xF0
 		shr al, 4
 		call translatenibble
 		mov ah, 0x0E
 		int 0x10
 		
-		mov ax, [es:bp+2]
+		pop ax
 		and al, 0x0F
 		call translatenibble
 		mov ah, 0x0E
 		int 0x10
 		mov al, ' '
 		int 0x10
-		pop ax
-		pop bp
 		ret
 		
 translatenibble:
@@ -138,3 +134,4 @@ loadsector:	;sector number in AX, result in ES:0000h, sectors to read in bl
 		ret
 
 drivenumber:	db	0
+currentsector:	dw	0
