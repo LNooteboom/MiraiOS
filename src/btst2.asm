@@ -1,5 +1,5 @@
 ORG	0x10000
-CURRENTSEG	equ	0x1200
+CURRENTSEG	equ	0x1000
 FATSEG		equ	0x7000
 
 SECTPERTRACK	equ	0x0012
@@ -16,15 +16,13 @@ start:		push ax
 		mov [drivenumber], bl
 		pop ax
 		mov [currentsector], ax
-		;call hexprintbyte
 		mov ax, FATSEG
 		mov fs, ax
+		mov es, ax
 		call loadfattable
 		mov ax, CURRENTSEG
 		mov es, ax
 		mov ax, [currentsector]
-		;mov si, stage2loadedmsg
-		;call print
 		xor bx, bx
 
 	.loop:	push bx
@@ -34,7 +32,7 @@ start:		push ax
 		call loadsector
 		pop ax
 		call getfatentry
-		call hexprintbyte
+		;call hexprintbyte
 		cmp ax, 0x0FF8
 		jge .eof
 		cmp ax, 0x0FF0
@@ -42,7 +40,7 @@ start:		push ax
 		cmp ax, 0x0001
 		jle .err
 		pop bx
-		add bx, 0x0200
+		add bh, 0x02
 		jmp .loop
 
 	.err:	;pointing to bad/reserved sector
@@ -50,12 +48,9 @@ start:		push ax
 		call print
 		jmp $
 
-	.eof:	mov al, 0xDE
-		call hexprintbyte
-		mov si, stage2loadedmsg
+	.eof:	mov si, stage2loadedmsg
 		call print
-		nop
-		jmp $
+		jmp next
 
 hexprintbyte:	push bp
 		mov bp, sp
@@ -96,20 +91,16 @@ print:		lodsb
 		jmp print
 	.done: 	ret
 
-loadfattable:	mov ax, fs
-		mov es, ax
-		xor ah, ah
-		mov al, RESSECTORS + 1
+loadfattable:	mov ax, RESSECTORS + 1
+		;mov ax, 1
 		mov cl, NROFFATSECTS
 		xor bx, bx
 		call loadsector
-		;mov al, [es:0]
+		;mov al, [fs:0]
 		;call hexprintbyte
 		ret
 
 getfatentry:	;ax = clusternr, fat table in fs, returns ax = table entry value
-		push bp
-		mov bp, sp
 		call getposfromcluster
 		mov bx, ax
 		jc .pos2
@@ -124,7 +115,7 @@ getfatentry:	;ax = clusternr, fat table in fs, returns ax = table entry value
 		and ax, 0xFFF0
 		shr ax, 4
 
-	.end:	pop bp
+	.end:	ret
 		
 getposfromcluster: ;ax = clusternr, carry = offset 0 or 1
 		sub ax, 1
@@ -139,7 +130,7 @@ getposfromcluster: ;ax = clusternr, carry = offset 0 or 1
 		popf
 	.end:	ret	
 
-loadsector:	;sector number in AX, result in ES:0000h, sectors to read in cl, offset in bx
+loadsector:	;sector number in AX, result in ES:BX, sectors to read in cl
 		push bx
 		push cx
 		push ax
@@ -159,17 +150,21 @@ loadsector:	;sector number in AX, result in ES:0000h, sectors to read in cl, off
 		mov dh, al	;head number
 		mov cl, ah	;sector
 
-		pop cx
-		mov al, cl	;sectors to read
+		pop bx
+		mov al, bl	;sectors to read
 		pop bx
 		mov ah, 02h	;instruction code
 		mov dl, [drivenumber]
 	.retry:	int 0x13
 		jc .retry
-		;call movemem
+		;mov al, [es:bx]
+		;call hexprintbyte
 		ret
 
 drivenumber:	db	0
 currentsector:	dw	0
 stage2loadedmsg:db	"Loaded stage 2", 13, 10, 0
 badsectormsg:	db	"ERROR: bad sector detected!", 13, 10, 0
+
+next:		mov al, 0xEF
+		call hexprintbyte
