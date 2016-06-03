@@ -166,5 +166,86 @@ currentsector:	dw	0
 stage2loadedmsg:db	"Loaded stage 2", 13, 10, 0
 badsectormsg:	db	"ERROR: bad sector detected!", 13, 10, 0
 
-next:		mov al, 0xEF
+next:		call test_a20
 		call hexprintbyte
+		call init_a20
+		call test_a20
+		call hexprintbyte
+
+test_a20:	pushf
+		push ds
+		push es
+		push di
+		push si
+
+		cli
+		
+		xor ax, ax
+		mov es, ax
+
+		not ax
+		mov ds, ax
+
+		mov ax, [es:0x7DFE]
+		cmp ax, [ds:0x7E0E]
+		jne .yes
+		mov ax, 0xABCD
+		mov [es:0x7DFE], ax
+		cmp ax, [ds:0x7E0E]
+		jne .yes
+		mov ax, 0
+		jmp .end
+
+	.yes:	mov ax, 1
+
+
+	.end:	pop si
+		pop di
+		pop es
+		pop ds
+		popf
+		ret
+
+init_a20:	push ax
+		cli
+
+		call kyb_wait_in
+		mov al, 0xAD
+		out 0x64, al ;disable input
+
+		call kyb_wait_in
+		mov al, 0xD0
+		out 0x64, al
+
+		call kyb_wait_out
+		in al, 0x60
+		push ax
+
+		call kyb_wait_in
+		mov al, 0xD1
+		out 0x64, al
+
+		call kyb_wait_in
+		pop ax
+		or al, 2
+		out 0x60, al
+
+		call kyb_wait_in
+		mov al, 0xAE
+		out 0x64, al
+
+		call kyb_wait_in
+		sti
+		pop ax
+		ret
+
+
+kyb_wait_in:	in al, 0x64 ;read status
+		test al, 2 ;check if input buffer flag is clear
+		jnz kyb_wait_in
+		ret
+
+kyb_wait_out:	in al, 0x64
+		test al, 1
+		jz kyb_wait_out
+		ret
