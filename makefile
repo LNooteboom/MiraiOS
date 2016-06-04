@@ -1,4 +1,8 @@
-all:	out.img BTST2.BIN
+SHELL = /bin/sh
+
+CFLAG = -Wall
+CC = ${TARGET}-gcc
+all:	out.img BTST2.BIN KERNEL
 	mkdir temp
 	mount out.img temp/
 	cp BTST2.BIN temp/
@@ -12,6 +16,9 @@ out.img: src/bootsector.asm
 
 BTST2.BIN: src/btst2.asm
 	nasm -f bin -o BTST2.BIN src/btst2.asm
+
+KERNEL:	src/kernel.c
+	${CC} ${CFLAG} -o kernel kernel.c
 
 clean:
 	rm -rf temp
