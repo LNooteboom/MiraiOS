@@ -1,0 +1,25 @@
+
+OUTPUT_FORMAT(elf32-i386)
+
+/*INPUT
+(
+	btst2.o
+	kernel.o
+)*/
+STARTUP(btst2.o)
+
+OUTPUT(BOOT)
+ENTRY(_stage2)
+
+SECTIONS {
+	. = 0x0000;
+	.text : {
+		btst2.o (.text);
+	}
+	.data : {
+		btst2.o (.data);
+	}
+	/*.text2 : {
+		btst2.o (.text2);
+	}*/
+}

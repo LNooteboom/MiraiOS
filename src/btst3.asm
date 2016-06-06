@@ -1,4 +1,5 @@
-ORG	0x10000
+BITS 16
+;ORG	0x10000
 CURRENTSEG	equ	0x1000
 FATSEG		equ	0x7000
 
@@ -9,8 +10,10 @@ NROFFATS	equ	0x0002
 NROFFATSECTS	equ	0x0009
 NROFROOTDIRENTS	equ	0x00E0
 
-
-start:		push ax
+SECTION .text
+global _stage2
+_stage2:	
+		push ax
 		mov ax, CURRENTSEG
 		mov ds, ax
 		mov [drivenumber], bl
@@ -161,10 +164,14 @@ loadsector:	;sector number in AX, result in ES:BX, sectors to read in cl
 		;call hexprintbyte
 		ret
 
+	SECTION .data
+
 drivenumber:	db	0
 currentsector:	dw	0
 stage2loadedmsg:db	"Loaded stage 2", 13, 10, 0
 badsectormsg:	db	"ERROR: bad sector detected!", 13, 10, 0
+
+	SECTION .text2
 
 next:		call test_a20
 		call hexprintbyte
