@@ -213,8 +213,10 @@ loadsecondstage:
 		mov sp, bp
 		pop ax
 		;call hexprintbyte
+		mov dx, 0x1000
+		add dx, [es:0x18]
 		push es
-		push 0x0000
+		push dx
 		retf
 		
 getposfromcluster: ;ax = clusternr, carry = offset 0 or 1

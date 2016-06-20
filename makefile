@@ -1,11 +1,14 @@
 SHELL = /bin/sh
 
-CFLAG = -Wall
+CFLAG = "-Wall"
 CC = ${TARGET}-gcc
-all:	out.img BTST2.BIN KERNEL
+
+LD = ${TARGET}-ld
+LDFLAGS = "-T"
+all:	out.img BOOT
 	mkdir temp
 	mount out.img temp/
-	cp BTST2.BIN temp/
+	cp BOOT temp/
 	
 	umount temp/
 	rm -rf temp/
@@ -14,13 +17,17 @@ all:	out.img BTST2.BIN KERNEL
 out.img: src/bootsector.asm
 	nasm -f bin -o out.img src/bootsector.asm
 
-BTST2.BIN: src/btst2.asm
-	nasm -f bin -o BTST2.BIN src/btst2.asm
+BOOT:	btst2.o kernel.o ld_scripts/kernel
+	${LD} ${LDFLAGS} ld_scripts/kernel
+	
+btst2.o: src/btst2.asm
+	nasm -f elf -o btst2.o src/btst2.asm
 
-KERNEL:	src/kernel.c
-	${CC} ${CFLAG} -o kernel kernel.c
+kernel.o:src/kernel.c
+	${CC} ${CFLAG} -c -o kernel.o src/kernel.c
 
 clean:
 	rm -rf temp
 	rm -f out.img
-	rm -f BTST2.BIN
+	rm -f BOOT
+	rm -f *.o

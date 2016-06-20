@@ -1,11 +1,11 @@
 
 OUTPUT_FORMAT(elf32-i386)
 
-/*INPUT
+INPUT
 (
-	btst2.o
+	/*btst2.o*/
 	kernel.o
-)*/
+)
 STARTUP(btst2.o)
 
 OUTPUT(BOOT)
@@ -19,7 +19,10 @@ SECTIONS {
 	.data : {
 		btst2.o (.data);
 	}
-	/*.text2 : {
+	.text2 : {
 		btst2.o (.text2);
-	}*/
+	}
+	.data2 : {
+		btst2.o (.data2);
+	}
 }
