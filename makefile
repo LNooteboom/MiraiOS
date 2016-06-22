@@ -6,11 +6,12 @@ CC = ${TARGET}-gcc
 
 LD = ${TARGET}-ld
 LDFLAGS = "-T"
-all:	out.img BOOT
+all:	out.img BOOT KERNEL
 	echo ${LD}
 	mkdir temp
 	mount out.img temp/
 	cp BOOT temp/
+	cp KERNEL temp/
 	
 	umount temp/
 	rm -rf temp/

@@ -1,7 +1,8 @@
 BITS 16
-ORG	0x10000
+;ORG	0x00000
 CURRENTSEG	equ	0x0050
 FATSEG		equ	0x7000
+KRNLSEG		equ	0x07E0
 
 SECTPERTRACK	equ	0x0012
 NROFHEADS	equ	0x0002
@@ -29,6 +30,8 @@ _stage2:
 		mov es, ax
 		mov ax, [currentsector]
 		xor bx, bx
+		push bx
+		jmp .entry
 
 	.loop:	push bx
 		push ax
@@ -36,8 +39,7 @@ _stage2:
 		mov cl, 1
 		call loadsector
 		pop ax
-		call getfatentry
-		;call hexprintbyte
+	.entry:	call getfatentry
 		cmp ax, 0x0FF8
 		jge .eof
 		cmp ax, 0x0FF0
@@ -53,7 +55,9 @@ _stage2:
 		call print
 		jmp $
 
-	.eof:	mov si, stage2loadedmsg
+	.eof:	mov al, 0xDF
+		call hexprintbyte
+		mov si, stage2loadedmsg
 		call print
 		jmp next
 
@@ -115,21 +119,19 @@ getfatentry:	;ax = clusternr, fat table in fs, returns ax = table entry value
 		and ax, 0x0FFF
 		jmp .end
 
-	.pos2:	mov al, [fs:bx+1]
-		mov ah, [fs:bx+2]
-		and ax, 0xFFF0
-		shr ax, 4
+	.pos2:	mov al, [fs:bx]
+		mov ah, [fs:bx+1]
+		and al, 0xF0
+		shr al, 4
 
 	.end:	ret
 		
 getposfromcluster: ;ax = clusternr, carry = offset 0 or 1
-		sub ax, 1
 		push ax
 		shr ax, 1
 		mov bx, ax
 		pop ax
 		pushf
-		;add bx, ax
 		add ax, bx
 		xor bx, bx
 		popf
@@ -144,6 +146,7 @@ loadsector:	;sector number in AX, result in ES:BX, sectors to read in cl
 		int 0x13
 		
 		pop ax
+		dec ax
 		mov bl, SECTPERTRACK*NROFHEADS
 		div bl
 		mov ch, al	;track
@@ -154,6 +157,7 @@ loadsector:	;sector number in AX, result in ES:BX, sectors to read in cl
 		div bl
 		mov dh, al	;head number
 		mov cl, ah	;sector
+		inc cl
 
 		pop bx
 		mov al, bl	;sectors to read
@@ -162,8 +166,6 @@ loadsector:	;sector number in AX, result in ES:BX, sectors to read in cl
 		mov dl, [drivenumber]
 	.retry:	int 0x13
 		jc .retry
-		;mov al, [es:bx]
-		;call hexprintbyte
 		ret
 
 
@@ -266,10 +268,46 @@ kyb_wait_out:	in al, 0x64
 		jz kyb_wait_out
 		ret
 
-load_krnl:	mov ax, RESSECTORS + (NROFFATS * NROFFATSECTS) + 1
-		call hexprintbyte
+load_krnl:	mov ax, KRNLSEG
+		mov es, ax
+		xor bx, bx
+		mov ax, RESSECTORS + (NROFFATS * NROFFATSECTS) + 1
 		mov cl, NROFROOTDIRENTS/16
+		call loadsector
+
+		;Root dir entries are now loaded
+		xor cx, cx
+	.start:	cmp cx, NROFROOTDIRENTS
+		je .nfound ;if it has run out of entries to look in
+		mov bx, cx
+		shl bx, 5 ;times 32 to get address
+		mov si, krnlfilename
+	.start2:mov al, bl
+		and al, 0x0F
+		cmp al, 0x0B
+		je .found
+		lodsb
+		cmp al, [es:bx]
+		pushf
+		inc bl
+		popf
+		je .start2
+
+	.end2:	inc cx
+		;push cx
+		mov al, cl
+		jmp .start
+	
+	.nfound:mov si, krnlnfounderror
+		call print
+		jmp $
+
+	.found:	mov si, krnlfoundmsg
+		call print
 		jmp $
 
 a20enabledmsg:	db 'A20 gate is enabled', endl
 a20errormsg:	db 'ERROR: Could not enable A20', endl
+krnlfilename:	db 'KERNEL     '
+krnlnfounderror:db 'ERROR: File ', 0x60, 'KERNEL', 0x60, ' could not be found!', endl
+krnlfoundmsg:	db 'KERNEL found, loading...', endl
