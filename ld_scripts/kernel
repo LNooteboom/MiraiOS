@@ -1,11 +1,11 @@
 
 OUTPUT_FORMAT(elf32-i386)
 
-INPUT
+/*INPUT
 (
-	/*btst2.o*/
+	btst2.o
 	kernel.o
-)
+)*/
 STARTUP(btst2.o)
 
 OUTPUT(BOOT)

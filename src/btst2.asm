@@ -1,6 +1,6 @@
 BITS 16
-;ORG	0x10000
-CURRENTSEG	equ	0x1000
+ORG	0x10000
+CURRENTSEG	equ	0x0050
 FATSEG		equ	0x7000
 
 SECTPERTRACK	equ	0x0012
@@ -10,7 +10,9 @@ NROFFATS	equ	0x0002
 NROFFATSECTS	equ	0x0009
 NROFROOTDIRENTS	equ	0x00E0
 
-SECTION .text
+
+%define endl	13,10,0
+
 global _stage2
 _stage2:	
 		push ax
@@ -164,20 +166,27 @@ loadsector:	;sector number in AX, result in ES:BX, sectors to read in cl
 		;call hexprintbyte
 		ret
 
-	SECTION .data
 
 drivenumber:	db	0
 currentsector:	dw	0
-stage2loadedmsg:db	"Loaded stage 2", 13, 10, 0
-badsectormsg:	db	"ERROR: bad sector detected!", 13, 10, 0
+stage2loadedmsg:db	"Loaded stage 2", endl
+badsectormsg:	db	"ERROR: bad sector detected!", endl
 
-	SECTION .text2
 
-next:		call test_a20
-		call hexprintbyte
+next:		call test_a20 ;test if A20 is already enabled
+		or al, al
+		jnz .a20en
 		call init_a20
 		call test_a20
-		call hexprintbyte
+		or al, al
+		jz .a20err
+	.a20en:	mov si, a20enabledmsg
+		call print
+		jmp .next0
+	.a20err:mov si, a20errormsg
+		call print
+		jmp $
+	.next0:	call load_krnl
 
 test_a20:	pushf
 		push ds
@@ -256,3 +265,11 @@ kyb_wait_out:	in al, 0x64
 		test al, 1
 		jz kyb_wait_out
 		ret
+
+load_krnl:	mov ax, RESSECTORS + (NROFFATS * NROFFATSECTS) + 1
+		call hexprintbyte
+		mov cl, NROFROOTDIRENTS/16
+		jmp $
+
+a20enabledmsg:	db 'A20 gate is enabled', endl
+a20errormsg:	db 'ERROR: Could not enable A20', endl

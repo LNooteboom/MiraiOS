@@ -1,4 +1,5 @@
 SHELL = /bin/sh
+TARGET = i686-elf
 
 CFLAG = "-Wall"
 CC = ${TARGET}-gcc
@@ -6,6 +7,7 @@ CC = ${TARGET}-gcc
 LD = ${TARGET}-ld
 LDFLAGS = "-T"
 all:	out.img BOOT
+	echo ${LD}
 	mkdir temp
 	mount out.img temp/
 	cp BOOT temp/
@@ -17,11 +19,8 @@ all:	out.img BOOT
 out.img: src/bootsector.asm
 	nasm -f bin -o out.img src/bootsector.asm
 
-BOOT:	btst2.o kernel.o ld_scripts/kernel
-	${LD} ${LDFLAGS} ld_scripts/kernel
-	
-btst2.o: src/btst2.asm
-	nasm -f elf -o btst2.o src/btst2.asm
+BOOT:	src/btst2.asm
+	nasm -f bin -o BOOT src/btst2.asm
 
 kernel.o:src/kernel.c
 	${CC} ${CFLAG} -c -o kernel.o src/kernel.c

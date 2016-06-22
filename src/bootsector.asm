@@ -1,7 +1,7 @@
 BOOTSEG	equ	0x7c00
 INITSEG	equ	0x9000
-SYSSEG	equ	0x1000
 SYSSIZE	equ	0x1000
+SYSSEG	equ	0x0050
 ENDSEG	equ	SYSSEG + SYSSIZE
 
 SECTPERTRACK	equ	0x0012
@@ -213,8 +213,7 @@ loadsecondstage:
 		mov sp, bp
 		pop ax
 		;call hexprintbyte
-		mov dx, 0x1000
-		add dx, [es:0x18]
+		xor dx, dx
 		push es
 		push dx
 		retf
@@ -261,8 +260,8 @@ checkentry:	;al = entry number, ES = dir entries
 		ret
 		
 msg		db 'Welcome to LN-DOS  boot loader version 0.03!', 13, 10, 0
-err:		db 'Error: BTST2.BIN not found', 13, 10, 0
-sect2name	db 'BTST2   BIN', 0
+err:		db 'Error: file ', 0x60, 'BOOT', 0x60, ' not found', 13, 10, 0
+sect2name	db 'BOOT       ', 0
 drivenumber:	db 0
 		times 510 - ($ - $$) db 0
 		db 0x55
