@@ -207,6 +207,14 @@ next:		call test_a20 ;test if A20 is already enabled
 		jmp $
 	.next0:	call load_krnl
 
+		call pmode
+		;jmp $
+		mov ax, 0x18
+		mov es, ax
+		xor bx, bx
+		mov [es:00], byte 'K'
+		jmp $
+
 test_a20:	pushf
 		push ds
 		push es
@@ -338,14 +346,50 @@ load_krnl:	mov ax, KRNLSEG
 		mov si, krnlloadedmsg
 		call print
 
-		mov al, [es:0]
-		call hexprintbyte
-		jmp $
+		ret
+
+pmode:		cli
+		lgdt [gdtr]
+		mov eax, cr0
+		or eax, 1
+		mov cr0, eax
+
+		ret
 
 krnlsector:	dw 0
+
 a20enabledmsg:	db 'A20 gate is enabled', endl
 a20errormsg:	db 'ERROR: Could not enable A20', endl
+
 krnlfilename:	db 'KERNEL     '
 krnlnfounderror:db 'ERROR: File ', 0x60, 'KERNEL', 0x60, ' could not be found!', endl
 krnlfoundmsg:	db 'KERNEL found, loading...', endl
 krnlloadedmsg:	db 'KERNEL loaded!', endl
+
+gdtr:		dw 0x1F ;size
+		dd gdt+(CURRENTSEG * 16) ;offset
+
+gdt:		;first, a null descriptor
+		dq 0
+		;code descriptor, base 0, limit 0xffffffff, type 0x9A
+		dw 0xFFFF ;limit 0:15
+		dw 0x0000 ;base 0:15
+		db 0x00   ;base 16:23
+		db 10011010b ;access byte
+		db 0xCF   ;flags & limit 16:19
+		db 0x00   ;base 24:31
+		;data descriptor, base 0, limit 0xffffffff, type 0x92
+		dw 0xFFFF ;limit 0:15
+		dw 0x0000 ;base 0:15
+		db 0x00   ;base 16:23
+		db 10010010b ;access byte
+		db 0xCF   ;flags & limit 16:19
+		db 0x00   ;base 24:31
+		;video descriptor, base 0x0000b800, limit 0x0000ffff, type 0x92
+		dw 0xFFFF ;limit 0:15
+		dw 0x8000 ;base 0:15
+		db 0x0B   ;base 16:23
+		db 10010010b ;access byte
+		db 0xCF   ;flags & limit 16:19
+		db 0x00   ;base 24:31
+
