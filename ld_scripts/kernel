@@ -6,23 +6,17 @@ OUTPUT_FORMAT(elf32-i386)
 	btst2.o
 	kernel.o
 )*/
-STARTUP(btst2.o)
+STARTUP(kernel.o)
 
-OUTPUT(BOOT)
-ENTRY(_stage2)
+OUTPUT(KERNEL)
+ENTRY(kmain)
 
 SECTIONS {
 	. = 0x0000;
 	.text : {
-		btst2.o (.text);
+		kernel.o (.text);
 	}
 	.data : {
-		btst2.o (.data);
-	}
-	.text2 : {
-		btst2.o (.text2);
-	}
-	.data2 : {
-		btst2.o (.data2);
+		kernel.o (.data);
 	}
 }

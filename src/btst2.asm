@@ -21,15 +21,29 @@ _stage2:
 		mov ds, ax
 		mov [drivenumber], bl
 		pop ax
+
 		mov [currentsector], ax
 		mov ax, FATSEG
 		mov fs, ax
 		mov es, ax
 		call loadfattable
+
 		mov ax, CURRENTSEG
 		mov es, ax
+
 		mov ax, [currentsector]
-		xor bx, bx
+		stc
+		call followfat
+
+		mov si, stage2loadedmsg
+		call print
+		jmp next
+
+followfat:	pushf
+		xor bx, bx ;ax = first sector, set cf if the first sector needs to be skipped
+		;result in [es:0x0000]
+		popf
+		jnc .loop
 		push bx
 		jmp .entry
 
@@ -55,11 +69,8 @@ _stage2:
 		call print
 		jmp $
 
-	.eof:	mov al, 0xDF
-		call hexprintbyte
-		mov si, stage2loadedmsg
-		call print
-		jmp next
+	.eof:	pop bx
+		ret
 
 hexprintbyte:	push bp
 		mov bp, sp
@@ -112,6 +123,12 @@ loadfattable:	mov ax, RESSECTORS + 1
 getfatentry:	;ax = clusternr, fat table in fs, returns ax = table entry value
 		call getposfromcluster
 		mov bx, ax
+		;pushf
+		;mov al, [fs:bx]
+		;call hexprintbyte
+		;mov al, [fs:bx+1]
+		;call hexprintbyte
+		;popf
 		jc .pos2
 
 	.pos1:	mov al, [fs:bx]
@@ -122,7 +139,7 @@ getfatentry:	;ax = clusternr, fat table in fs, returns ax = table entry value
 	.pos2:	mov al, [fs:bx]
 		mov ah, [fs:bx+1]
 		and al, 0xF0
-		shr al, 4
+		shr ax, 4
 
 	.end:	ret
 		
@@ -302,12 +319,33 @@ load_krnl:	mov ax, KRNLSEG
 		call print
 		jmp $
 
-	.found:	mov si, krnlfoundmsg
+	.found:	and bl, 0xF0
+		add bx, 0x1A ;start of file cluster nr
+		mov ax, [es:bx]
+		mov [krnlsector], ax
+
+		mov si, krnlfoundmsg
 		call print
+
+		mov ax, KRNLSEG
+		mov es, ax
+		;fat table should still be loaded in fs
+
+		mov ax, [krnlsector]
+		clc
+		call followfat
+
+		mov si, krnlloadedmsg
+		call print
+
+		mov al, [es:0]
+		call hexprintbyte
 		jmp $
 
+krnlsector:	dw 0
 a20enabledmsg:	db 'A20 gate is enabled', endl
 a20errormsg:	db 'ERROR: Could not enable A20', endl
 krnlfilename:	db 'KERNEL     '
 krnlnfounderror:db 'ERROR: File ', 0x60, 'KERNEL', 0x60, ' could not be found!', endl
 krnlfoundmsg:	db 'KERNEL found, loading...', endl
+krnlloadedmsg:	db 'KERNEL loaded!', endl
