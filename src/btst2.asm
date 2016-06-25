@@ -11,6 +11,8 @@ NROFFATS	equ	0x0002
 NROFFATSECTS	equ	0x0009
 NROFROOTDIRENTS	equ	0x00E0
 
+FILEOFFSET	equ	RESSECTORS+(NROFFATSECTS*NROFFATS)+(NROFROOTDIRENTS/16)-1
+
 
 %define endl	13,10,0
 
@@ -32,28 +34,42 @@ _stage2:
 		mov es, ax
 
 		mov ax, [currentsector]
-		stc
+		mov cx, 1
+		xor dx, dx
+		mov bx, 0x0200
 		call followfat
 
 		mov si, stage2loadedmsg
 		call print
 		jmp next
 
-followfat:	pushf
-		xor bx, bx ;ax = first sector, set cf if the first sector needs to be skipped
-		;result in [es:0x0000]
-		popf
-		jnc .loop
-		push bx
-		jmp .entry
+followfat:	;ax = first sector, cx = sectors to skip from start
+		;dx = amount of sectors to read 0 = 65536, stops at FAT EOF marker
+		;result in [es:bx]
+		push bp
+		mov bp, sp
 
 	.loop:	push bx
 		push ax
-		add ax, RESSECTORS+(NROFFATSECTS*NROFFATS)+(NROFROOTDIRENTS/16)-1
+		cmp cx, 0
+		jne .noload
+		push cx
+		push dx
+		add ax, FILEOFFSET
 		mov cl, 1
 		call loadsector
-		pop ax
-	.entry:	call getfatentry
+		pop dx
+		pop cx
+		dec dx
+		cmp dx, 0
+		je .end
+		jmp .cont
+
+	.noload:;sub bh, 0x02
+		;dec cx
+
+	.cont:	pop ax
+		call getfatentry ;should only change ax and bx
 		cmp ax, 0x0FF8
 		jge .eof
 		cmp ax, 0x0FF0
@@ -61,7 +77,10 @@ followfat:	pushf
 		cmp ax, 0x0001
 		jle .err
 		pop bx
-		add bh, 0x02
+		jcxz .cont2
+		dec cx
+		jmp .loop
+	.cont2:	add bh, 0x02
 		jmp .loop
 
 	.err:	;pointing to bad/reserved sector
@@ -69,7 +88,9 @@ followfat:	pushf
 		call print
 		jmp $
 
+	.end:	pop ax
 	.eof:	pop bx
+		pop bp
 		ret
 
 hexprintbyte:	push bp
@@ -195,7 +216,7 @@ badsectormsg:	db	"ERROR: bad sector detected!", endl
 next:		call test_a20 ;test if A20 is already enabled
 		or al, al
 		jnz .a20en
-		call init_a20
+		call init_a20 ;if not, enable A20 via the keyboard controller
 		call test_a20
 		or al, al
 		jz .a20err
@@ -205,7 +226,8 @@ next:		call test_a20 ;test if A20 is already enabled
 	.a20err:mov si, a20errormsg
 		call print
 		jmp $
-	.next0:	call load_krnl
+	.next0:	;jmp $
+		call load_krnl
 
 		call pmode
 		;jmp $
@@ -340,13 +362,225 @@ load_krnl:	mov ax, KRNLSEG
 		;fat table should still be loaded in fs
 
 		mov ax, [krnlsector]
-		clc
+		add ax, FILEOFFSET
+		;clc
+		;call followfat
+		;first we need to load in the first cluster to interpret the ELF header
+		xor bx, bx
+		mov cl, 1
+		call loadsector
+		;ok now we need to verify if the 'magic' bytes are correct
+		cmp [es:0x0000], word 0x457F ;0x7F & 0x45 ('E')
+		jne .ferror
+		cmp [es:0x0002], word 0x464C ;0x4C & 0x46 ('LF') remember, we use little endian
+		jne .ferror
+		;now that the magic bytes are verified, we need to make sure the file is
+		;32 bit and little endian (other modes are not supported)
+		cmp [es:0x0004], word 0x0101
+		jne .ferror ;I should probably make more error messages, oh well
+		;Now check the instruction set
+		cmp [es:0x0012], word 0x0003 ;x86
+		jne .ferror
+
+		;Let's now get the program header
+		;make sure that the 9 most significant bits are cleared
+		cmp [es:0x001F], byte 0x00
+		jne .ferror
+		test [es:0x001E], byte 0x80
+		jnz .ferror
+		;now get the program header position, the least significant byte doesnt matter
+		;as we are just looking at the cluster it is in
+		mov ax, [es:0x001D] ;here we are looking into the 2 middle bytes
+		shr ax, 1 ;divide it by 2 to get relative cluster nr
+		mov [progheadcluoffset], ax
+		;now we need to get the offset from the cluster in bytes
+		mov ax, [es:0x001C]
+		and ax, 0x01FF ;only the lowest 9 bits matter
+		mov [progheadboffset], ax
+		;as well as the number of entries
+		mov ax, [es:0x002C]
+		mov [progheadsize], ax
+		;now get the total program header table size in bytes
+		mov dx, [es:0x002E]
+		mul dx ;and multiply it to get the size in bytes
+		mov [progheadsizeb], ax
+		shr ax, 9 ;divide by 512 for the amount of clusters
+		inc al
+		mov [progheadsizecluster], al
+		;and we also need the size 1 entry takes up
+		mov ax, word [es:0x002A]
+		mov [progheadentsize], ax
+
+		;Ok now we need to set es
+		mov ax, 0x7E00
+		mov dx, [progheadsizeb]
+		shr dx, 4
+		inc dx ;to account for the last cluster
+		sub ax, dx
+		mov es, ax
+		;now we can finally start loading in the program headers
+		xor bx, bx
+		mov cx, [progheadcluoffset]
+		mov dl, [progheadsizecluster]
+		xor dh, dh
+		mov ax, [krnlsector]
 		call followfat
 
-		mov si, krnlloadedmsg
+		mov bx, [progheadboffset]
+		mov cx, [progheadsize]
+		;now we have to decode the header entries
+	.start3:jcxz .succ
+		mov al, [es:bx]
+		cmp al, 0
+		je .end3 ;skip null header
+		cmp al, 1
+		je .cont
+		call .perror
+		jmp .end3 ;skip it
+
+	.cont:	call progheaddecode
+
+	.end3:	add bx, 0x0020
+		dec cx
+		jmp .start3
+		
+	.perror:mov si, progheadnoload
+		call print
+		jmp $
+
+	.ferror:mov si, krnlformaterror
+		call print
+		jmp $
+
+	.succ:	mov si, krnlloadedmsg
 		call print
 
 		ret
+
+progheaddecode:	push bp
+		mov bp, sp
+		;stack map relative to bp:
+		;0x02 cx (reserved)
+		;0x04 bx proghead offset
+		;0x06 old es
+		;0x08 old ds
+		;0x0A new es
+		;0x0C new ds
+		;0x0E cluster offset
+		;0x10 vma
+		;0x14 bytes remaining(dword)
+		;0x18 PMA(dword)
+		;0x1A buffer offset
+		;0x1C buffer size
+		;now we copy p_filesz(0x10, dword) bytes 
+		;from p_offset(0x04, dword) to p_vaddr(0x08, dword)
+		push cx
+		push bx
+		push es
+		push ds
+		
+		;assign destination
+		mov ax, KRNLSEG
+		push ax ;as es
+		;assign buffer
+		mov ax, KRNLSEG
+		sub ax, 0x0020
+		push ax ;as ds
+
+		;get cluster
+		mov dl, [es:bx+0x07]
+		test dl, 0xFE
+		jnz .ferror
+		xor dh, dh
+		ror dx, 1
+		mov ax, [es:bx+0x05]
+		shr ax, 1
+		or ax, dx
+		push ax
+
+		;get VMA
+		mov ax, [es:bx+0x08]
+		and ax, 0x01FF
+		push ax
+
+		;get bytes remaining
+		mov eax, [es:bx+0x10]
+		push eax
+		;get PMA
+		mov eax, [es:bx+0x08]
+		push eax
+
+		;make room for 2 more uninitialized words
+		sub sp, 4
+
+	.start4:;get buffer offset and size
+		;buffer offset is the lowest 9 bits of the PMA
+		mov ax, [ss:bp-0x18]
+		and ax, 0x01FF
+		mov [ss:bp-0x1A], ax
+		;buffer size is the remaining bytes, capped at 0x200
+		mov eax, [ss:bp-0x14]
+		cmp eax, 0x00000200
+		jle .cont2
+		mov ax, 0x0200
+	.cont2:	mov [ss:bp-0x1C], ax
+
+		;load a sector to the buffer
+		mov dx, 1
+		mov cx, [ss:bp-0x0E]
+		xor bx, bx
+		mov ax, [ss:bp-0x0C]
+		mov es, ax
+		mov ax, [krnlsector]
+		call followfat
+		mov al, [es:0]
+		call hexprintbyte
+
+		;now copy the data from the buffer
+		mov ax, [ss:bp-0x0A]
+		mov es, ax
+		mov ax, [ss:bp-0x0C]
+		mov ds, ax
+		xor di, di
+		mov ax, [ss:bp-0x1A]
+		mov si, ax
+		mov cx, [ss:bp-0x1C]
+		cld
+
+		rep movsb
+
+		mov al, [es:0]
+		call hexprintbyte
+		jmp $
+		;update new destination
+		mov ax, es
+		add ax, 0x0200
+		mov [ss:bp-0x0A], ax
+		;update cluster offset
+		mov ax, [ss:bp-0x0E]
+		inc ax
+		mov [ss:bp-0x0E], ax
+		;update bytes remaining
+		mov eax, [ss:bp-0x12]
+		xor edx, edx
+		mov dx, [ss:bp-0x1C]
+		sub eax, edx
+		mov [ss:bp-0x12], eax
+		;update pma
+		mov eax, [ss:bp-0x16]
+		add eax, 0x00000200
+		mov [ss:bp-0x16], eax
+
+		pop ds
+		pop es
+		pop bx
+		pop cx
+		pop bp
+
+		ret
+	.ferror:mov si,krnlformaterror
+		call print
+		jmp $
 
 pmode:		cli
 		lgdt [gdtr]
@@ -358,13 +592,22 @@ pmode:		cli
 
 krnlsector:	dw 0
 
-a20enabledmsg:	db 'A20 gate is enabled', endl
+a20enabledmsg:	db 'A20 line is enabled', endl
 a20errormsg:	db 'ERROR: Could not enable A20', endl
 
 krnlfilename:	db 'KERNEL     '
 krnlnfounderror:db 'ERROR: File ', 0x60, 'KERNEL', 0x60, ' could not be found!', endl
 krnlfoundmsg:	db 'KERNEL found, loading...', endl
 krnlloadedmsg:	db 'KERNEL loaded!', endl
+krnlformaterror:db 'KERNEL format error', endl
+
+progheadnoload:	db 'WARN: KERNEL Program header contains unsupported mode, skipping...', endl
+progheadcluoffset:	dw 0
+progheadboffset:dw 0
+progheadsize:	dw 0
+progheadsizeb:	dw 0
+progheadsizecluster:	db 0
+progheadentsize:	dw 0
 
 gdtr:		dw 0x1F ;size
 		dd gdt+(CURRENTSEG * 16) ;offset

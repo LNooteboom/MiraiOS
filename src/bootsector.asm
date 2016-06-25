@@ -72,10 +72,11 @@ bootloader:
 		call print
 		;now load the system into the memory
 		;jmp loadsecondstage
-		call getfile
+		;call getfile
+		jmp getfile
 		
 		
-		hang: jmp hang
+		;hang: jmp hang
 		
 print:		lodsb
 		or al, al
@@ -259,7 +260,7 @@ checkentry:	;al = entry number, ES = dir entries
 		mov ax, [es:bx]
 		ret
 		
-msg		db 'Welcome to LN-DOS  boot loader version 0.03!', 13, 10, 0
+msg		db 'Welcome to LN-DOS  boot loader version 0.04!', 13, 10, 0
 err:		db 'Error: file ', 0x60, 'BOOT', 0x60, ' not found', 13, 10, 0
 sect2name	db 'BOOT       ', 0
 drivenumber:	db 0
