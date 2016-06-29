@@ -466,147 +466,123 @@ load_krnl:	mov ax, KRNLSEG
 
 		ret
 
-progheaddecode:	push bp
+progheaddecode:	;this function decodes a program header table entry and executes it
+		push bp
 		mov bp, sp
-		;stack map relative to bp:
-		;0x02 cx (reserved)
-		;0x04 bx proghead offset
-		;0x06 old es
-		;0x08 old ds
-		;0x0A new es
-		;0x0C new ds
-		;0x0E cluster offset
-		;0x10 vma
-		;0x14 bytes remaining(dword)
-		;0x18 PMA(dword)
-		;0x1A buffer offset
-		;0x1C buffer size
-		;now we copy p_filesz(0x10, dword) bytes 
-		;from p_offset(0x04, dword) to p_vaddr(0x08, dword)
-		push cx
-		push bx
-		push es
-		push ds
-		
-		;assign destination
+		;stack map:
+		;-2h cx reserved
+		;-4h bx program header offset
+		;-6h old es
+		;-8h old ds
+		;-Ah buffer segment
+		;-Ch destination segment
+		;-Eh current bytes remaining (low)
+		;-10h current bytes remaining (high)
+		;-12h current file offset (low)
+		;-14h current file offset (high)
+		;-16h current memory offset (low) unused
+		;-18h current memory offset (high) unused
+		sub sp, 0x18
+		mov [ss:bp-0x2], cx
+		mov [ss:bp-0x4], bx
+		mov ax, es
+		mov [ss:bp-0x6], ax
+		mov ax, ds
+		mov [ss:bp-0x8], ax
+
 		mov ax, KRNLSEG
-		push ax ;as es
-		;assign buffer
-		mov ax, KRNLSEG
+		mov [ss:bp-0xC], ax ;destination segment
 		sub ax, 0x0020
-		push ax ;as ds
+		mov [ss:bp-0xA], ax ;buffer segment
+		
+		mov ax, [es:bx+16]
+		mov [ss:bp-0xE], ax ;current bytes remaining (low)
+		mov ax, [es:bx+18]
+		mov [ss:bp-0x10], ax ;high
 
-		;get cluster
-		mov dl, [es:bx+0x07]
-		test dl, 0xFE
-		jnz .ferror
-		xor dh, dh
-		ror dx, 1
-		mov ax, [es:bx+0x05]
-		shr ax, 1
-		or ax, dx
-		push ax
+		mov ax, [es:bx+4]
+		mov [ss:bp-0x12], ax ;current file offset (low)
+		mov ax, [es:bx+6]
+		mov [ss:bp-0x14], ax ;high
 
-		;get VMA
-		mov ax, [es:bx+0x08]
-		and ax, 0x01FF
-		push ax
+		mov ax, [es:bx+8]
+		mov [ss:bp-0x16], ax ;current memory offset (low)
+		mov ax, [es:bx+10]
+		mov [ss:bp-0x18], ax ;high
 
-		;get bytes remaining
-		mov eax, [es:bx+0x10]
-		push eax
-		;get PMA
-		mov eax, [es:bx+0x08]
-		push eax
-
-		;make room for 2 more uninitialized words
-		sub sp, 4
-
-	.start:	;get buffer offset and size
-		;buffer offset is the lowest 9 bits of the PMA
-		mov ax, [ss:bp-0x18]
-		and ax, 0x01FF
-		mov [ss:bp-0x1A], ax
-		;buffer size is the remaining bytes, capped at 0x200
-		mov eax, [ss:bp-0x14]
-		cmp ax, 0x200
-		jle .cont2
-		mov ax, 0x0200
-	.cont2:	mov [ss:bp-0x1C], ax
-		call hexprintbyte
-		mov al, ah
-		call hexprintbyte
-
-		;load a sector to the buffer
-		mov dx, 1
-		mov cx, [ss:bp-0x0E]
-		xor bx, bx
-		mov ax, [ss:bp-0x0C]
+	.start:	;first we need the cluster nr
+		;code must be aligned to 0x200
+		mov ax, [ss:bp-0x14] ;high word first
+		shl eax, 16 ;and shift it
+		mov ax, [ss:bp-0x12] ;low word
+		shr eax, 9 ;divide it 512 times to get cluster nr
+		
+		;now load it into buffer
+		mov cx, ax
+		mov ax, [ss:bp-0x8]
+		mov ds, ax
+		mov ax, [ss:bp-0xA]
 		mov es, ax
+		xor bx, bx
+		mov dx, 1
 		mov ax, [krnlsector]
 		call followfat
-		;mov al, [es:0]
-		;call hexprintbyte
 
-		;now copy the data from the buffer
-		mov ax, [ss:bp-0x0A]
-		mov es, ax
-		mov ax, [ss:bp-0x0C]
+		;now get the amount of bytes to copy from the buffer, capped at 0x200
+		mov ax, [ss:bp-0xE]
+		cmp ax, 0x200
+		jle .cont
+		mov ax, 0x200
+	.cont:	xor ecx, ecx
+		mov cx, ax
+		
+		;set ds to buffer and es to destination
+		mov ax, es ;buffer segment should still be in es
 		mov ds, ax
-		xor di, di
-		mov ax, [ss:bp-0x1A]
-		mov si, ax
-		mov cx, [ss:bp-0x1C]
-		cld
+		mov ax, [ss:bp-0xC]
+		mov es, ax
+
+		mov si, 0
+		mov di, 0
 
 		rep movsb
 
-		mov al, [es:0]
-		call hexprintbyte
-		;update new destination
-		mov ax, es
-		add ax, 0x0200
-		mov [ss:bp-0x0A], ax
-		;update cluster offset
-		mov ax, [ss:bp-0x0E]
-		inc ax
-		mov [ss:bp-0x0E], ax
-		;update bytes remaining
-		mov eax, [ss:bp-0x12]
-		push eax
-		call hexprintbyte
-		mov al, ah
-		call hexprintbyte
-		pop eax
-		xor edx, edx
-		mov dx, [ss:bp-0x1C]
-		sub eax, edx
-		jz .done
-		mov [ss:bp-0x12], eax
-		;update pma
-		mov eax, [ss:bp-0x16]
-		add eax, 0x00000200
-		mov [ss:bp-0x16], eax
+		;check the current bytes remaining
+		mov ax, [ss:bp-0x10]
+		shl eax, 16
+		mov ax, [ss:bp-0xE]
+		;and decrease it by 512
+		sub eax, 0x200
+		jl .done ;if the bytes remaining was less than 512, we're done
+		mov [ss:bp-0xE], ax ;store low
+		shr eax, 16
+		mov [ss:bp-0x10], ax ;and high
 
-		mov al, 0xAC
-		call hexprintbyte
+		;now update destination segment
+		mov ax, [ss:bp-0xC]
+		add ax, 0x0020
+		mov [ss:bp-0xC], ax
+
+		;and the file offset
+		mov ax, [ss:bp-0x14]
+		shl eax, 16
+		mov ax, [ss:bp-0x12]
+		add eax, 0x200
+		mov [ss:bp-0x12], ax
+		shr eax, 16
+		mov [ss:bp-0x14], ax
 		jmp .start
 
-	.done:	mov ax, bp
-		sub ax, 0x08
-		mov sp, ax
+	.done:	mov ax, [ss:bp-0x6]
+		mov es, ax
+		mov ax, [ss:bp-0x8]
+		mov ds, ax
 
-		pop ds
-		pop es
-		pop bx
-		pop cx
+		mov cx, [ss:bp-0x2]
+		mov bx, [ss:bp-0x4]
+		mov sp, bp
 		pop bp
-
 		ret
-
-	.ferror:mov si,krnlformaterror
-		call print
-		jmp $
 
 pmode:		cli
 		lgdt [gdtr]
