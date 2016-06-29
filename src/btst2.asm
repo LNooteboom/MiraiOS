@@ -228,6 +228,7 @@ next:		call test_a20 ;test if A20 is already enabled
 		jmp $
 	.next0:	;jmp $
 		call load_krnl
+		;jmp $
 
 		call pmode
 		;jmp $
@@ -235,7 +236,15 @@ next:		call test_a20 ;test if A20 is already enabled
 		mov es, ax
 		xor bx, bx
 		mov [es:00], byte 'K'
-		jmp $
+
+		;Now we hand the system over to the kernel
+		mov ax, 0x0010
+		mov fs, ax
+		mov gs, ax
+		mov ds, ax
+		mov ax, 0x0018
+		mov es, ax
+		jmp 8:0 ;bye
 
 test_a20:	pushf
 		push ds
@@ -513,17 +522,20 @@ progheaddecode:	push bp
 		;make room for 2 more uninitialized words
 		sub sp, 4
 
-	.start4:;get buffer offset and size
+	.start:	;get buffer offset and size
 		;buffer offset is the lowest 9 bits of the PMA
 		mov ax, [ss:bp-0x18]
 		and ax, 0x01FF
 		mov [ss:bp-0x1A], ax
 		;buffer size is the remaining bytes, capped at 0x200
 		mov eax, [ss:bp-0x14]
-		cmp eax, 0x00000200
+		cmp ax, 0x200
 		jle .cont2
 		mov ax, 0x0200
 	.cont2:	mov [ss:bp-0x1C], ax
+		call hexprintbyte
+		mov al, ah
+		call hexprintbyte
 
 		;load a sector to the buffer
 		mov dx, 1
@@ -533,8 +545,8 @@ progheaddecode:	push bp
 		mov es, ax
 		mov ax, [krnlsector]
 		call followfat
-		mov al, [es:0]
-		call hexprintbyte
+		;mov al, [es:0]
+		;call hexprintbyte
 
 		;now copy the data from the buffer
 		mov ax, [ss:bp-0x0A]
@@ -551,7 +563,6 @@ progheaddecode:	push bp
 
 		mov al, [es:0]
 		call hexprintbyte
-		jmp $
 		;update new destination
 		mov ax, es
 		add ax, 0x0200
@@ -562,14 +573,28 @@ progheaddecode:	push bp
 		mov [ss:bp-0x0E], ax
 		;update bytes remaining
 		mov eax, [ss:bp-0x12]
+		push eax
+		call hexprintbyte
+		mov al, ah
+		call hexprintbyte
+		pop eax
 		xor edx, edx
 		mov dx, [ss:bp-0x1C]
 		sub eax, edx
+		jz .done
 		mov [ss:bp-0x12], eax
 		;update pma
 		mov eax, [ss:bp-0x16]
 		add eax, 0x00000200
 		mov [ss:bp-0x16], eax
+
+		mov al, 0xAC
+		call hexprintbyte
+		jmp .start
+
+	.done:	mov ax, bp
+		sub ax, 0x08
+		mov sp, ax
 
 		pop ds
 		pop es
@@ -578,6 +603,7 @@ progheaddecode:	push bp
 		pop bp
 
 		ret
+
 	.ferror:mov si,krnlformaterror
 		call print
 		jmp $
@@ -612,23 +638,23 @@ progheadentsize:	dw 0
 gdtr:		dw 0x1F ;size
 		dd gdt+(CURRENTSEG * 16) ;offset
 
-gdt:		;first, a null descriptor
+gdt:		;first, a null descriptor 0x00
 		dq 0
-		;code descriptor, base 0, limit 0xffffffff, type 0x9A
+		;code descriptor 0x08, base 0, limit 0xffffffff, type 0x9A
 		dw 0xFFFF ;limit 0:15
-		dw 0x0000 ;base 0:15
+		dw KRNLSEG * 16 ;base 0:15
 		db 0x00   ;base 16:23
 		db 10011010b ;access byte
 		db 0xCF   ;flags & limit 16:19
 		db 0x00   ;base 24:31
-		;data descriptor, base 0, limit 0xffffffff, type 0x92
+		;data descriptor 0x10, base 0, limit 0xffffffff, type 0x92
 		dw 0xFFFF ;limit 0:15
-		dw 0x0000 ;base 0:15
+		dw KRNLSEG * 16 ;base 0:15
 		db 0x00   ;base 16:23
 		db 10010010b ;access byte
 		db 0xCF   ;flags & limit 16:19
 		db 0x00   ;base 24:31
-		;video descriptor, base 0x0000b800, limit 0x0000ffff, type 0x92
+		;video descriptor 0x18, base 0x0000b800, limit 0x0000ffff, type 0x92
 		dw 0xFFFF ;limit 0:15
 		dw 0x8000 ;base 0:15
 		db 0x0B   ;base 16:23

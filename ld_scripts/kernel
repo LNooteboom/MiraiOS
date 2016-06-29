@@ -1,11 +1,11 @@
 
 OUTPUT_FORMAT(elf32-i386)
 
-/*INPUT
+INPUT
 (
-	btst2.o
-	kernel.o
-)*/
+	video.o
+	io.o
+)
 STARTUP(kernel.o)
 
 OUTPUT(KERNEL)
@@ -14,9 +14,9 @@ ENTRY(kmain)
 SECTIONS {
 	. = 0x0000;
 	.text : {
-		kernel.o (.text);
+		*.o (.text);
 	}
 	.data : {
-		kernel.o (.data);
+		*.o (.data);
 	}
 }
