@@ -1,4 +1,5 @@
 void write_to_vram(char value, unsigned short offset);
+void getCRTCPorts(void);
 int get_line_width(void);
 char inb(short port);
 void outb(short port, char value);
@@ -10,6 +11,7 @@ int cursorX = 0;
 int cursorY = 0;
 
 void kmain(void) {
+	getCRTCPorts();
 	linewidth = get_line_width();
 	hexprint(linewidth);
 	write_to_vram('%', linewidth);
@@ -38,6 +40,6 @@ void hexprint(int value) {
 		} else {
 			currentnibble += 'A' - 10;
 		}
-		cprint(currentnibble, 1);
+		cprint(currentnibble, 0x07);
 	}
 }
