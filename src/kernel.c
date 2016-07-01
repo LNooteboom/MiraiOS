@@ -1,17 +1,13 @@
-void write_to_vram(char value, unsigned short offset);
-void getCRTCPorts(void);
-int get_line_width(void);
-char inb(short port);
-void outb(short port, char value);
-void cprint(char c, char attrib);
-void hexprint(int value);
+#include "io.h"
+#include "video.h"
+#include "kernel.h"
 
 int linewidth;
 int cursorX = 0;
 int cursorY = 0;
 
 void kmain(void) {
-	getCRTCPorts();
+	video_init();
 	linewidth = get_line_width();
 	hexprint(linewidth);
 	write_to_vram('%', linewidth);

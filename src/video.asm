@@ -10,12 +10,16 @@ write_to_vram:	;(uint8_t value, uint16_t offset)
 		push ebp
 		mov ebp, esp
 		mov al, [ebp + 8] ;value
-		mov bx, [ebp + 12] ;address
-		mov [es:bx], al
+		mov ebx, [ebp + 12] ;address
+		mov [es:ebx], al
 		pop ebp
 		ret
 
-global getCRTCPorts:function
+global video_init:function
+video_init:	;(void) returns void
+		call getCRTCPorts
+		ret
+
 getCRTCPorts:	;(void) returns void
 		mov dx, 0x3CC ;misc output port
 		in al, dx
