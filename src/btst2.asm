@@ -2,7 +2,7 @@ BITS 16
 ;ORG	0x00000
 CURRENTSEG	equ	0x0050
 FATSEG		equ	0x7000
-KRNLSEG		equ	0x07E0
+KRNLSEG		equ	0x0700 ;values above 0800 dont work, idk why
 
 SECTPERTRACK	equ	0x0012
 NROFHEADS	equ	0x0002
@@ -326,10 +326,14 @@ kyb_wait_out:	in al, 0x64
 
 load_krnl:	mov ax, KRNLSEG
 		mov es, ax
+		call hexprintbyte
+		mov al, ah
+		call hexprintbyte
 		xor bx, bx
 		mov ax, RESSECTORS + (NROFFATS * NROFFATSECTS) + 1
 		mov cl, NROFROOTDIRENTS/16
 		call loadsector
+		call hexprintbyte
 
 		;Root dir entries are now loaded
 		xor cx, cx

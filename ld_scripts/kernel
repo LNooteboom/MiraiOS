@@ -5,6 +5,7 @@ INPUT
 (
 	video.o
 	io.o
+	memory.o
 )
 STARTUP(kernel.o)
 
@@ -12,7 +13,7 @@ OUTPUT(KERNEL)
 ENTRY(kmain)
 
 SECTIONS {
-	. = 0x0000;
+	. = 0x0;
 	.text : {
 		*.o (.text);
 	}

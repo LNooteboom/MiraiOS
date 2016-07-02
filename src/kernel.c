@@ -1,12 +1,14 @@
 #include "io.h"
 #include "video.h"
 #include "kernel.h"
+#include "memory.h"
 
 int linewidth;
 int cursorX = 0;
 int cursorY = 0;
 
 void kmain(void) {
+	init_memory();
 	video_init();
 	linewidth = get_line_width();
 	hexprint(linewidth);

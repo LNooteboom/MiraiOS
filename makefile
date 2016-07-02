@@ -22,7 +22,7 @@ out.img: src/bootsector.asm
 BOOT:	src/btst2.asm
 	nasm -f bin -o BOOT src/btst2.asm
 
-KERNEL:	kernel.o video.o io.o
+KERNEL:	kernel.o video.o io.o memory.o
 	${LD} ${LDFLAGS} ld_scripts/kernel
 
 kernel.o:src/kernel.c
@@ -33,6 +33,9 @@ video.o:src/video.asm
 
 io.o:	src/io.asm
 	nasm -f elf -o io.o src/io.asm
+
+memory.o:src/memory.asm
+	nasm -f elf -o memory.o src/memory.asm
 
 clean:
 	rm -rf temp
