@@ -5,6 +5,7 @@
 #include "kernel.h"
 #include "memory.h"
 #include "param.h"
+#include "irq.h"
 
 int linewidth;
 int cursorX;
@@ -13,16 +14,16 @@ int cursorY;
 void kmain(void) {
 	init_memory();
 	video_init();
+	irq_init();
 	linewidth = get_line_width();
 	cursorX = partable->cursorX;
 	cursorY = partable->cursorY;
-	hexprint(linewidth);
 	//do nothing for now
 	while (1) {};
 }
 
 void cprint(char c, char attrib) {
-	volatile char *video = (volatile char*)((cursorY * linewidth) + (cursorX << 1) + vram);
+	volatile char *video = (volatile char*)((cursorY * linewidth) + (cursorX * 2) + vram);
 	//write_to_vram(c, offset);
 	//offset++;
 	//write_to_vram(attrib, offset);
@@ -30,15 +31,19 @@ void cprint(char c, char attrib) {
 	*video = attrib;
 
 	cursorX++;
-	if (cursorX >= linewidth - 1) {
-		cursorY++;
-		cursorX = 0;
+	if (cursorX >= (linewidth / 2)) {
+		newline();
 	}
 	vga_set_cursor(cursorX, cursorY);
 }
+void newline(void) {
+	cursorX = 0;
+	cursorY++;
+	//todo: add scrolling
+}
 void hexprint(int value) {
 	for (int i = 7; i >= 0; i--) {
-		char currentnibble = (value >> (i << 2)) & 0x0F;
+		char currentnibble = (value >> (i * 4)) & 0x0F;
 		if (currentnibble < 10) {
 			//0-9
 			currentnibble += '0';

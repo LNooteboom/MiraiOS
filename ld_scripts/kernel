@@ -6,6 +6,7 @@ INPUT
 	video.o
 	io.o
 	memory.o
+	irq.o
 )
 STARTUP(kernel.o)
 
