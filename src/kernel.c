@@ -1,33 +1,40 @@
+//#pragma once
+
 #include "io.h"
 #include "video.h"
 #include "kernel.h"
 #include "memory.h"
+#include "param.h"
 
 int linewidth;
-int cursorX = 0;
-int cursorY = 0;
+int cursorX;
+int cursorY;
 
 void kmain(void) {
 	init_memory();
 	video_init();
 	linewidth = get_line_width();
+	cursorX = partable->cursorX;
+	cursorY = partable->cursorY;
 	hexprint(linewidth);
-	write_to_vram('%', linewidth);
 	//do nothing for now
 	while (1) {};
 }
 
 void cprint(char c, char attrib) {
-	unsigned short offset = (cursorY * 100) + (cursorX << 1);
-	write_to_vram(c, offset);
-	offset++;
-	write_to_vram(attrib, offset);
+	volatile char *video = (volatile char*)((cursorY * linewidth) + (cursorX << 1) + vram);
+	//write_to_vram(c, offset);
+	//offset++;
+	//write_to_vram(attrib, offset);
+	*video++ = c;
+	*video = attrib;
 
 	cursorX++;
-	if (cursorX > linewidth) {
+	if (cursorX >= linewidth - 1) {
 		cursorY++;
 		cursorX = 0;
 	}
+	vga_set_cursor(cursorX, cursorY);
 }
 void hexprint(int value) {
 	for (int i = 7; i >= 0; i--) {

@@ -229,14 +229,13 @@ next:		call test_a20 ;test if A20 is already enabled
 		jmp $
 	.next0:	;jmp $
 		call load_krnl
-		;jmp $
-
+		call getparameters
 		call pmode
 		;jmp $
 		mov ax, 0x18
 		mov es, ax
 		xor bx, bx
-		mov [es:00], byte 'K'
+		;mov [es:00], byte 'K'
 
 		;Now we hand the system over to the kernel
 		mov ax, 0x0010
@@ -327,14 +326,10 @@ kyb_wait_out:	in al, 0x64
 
 load_krnl:	mov ax, KRNLSEG
 		mov es, ax
-		call hexprintbyte
-		mov al, ah
-		call hexprintbyte
 		xor bx, bx
 		mov ax, RESSECTORS + (NROFFATS * NROFFATSECTS) + 1
 		mov cl, NROFROOTDIRENTS/16
 		call loadsector
-		call hexprintbyte
 
 		;Root dir entries are now loaded
 		xor cx, cx
@@ -598,23 +593,22 @@ getparameters:	;store them in a table
 		mov ax, PARAM_TABLE_SEG
 		mov es, ax
 		xor ax, ax
-		mov ax, di
+		mov di, ax
 		;kernel offset and memsize
 		mov eax, KRNLSEG
 		shl eax, 4
 		stosd
 		mov eax, krnlmemsz
 		stosd
-		;try 0x16, eax=e820
-		mov eax, 0xE820
-		stc
-		int 0x16
-		jnc .cont0
-		mov si, memE820err
-		call print
-		jmp $
-
-	.cont0:	add di, 24 ;table size
+		;cursor pos
+		mov ah, 0x03
+		xor bh, bh
+		int 0x10
+		mov al, dl
+		stosb
+		mov al, dh
+		stosb
+		ret
 
 pmode:		cli
 		lgdt [gdtr]
