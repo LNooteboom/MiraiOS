@@ -12,6 +12,7 @@ NROFFATSECTS	equ	0x0009
 NROFROOTDIRENTS	equ	0x00E0
 
 FILEOFFSET	equ	RESSECTORS+(NROFFATSECTS*NROFFATS)+(NROFROOTDIRENTS/16)-1
+PARAM_TABLE_SEG	equ	0x0300
 
 
 %define endl	13,10,0
@@ -244,7 +245,7 @@ next:		call test_a20 ;test if A20 is already enabled
 		mov ds, ax
 		mov ax, 0x0018
 		mov es, ax
-		jmp 8:0 ;bye
+		jmp 8:0x7000 ;bye
 
 test_a20:	pushf
 		push ds
@@ -494,6 +495,11 @@ progheaddecode:	;this function decodes a program header table entry and executes
 		mov ax, ds
 		mov [ss:bp-0x8], ax
 
+		;add to total memory size
+		mov eax, [krnlmemsz]
+		add eax, [es:bx+20]
+		mov [krnlmemsz], eax
+
 		mov ax, KRNLSEG
 		mov [ss:bp-0xC], ax ;destination segment
 		sub ax, 0x0020
@@ -588,6 +594,28 @@ progheaddecode:	;this function decodes a program header table entry and executes
 		pop bp
 		ret
 
+getparameters:	;store them in a table
+		mov ax, PARAM_TABLE_SEG
+		mov es, ax
+		xor ax, ax
+		mov ax, di
+		;kernel offset and memsize
+		mov eax, KRNLSEG
+		shl eax, 4
+		stosd
+		mov eax, krnlmemsz
+		stosd
+		;try 0x16, eax=e820
+		mov eax, 0xE820
+		stc
+		int 0x16
+		jnc .cont0
+		mov si, memE820err
+		call print
+		jmp $
+
+	.cont0:	add di, 24 ;table size
+
 pmode:		cli
 		lgdt [gdtr]
 		mov eax, cr0
@@ -595,6 +623,11 @@ pmode:		cli
 		mov cr0, eax
 
 		ret
+
+memE820err:	db 'WARN: Main memory dectection not available, trying alternatives...', endl
+lowmemerror:	db 'WARN: Could not detect low memory, assuming 0x80000', endl
+
+krnlmemsz:	dd 0
 
 krnlsector:	dw 0
 
@@ -622,14 +655,16 @@ gdt:		;first, a null descriptor 0x00
 		dq 0
 		;code descriptor 0x08, base 0, limit 0xffffffff, type 0x9A
 		dw 0xFFFF ;limit 0:15
-		dw KRNLSEG * 16 ;base 0:15
+		;dw KRNLSEG * 16 ;base 0:15
+		dw 0x0000
 		db 0x00   ;base 16:23
 		db 10011010b ;access byte
 		db 0xCF   ;flags & limit 16:19
 		db 0x00   ;base 24:31
 		;data descriptor 0x10, base 0, limit 0xffffffff, type 0x92
 		dw 0xFFFF ;limit 0:15
-		dw KRNLSEG * 16 ;base 0:15
+		;dw KRNLSEG * 16 ;base 0:15
+		dw 0x0000
 		db 0x00   ;base 16:23
 		db 10010010b ;access byte
 		db 0xCF   ;flags & limit 16:19

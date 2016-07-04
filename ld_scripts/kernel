@@ -13,11 +13,14 @@ OUTPUT(KERNEL)
 ENTRY(kmain)
 
 SECTIONS {
-	. = 0x0;
+	. = 0x7000;
 	.text : {
 		*.o (.text);
 	}
 	.data : {
 		*.o (.data);
+	}
+	.bss : {
+		*.o (.bss);
 	}
 }
