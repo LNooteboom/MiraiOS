@@ -16,6 +16,9 @@ ENTRY(kmain)
 SECTIONS {
 	. = 0x7000;
 	.text : {
+		irq.o (.text);
+	}
+	.text : {
 		*.o (.text);
 	}
 	.data : {

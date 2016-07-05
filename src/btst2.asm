@@ -236,6 +236,8 @@ next:		call test_a20 ;test if A20 is already enabled
 		mov es, ax
 		xor bx, bx
 		;mov [es:00], byte 'K'
+		mov ax, [krnlentry]
+		mov [jmpfar + 1], ax ;self modifying code
 
 		;Now we hand the system over to the kernel
 		mov ax, 0x0010
@@ -244,7 +246,7 @@ next:		call test_a20 ;test if A20 is already enabled
 		mov ds, ax
 		mov ax, 0x0018
 		mov es, ax
-		jmp 8:0x7000 ;bye
+	jmpfar:	jmp 8:0x7000 ;bye
 
 test_a20:	pushf
 		push ds
@@ -419,6 +421,10 @@ load_krnl:	mov ax, KRNLSEG
 		;and we also need the size 1 entry takes up
 		mov ax, word [es:0x002A]
 		mov [progheadentsize], ax
+
+		;store entry offset:
+		mov eax, [es:24]
+		mov [krnlentry], eax
 
 		;Ok now we need to set es
 		mov ax, 0x7E00
@@ -622,7 +628,8 @@ memE820err:	db 'WARN: Main memory dectection not available, trying alternatives.
 lowmemerror:	db 'WARN: Could not detect low memory, assuming 0x80000', endl
 
 krnlmemsz:	dd 0
-
+krnlgdtseg:	dw 8
+krnlentry:	dd 0
 krnlsector:	dw 0
 
 a20enabledmsg:	db 'A20 line is enabled', endl

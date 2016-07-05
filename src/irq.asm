@@ -1,17 +1,19 @@
 NROFIDTENTS:	equ 0x100
 BYTESPERIDTENT:	equ 0x08
-IDTOFFSET:	equ 0x3F00
+IDTOFFSET:	equ 0x3800
 NROFEXCINTS:	equ 17
-NROFRESINTS:	equ 0x20
 NROFPICINTS:	equ 0x10
 
 
 SECTION .text
 
+kernel_int:
+
 irq_PIT:	
 		iret
 
-irq_keyb:
+irq_keyb:	mov eax, 0xBEEFDEAD
+		jmp $
 		iret
 
 irq_COM2:
@@ -131,12 +133,23 @@ irq_init:	;(void) returns void
 		mov esi, idt_exception
 		rep movsb
 
-		;todo: add more idt entries
+		;now the pic interrupts
+		mov ecx, NROFPICINTS * BYTESPERIDTENT
+		mov edi, IDTOFFSET + (0x20 * BYTESPERIDTENT)
+		mov esi, idt_pic
+		rep movsb
+
+		;todo: add kernel interrupt
 
 		lidt [idtr]
 		mov edx, 0
-		div edx ;deliberately cause crash
-		jmp $
+		;div edx ;deliberately cause crash
+		;sti
+		;int 0x21 ;fake keyboard interrupt
+		mov ax, [ss:bp-4]
+		mov es, ax
+		leave
+		ret
 
 SECTION .data
 
@@ -147,6 +160,104 @@ idt_undefined:
 		dw irq_undefined ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
+		db 0x8F ;type + flags
+		dw 0 ;high word of offset
+
+idt_pic:
+		dw irq_PIT ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_keyb ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		;irq 2 should never be raised
+		dw irq_undefined ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_COM2 ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_COM1 ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_LPT2 ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_floppy ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_LPT1_spurious ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_RTC ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_9 ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_10 ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_11 ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_ps2mouse ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_coproc ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_ata1 ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8E ;type + flags
+		dw 0 ;high word of offset
+
+		dw irq_ata2 ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
 		db 0x8E ;type + flags
 		dw 0 ;high word of offset
 
@@ -154,103 +265,103 @@ idt_exception:
 		dw exc_diverror ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_debug_error ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw irq_undefined ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_breakpoint ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_overflow ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_bounds_check ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_inv_opcode ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_coproc_navail ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_double_fault ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_coproc_seg_overrun ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_invalid_tss ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_seg_npresent ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_stack ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_gen_prot ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_page_fault ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw irq_undefined ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 		dw exc_coproc_error ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
-		db 0x8E ;type + flags
+		db 0x8F ;type + flags
 		dw 0 ;high word of offset
 
 

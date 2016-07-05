@@ -18,6 +18,7 @@ void kmain(void) {
 	linewidth = get_line_width();
 	cursorX = partable->cursorX;
 	cursorY = partable->cursorY;
+	cprint('C', 1);
 	//do nothing for now
 	while (1) {};
 }
