@@ -192,6 +192,9 @@ vga_set_cursor:	;(int cursorX, int cursorY) returns void
 		ret
 
 SECTION .data
+global vram:data
+vram:		dd 0xB8000
+
 CRTC_index_port: dw 0x03D4
 CRTC_value_port: dw 0x03D5
 

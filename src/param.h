@@ -1,3 +1,5 @@
+#ifndef PARAM_H
+#define PARAM_H
 
 struct paramtable {
 	int krnloffset;
@@ -9,3 +11,4 @@ struct paramtable {
 
 volatile struct paramtable *partable = (volatile struct paramtable*)0x3000;
 
+#endif

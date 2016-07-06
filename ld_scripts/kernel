@@ -7,6 +7,7 @@ INPUT
 	io.o
 	memory.o
 	irq.o
+	tty.o
 )
 STARTUP(kernel.o)
 
