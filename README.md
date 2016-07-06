@@ -2,7 +2,7 @@
 Custom OS currently in development
 
 short term TODO list:
-- IDT and interrupt handlers
-- string print
+- Interrupt/Exception handlers
 - terminal scrolling
 - keyboard driver
+

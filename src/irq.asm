@@ -7,8 +7,6 @@ NROFPICINTS:	equ 0x10
 
 SECTION .text
 
-kernel_int:
-
 irq_PIT:	
 		iret
 
@@ -101,6 +99,9 @@ exc_page_fault:
 exc_coproc_error:
 		iret
 
+kernel_int:
+		iret
+
 irq_undefined:	iret
 
 global irq_init:function
@@ -139,7 +140,11 @@ irq_init:	;(void) returns void
 		mov esi, idt_pic
 		rep movsb
 
-		;todo: add kernel interrupt
+		;and finally the main kernel interrupt
+		mov ecx, BYTESPERIDTENT
+		mov edi, IDTOFFSET + (0x80 * BYTESPERIDTENT)
+		mov esi, idt_krnl
+		rep movsb
 
 		lidt [idtr]
 		mov edx, 0
@@ -158,6 +163,13 @@ idtr:		dw NROFIDTENTS * BYTESPERIDTENT
 
 idt_undefined:	
 		dw irq_undefined ;lower word of offset
+		dw 0x08 ;selector
+		db 0 ;unused
+		db 0x8F ;type + flags
+		dw 0 ;high word of offset
+
+idt_krnl:
+		dw kernel_int ;lower word of offset
 		dw 0x08 ;selector
 		db 0 ;unused
 		db 0x8F ;type + flags

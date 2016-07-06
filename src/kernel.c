@@ -18,7 +18,7 @@ void kmain(void) {
 	linewidth = get_line_width();
 	cursorX = partable->cursorX;
 	cursorY = partable->cursorY;
-	cprint('C', 1);
+	sprint("Kernel initializing...", 7);
 	//do nothing for now
 	while (1) {};
 }
@@ -52,5 +52,15 @@ void hexprint(int value) {
 			currentnibble += 'A' - 10;
 		}
 		cprint(currentnibble, 0x07);
+	}
+}
+void sprint(char *text, char attrib) {
+	while (*text != 0) {
+		if (*text == '\n') {
+			newline();
+		} else {
+			cprint(*text, attrib);
+		}
+		text++;
 	}
 }
