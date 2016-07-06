@@ -6,4 +6,6 @@ void video_init(void);
 
 int get_line_width(void);
 
+int vga_get_vertchars(void);
+
 void vga_set_cursor(int cursorX, int cursorY);

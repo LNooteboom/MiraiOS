@@ -8,18 +8,21 @@
 #include "irq.h"
 
 int linewidth;
+int screenheight;
 int cursorX;
 int cursorY;
+char currentattrib = 0x07; //white text on black background
 
 void kmain(void) {
 	init_memory();
 	video_init();
 	irq_init();
 	linewidth = get_line_width();
+	screenheight = vga_get_vertchars();
 	cursorX = partable->cursorX;
 	cursorY = partable->cursorY;
-	sprint("Kernel initializing...", 7);
-	//do nothing for now
+	sprint("Kernel initialising...", currentattrib);
+
 	while (1) {};
 }
 
@@ -42,7 +45,7 @@ void newline(void) {
 	cursorY++;
 	//todo: add scrolling
 }
-void hexprint(int value) {
+void hexprint(int value, char attrib) {
 	for (int i = 7; i >= 0; i--) {
 		char currentnibble = (value >> (i * 4)) & 0x0F;
 		if (currentnibble < 10) {
@@ -51,7 +54,7 @@ void hexprint(int value) {
 		} else {
 			currentnibble += 'A' - 10;
 		}
-		cprint(currentnibble, 0x07);
+		cprint(currentnibble, attrib);
 	}
 }
 void sprint(char *text, char attrib) {
