@@ -99,7 +99,7 @@ vga_get_vertchars: ;(void) returns int
 		out dx, al
 		mov dx, [CRTC_value_port]
 		in al, dx
-		;now and it to filter out other settings
+		;now AND it to filter out other settings
 		and al, 0x1F
 		;the field contains the amount of scanlines per char - 1 so we
 		;have to increment it
@@ -131,7 +131,7 @@ vga_get_vertchars: ;(void) returns int
 		or ah, al ;combine them
 		mov al, [ss:ebp-12] ;and get the lower 8 bits
 		;ax now contains the full 10 bit value
-		;clear the high word of eax and full edx
+		;clear the high word of eax and clear edx
 		mov dx, ax
 		xor eax, eax
 		mov ax, dx

@@ -4,6 +4,14 @@ IDTOFFSET:	equ 0x3800
 NROFEXCINTS:	equ 17
 NROFPICINTS:	equ 0x10
 
+extern sprint
+extern hexprint
+extern tty_clear_screen
+extern tty_set_full_screen_attrib
+extern vga_set_cursor
+extern cursorX
+extern cursorY
+extern currentattrib
 
 SECTION .text
 
@@ -53,9 +61,30 @@ irq_ata1:
 irq_ata2:
 		iret
 
-exc_diverror:	mov eax, 0xdeadbeef
+exc_diverror:	;mov eax, 0xdeadbeef
+		call tty_clear_screen
+		mov eax, 0x1F
+		mov [currentattrib], al
+		push eax
+		call tty_set_full_screen_attrib
+		pop eax
+		xor eax, eax
+		mov [cursorX], eax
+		mov [cursorY], eax
+		push eax
+		push eax
+		call vga_set_cursor
+		add esp, 8
+
+		xor eax, eax
+		mov al, [currentattrib]
+		push eax
+		mov eax, diverrormsg
+		push eax
+		call sprint
+		add esp, 8
 		jmp $
-		iret
+		;iret
 
 exc_debug_error:
 		iret
@@ -156,7 +185,14 @@ irq_init:	;(void) returns void
 		leave
 		ret
 
+global crashtest:function
+crashtest:	mov edx, 0
+		div edx
+		jmp $
+
 SECTION .data
+
+diverrormsg:	db 'Division error!',0
 
 idtr:		dw NROFIDTENTS * BYTESPERIDTENT
 		dd IDTOFFSET

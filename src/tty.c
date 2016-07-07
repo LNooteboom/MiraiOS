@@ -50,3 +50,27 @@ void sprint(char *text, char attrib) {
 	}
 }
 
+void tty_set_full_screen_attrib(char attrib) {
+	currentattrib = attrib;
+	volatile char *video = vram + 1;
+	for (int y = 0; y < screenheight; y++) {
+		for (int x = 0; x < linewidth / 2; x++) {
+			//volatile char *video = (volatile char*)((y * linewidth) + (x * 2) + vram + 1);
+			*video = attrib;
+			video += 2;
+		}
+	}
+}
+void tty_clear_screen(void) {
+	volatile char *video = vram;
+	for (int y = 0; y < screenheight; y++) {
+		for (int x = 0; x < linewidth / 2; x++) {
+			//volatile char *video = (volatile char*)((y * linewidth) + (x * 2) + vram);
+			*video = 0;
+			video += 2;
+		}
+	}
+	cursorX = 0;
+	cursorY = 0;
+	vga_set_cursor(cursorX, cursorY);
+}

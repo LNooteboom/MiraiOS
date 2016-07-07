@@ -15,8 +15,10 @@ void kmain(void) {
 	screenheight = vga_get_vertchars();
 	cursorX = partable->cursorX;
 	cursorY = partable->cursorY;
+	tty_set_full_screen_attrib(0x07);
 	sprint("Kernel initialising...\n", currentattrib);
-
+	//tty_clear_screen();
+	crashtest();
 	while (1) {};
 }
 

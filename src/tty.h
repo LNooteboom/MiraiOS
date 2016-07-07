@@ -12,4 +12,7 @@ void hexprint(int value, char attrib);
 void newline(void);
 void sprint(char *text, char attrib);
 
+void tty_set_full_screen_attrib(char attrib);
+void tty_clear_screen(void);
+
 #endif
