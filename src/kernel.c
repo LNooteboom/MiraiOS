@@ -17,8 +17,6 @@ void kmain(void) {
 	cursorY = partable->cursorY;
 	tty_set_full_screen_attrib(0x07);
 	sprint("Kernel initialising...\n", currentattrib);
-	//tty_clear_screen();
-	crashtest();
 	while (1) {};
 }
 

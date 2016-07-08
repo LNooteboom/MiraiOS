@@ -90,15 +90,45 @@ exc_breakpoint:
 		iret
 
 exc_overflow:
-		iret
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, overflowerr
+		push eax
+		call errorscreen
+		jmp $
 
 exc_bounds_check:
-		iret
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, bndrangeerr
+		push eax
+		call errorscreen
+		jmp $
 
 exc_inv_opcode:
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, invopcodeerr
+		push eax
+		call errorscreen
+		jmp $
 		iret
 
 exc_coproc_navail:
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, coprocnavail
+		push eax
+		call errorscreen
+		jmp $
 		iret
 
 exc_double_fault: ;BSOD time!
@@ -113,26 +143,80 @@ exc_double_fault: ;BSOD time!
 		jmp $
 
 exc_coproc_seg_overrun:
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, coprocsegoverrun
+		push eax
+		call errorscreen
+		jmp $
 		iret
 
 exc_invalid_tss:
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, invalidTSSerr
+		push eax
+		call errorscreen
+		jmp $
 		iret
 
 exc_seg_npresent:
-		mov ax, 0xDEDE
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, segnpresent
+		push eax
+		call errorscreen
 		jmp $
 		iret
 
 exc_stack:
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, stackfault
+		push eax
+		call errorscreen
+		jmp $
 		iret
 
 exc_gen_prot:
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, genprot
+		push eax
+		call errorscreen
+		jmp $
 		iret
 
 exc_page_fault:
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, pagefault
+		push eax
+		call errorscreen
+		jmp $
 		iret
 
 exc_coproc_error:
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, coprocerr
+		push eax
+		call errorscreen
+		jmp $
 		iret
 
 kernel_int:
@@ -198,7 +282,6 @@ crashtest:	;jmp $
 		mov eax, 1
 		mov edx, 0
 		div ebx
-		int 0x01
 		jmp $
 
 SECTION .data
@@ -206,6 +289,18 @@ SECTION .data
 diverrormsg:	db 'Division error',0
 dbgerror:	db 'Debug error', 0
 breakpointerr:	db 'Breakpoint reached', 0
+
+overflowerr:	db 'Overflow', 0
+bndrangeerr:	db 'BOUND Range exceeded', 0
+invopcodeerr:	db 'Invalid opcode detected', 0
+coprocnavail:	db 'Coprocessor not available', 0
+coprocsegoverrun:db 'Coprocessor segment overrun', 0
+invalidTSSerr:	db 'Invalid TSS', 0
+segnpresent:	db 'Segment not present', 0
+stackfault:	db 'Stack fault', 0
+genprot:	db 'General protection fault', 0
+pagefault:	db 'Page fault', 0
+coprocerr:	db 'Coprocessor error', 0
 
 dblfault:	db 'Double Fault', 0
 
