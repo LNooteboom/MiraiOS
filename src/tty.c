@@ -74,3 +74,14 @@ void tty_clear_screen(void) {
 	cursorY = 0;
 	vga_set_cursor(cursorX, cursorY);
 }
+void errorscreen(char *msg, int addr) {
+	char attrib = 0x1F;
+	tty_clear_screen();
+	tty_set_full_screen_attrib(attrib);
+	cursorX = 0;
+	cursorY = 0;
+	sprint(msg, attrib);
+	newline();
+	sprint("At ", attrib);
+	hexprint(addr, attrib);
+}

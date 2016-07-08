@@ -4,13 +4,8 @@ IDTOFFSET:	equ 0x3800
 NROFEXCINTS:	equ 17
 NROFPICINTS:	equ 0x10
 
+extern errorscreen
 extern sprint
-extern hexprint
-extern tty_clear_screen
-extern tty_set_full_screen_attrib
-extern vga_set_cursor
-extern cursorX
-extern cursorY
 extern currentattrib
 
 SECTION .text
@@ -62,34 +57,36 @@ irq_ata2:
 		iret
 
 exc_diverror:	;mov eax, 0xdeadbeef
-		call tty_clear_screen
-		mov eax, 0x1F
-		mov [currentattrib], al
-		push eax
-		call tty_set_full_screen_attrib
-		pop eax
-		xor eax, eax
-		mov [cursorX], eax
-		mov [cursorY], eax
-		push eax
-		push eax
-		call vga_set_cursor
-		add esp, 8
-
-		xor eax, eax
-		mov al, [currentattrib]
-		push eax
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4] ;get old eip
+		push eax ;and push it
 		mov eax, diverrormsg
 		push eax
-		call sprint
-		add esp, 8
+		call errorscreen
 		jmp $
 		;iret
 
 exc_debug_error:
+		push ebp
+		mov ebp, esp
+		mov eax, [ss:ebp+4]
+		push eax
+		mov eax, dbgerror
+		push eax
+		call errorscreen
+		jmp $
 		iret
 
 exc_breakpoint:
+		push ebp
+		mov ebp, esp
+		mov al, [currentattrib]
+		push eax
+		mov eax, breakpointerr
+		push eax
+		call sprint
+		leave
 		iret
 
 exc_overflow:
@@ -105,6 +102,14 @@ exc_coproc_navail:
 		iret
 
 exc_double_fault: ;BSOD time!
+		push ebp
+		mov esp, ebp
+		mov eax, [ss:ebp+8]
+		push eax
+		mov eax, dblfault
+		push eax
+		call errorscreen
+		
 		jmp $
 
 exc_coproc_seg_overrun:
@@ -114,6 +119,8 @@ exc_invalid_tss:
 		iret
 
 exc_seg_npresent:
+		mov ax, 0xDEDE
+		jmp $
 		iret
 
 exc_stack:
@@ -186,13 +193,21 @@ irq_init:	;(void) returns void
 		ret
 
 global crashtest:function
-crashtest:	mov edx, 0
-		div edx
+crashtest:	;jmp $
+		mov ebx, 0
+		mov eax, 1
+		mov edx, 0
+		div ebx
+		int 0x01
 		jmp $
 
 SECTION .data
 
-diverrormsg:	db 'Division error!',0
+diverrormsg:	db 'Division error',0
+dbgerror:	db 'Debug error', 0
+breakpointerr:	db 'Breakpoint reached', 0
+
+dblfault:	db 'Double Fault', 0
 
 idtr:		dw NROFIDTENTS * BYTESPERIDTENT
 		dd IDTOFFSET
