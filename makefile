@@ -7,7 +7,7 @@ CC = ${TARGET}-gcc
 LD = ${TARGET}-ld
 LDFLAGS = "-T"
 
-KRNLHEADERS = src/kernel.h src/video.h src/io.h src/irq.h src/tty.h src/memory.h src/param.h
+KRNLHEADERS = src/kernel.h src/video.h src/io.h src/irq.h src/tty.h src/memory.h src/param.h src/ps2.h
 all:	out.img BOOT KERNEL
 	mkdir temp
 	mount out.img temp/
@@ -24,7 +24,7 @@ out.img: src/bootsector.asm
 BOOT:	src/btst2.asm
 	nasm -f bin -o BOOT src/btst2.asm
 
-KERNEL:	kernel.o video.o io.o memory.o irq.o tty.o ${KRNLHEADERS}
+KERNEL:	kernel.o pit.o ps2.o video.o io.o memory.o irq.o tty.o ${KRNLHEADERS}
 	${LD} ${LDFLAGS} ld_scripts/kernel
 
 kernel.o:src/kernel.c src/kernel.h
@@ -44,6 +44,18 @@ irq.o:	src/irq.asm
 
 tty.o:	src/tty.c src/tty.h
 	${CC} ${CFLAG} -c -o tty.o src/tty.c
+
+ps2.o:	ps2c.o ps2asm.o
+	${LD} -r -o ps2.o ps2c.o ps2asm.o
+
+ps2c.o:	src/ps2.c
+	${CC} ${CFLAG} -c -o ps2c.o src/ps2.c
+
+ps2asm.o:src/ps2.asm
+	nasm -f elf -o ps2asm.o src/ps2.asm
+
+pit.o:	src/pit.asm
+	nasm -f elf -o pit.o src/pit.asm
 
 clean:
 	rm -rf temp

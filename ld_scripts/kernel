@@ -8,6 +8,8 @@ INPUT
 	memory.o
 	irq.o
 	tty.o
+	ps2.o
+	pit.o
 )
 STARTUP(kernel.o)
 

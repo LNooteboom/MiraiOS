@@ -7,53 +7,103 @@ NROFPICINTS:	equ 0x10
 extern errorscreen
 extern sprint
 extern currentattrib
+extern pic_eoi
+extern cursorX
+extern cursorY
+extern hexprint
 
 SECTION .text
 
-irq_PIT:	
+irq_PIT:	xor eax, eax
+		mov [cursorX], eax
+		mov [cursorY], eax
+		mov al, [currentattrib]
+		push eax
+		mov eax, [counter]
+		inc dword [counter]
+		push eax
+		call hexprint
+		add esp, 8
+		push 0
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_keyb:	mov eax, 0xBEEFDEAD
+irq_keyb:	mov eax, [currentattrib]
+		push eax
+		mov eax, keybmsg
+		push eax
+		call sprint
+		add esp, 8
 		jmp $
+		push 1
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_COM2:
+irq_COM2:	push 3
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_COM1:
+irq_COM1:	push 4
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_LPT2:
+irq_LPT2:	push 5
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_floppy:
+irq_floppy:	push 6
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_LPT1_spurious:
+irq_LPT1_spurious:push 7
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_RTC:
+irq_RTC:	push 8
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_9:
+irq_9:		push 9
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_10:
+irq_10:		push 10
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_11:
+irq_11:		push 11
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_ps2mouse:
+irq_ps2mouse:	push 12
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_coproc:
+irq_coproc:	push 13
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_ata1:
+irq_ata1:	push 14
+		call pic_eoi
+		add esp, 4
 		iret
 
-irq_ata2:
+irq_ata2:	push 15
+		call pic_eoi
+		add esp, 4
 		iret
 
 exc_diverror:	;mov eax, 0xdeadbeef
@@ -285,6 +335,9 @@ crashtest:	;jmp $
 		jmp $
 
 SECTION .data
+
+counter:	dd 0
+keybmsg:	db 'Keyboard interrupt received.', 0
 
 diverrormsg:	db 'Division error',0
 dbgerror:	db 'Debug error', 0
