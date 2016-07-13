@@ -10,6 +10,7 @@ extern char currentattrib;
 void cprint(char c, char attrib);
 void hexprint(int value, char attrib);
 void newline(void);
+void backspace(void);
 void sprint(char *text, char attrib);
 
 void tty_set_full_screen_attrib(char attrib);

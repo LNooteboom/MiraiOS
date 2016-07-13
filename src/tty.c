@@ -24,7 +24,30 @@ void cprint(char c, char attrib) {
 void newline(void) {
 	cursorX = 0;
 	cursorY++;
+	vga_set_cursor(cursorX, cursorY);
 	//todo: add scrolling
+}
+void backspace(void) {
+	volatile char *video = (volatile char*)((cursorY * linewidth) + (cursorX * 2) + vram);
+	video -= 2;
+	if (cursorX == 0) {
+		if (cursorY == 0) {
+			return; //cursor at start of the screen
+		}
+		cursorY--;
+		cursorX = (linewidth / 2);
+		while (*video == 0) {
+			if (cursorX == 0) {
+				break;
+			}
+			cursorX--;
+			video -= 2;
+		}
+	} else {
+		*video = 0;
+		cursorX--;
+	}
+	vga_set_cursor(cursorX, cursorY);
 }
 void hexprint(int value, char attrib) {
 	for (int i = 7; i >= 0; i--) {

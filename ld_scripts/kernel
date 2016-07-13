@@ -10,6 +10,7 @@ INPUT
 	tty.o
 	ps2.o
 	pit.o
+	keyb.o
 )
 STARTUP(kernel.o)
 

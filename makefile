@@ -24,7 +24,7 @@ out.img: src/bootsector.asm
 BOOT:	src/btst2.asm
 	nasm -f bin -o BOOT src/btst2.asm
 
-KERNEL:	kernel.o pit.o ps2.o video.o io.o memory.o irq.o tty.o ${KRNLHEADERS}
+KERNEL:	kernel.o keyb.o pit.o ps2.o video.o io.o memory.o irq.o tty.o ${KRNLHEADERS}
 	${LD} ${LDFLAGS} ld_scripts/kernel
 
 kernel.o:src/kernel.c src/kernel.h
@@ -56,6 +56,9 @@ ps2asm.o:src/ps2.asm
 
 pit.o:	src/pit.asm
 	nasm -f elf -o pit.o src/pit.asm
+
+keyb.o:	src/keyb.c src/keyb.h
+	${CC} ${CFLAG} -c -o keyb.o src/keyb.c
 
 clean:
 	rm -rf temp

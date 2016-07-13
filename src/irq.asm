@@ -12,6 +12,8 @@ extern cursorX
 extern cursorY
 extern hexprint
 
+extern presskey
+
 SECTION .text
 
 irq_PIT:	xor eax, eax
@@ -29,13 +31,10 @@ irq_PIT:	xor eax, eax
 		add esp, 4
 		iret
 
-irq_keyb:	mov al, [currentattrib]
+irq_keyb:	in al, 0x60
 		push eax
-		xor eax, eax
-		in al, 0x60
-		push eax
-		call hexprint
-		add esp, 8
+		call presskey
+		add esp, 4
 		push 1
 		call pic_eoi
 		add esp, 4
