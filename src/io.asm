@@ -70,17 +70,33 @@ initPICS:	;(void) returns void
 
 		;restore masks
 		;mov al, [ss:ebp-4] ;mask everything but keyboard
-		mov al, 0xFE
+		mov al, 0xFD
 		out PIC1_DATA, al
 		mov al, [ss:ebp-8]
 		out PIC2_DATA, al
 
-		sti
+		;sti
 		leave
 		ret
 
 pic_wait:	nop
 		nop
+		ret
+
+global pic_getmask_master:function
+pic_getmask_master:;(void) returns char
+		call pic_wait
+		in al, PIC1_DATA
+		ret
+
+global pic_setmask_master:function
+pic_setmask_master:;(char mask) returns void
+		push ebp
+		mov ebp, esp
+		call pic_wait
+		mov al, [ss:ebp+8]
+		out PIC1_DATA, al
+		leave
 		ret
 
 global pic_eoi:function

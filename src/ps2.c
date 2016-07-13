@@ -79,6 +79,11 @@ void ps2_init(void) {
 		ps2_write_data(config);
 	}
 
+	//unmask interrupt
+	//char mask = pic_getmask_master();
+	//mask |= 0x02; //set
+	//pic_setmask_master(mask);
+	asm ("sti");
 	ps2_send_port1(0xFF);
 }
 

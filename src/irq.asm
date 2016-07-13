@@ -29,13 +29,13 @@ irq_PIT:	xor eax, eax
 		add esp, 4
 		iret
 
-irq_keyb:	mov eax, [currentattrib]
+irq_keyb:	mov al, [currentattrib]
 		push eax
-		mov eax, keybmsg
+		xor eax, eax
+		in al, 0x60
 		push eax
-		call sprint
+		call hexprint
 		add esp, 8
-		jmp $
 		push 1
 		call pic_eoi
 		add esp, 4

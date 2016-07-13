@@ -6,5 +6,7 @@ void outb(short port, char value);
 
 void initPICS(void);
 
+char pic_getmask_master(void);
+void pic_setmask_master(char mask);
 
 #endif
