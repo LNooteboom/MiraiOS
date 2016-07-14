@@ -1,14 +1,12 @@
 #include "tty.h"
 #include "video.h"
 
-int linewidth;
-int screenheight;
 int cursorX;
 int cursorY;
 char currentattrib = 0x07; //white text on black background
 
 void cprint(char c, char attrib) {
-	volatile char *video = (volatile char*)((cursorY * linewidth) + (cursorX * 2) + vram);
+	volatile char *video = (volatile char*)((cursorY * screenwidth) + (cursorX * 2) + vram);
 	//write_to_vram(c, offset);
 	//offset++;
 	//write_to_vram(attrib, offset);
@@ -16,7 +14,7 @@ void cprint(char c, char attrib) {
 	*video = attrib;
 
 	cursorX++;
-	if (cursorX >= (linewidth / 2)) {
+	if (cursorX >= (screenwidth / 2)) {
 		newline();
 	}
 	vga_set_cursor(cursorX, cursorY);
@@ -28,14 +26,14 @@ void newline(void) {
 	//todo: add scrolling
 }
 void backspace(void) {
-	volatile char *video = (volatile char*)((cursorY * linewidth) + (cursorX * 2) + vram);
+	volatile char *video = (volatile char*)((cursorY * screenwidth) + (cursorX * 2) + vram);
 	video -= 2;
 	if (cursorX == 0) {
 		if (cursorY == 0) {
 			return; //cursor at start of the screen
 		}
 		cursorY--;
-		cursorX = (linewidth / 2);
+		cursorX = (screenwidth / 2);
 		while (*video == 0) {
 			if (cursorX == 0) {
 				break;
@@ -77,8 +75,8 @@ void tty_set_full_screen_attrib(char attrib) {
 	currentattrib = attrib;
 	volatile char *video = vram + 1;
 	for (int y = 0; y < screenheight; y++) {
-		for (int x = 0; x < linewidth / 2; x++) {
-			//volatile char *video = (volatile char*)((y * linewidth) + (x * 2) + vram + 1);
+		for (int x = 0; x < screenwidth / 2; x++) {
+			//volatile char *video = (volatile char*)((y * screenwidth) + (x * 2) + vram + 1);
 			*video = attrib;
 			video += 2;
 		}
@@ -87,8 +85,8 @@ void tty_set_full_screen_attrib(char attrib) {
 void tty_clear_screen(void) {
 	volatile char *video = vram;
 	for (int y = 0; y < screenheight; y++) {
-		for (int x = 0; x < linewidth / 2; x++) {
-			//volatile char *video = (volatile char*)((y * linewidth) + (x * 2) + vram);
+		for (int x = 0; x < screenwidth / 2; x++) {
+			//volatile char *video = (volatile char*)((y * screenwidth) + (x * 2) + vram);
 			*video = 0;
 			video += 2;
 		}

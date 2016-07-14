@@ -1,4 +1,5 @@
 #include "tty.h"
+#include "video.h"
 #include "ps2.h"
 
 char scantable[] = {
@@ -53,7 +54,18 @@ void presskey(char scancode) {
 		break;
 
 		case (char)0xE0: //multimedia keys
-		ps2_read_data();
+		key = ps2_read_data();
+		switch (key) {
+			case (char)0xF0:
+			ps2_read_data();
+			break;
+			case (char)0x7D: //page up
+			vga_set_scroll(--scrollY);
+			break;
+			case (char)0x7A: //page down
+			vga_set_scroll(++scrollY);
+			break;
+		}
 		break;
 
 		case (char)0x66: //backspace
@@ -73,7 +85,9 @@ void presskey(char scancode) {
 		} else {
 			dispchar = scantable[(int)scancode];
 		}
-		cprint(dispchar, currentattrib);
+		if (dispchar != 0) {
+			cprint(dispchar, currentattrib);
+		}
 		break;
 	}
 }

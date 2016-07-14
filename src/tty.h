@@ -1,8 +1,6 @@
 #ifndef TTY_H
 #define TTY_H
 
-extern int linewidth;
-extern int screenheight;
 extern int cursorX;
 extern int cursorY;
 extern char currentattrib;

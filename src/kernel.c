@@ -14,8 +14,6 @@ void kmain(void) {
 	video_init();
 	irq_init();
 	initPICS();
-	linewidth = get_line_width();
-	screenheight = vga_get_vertchars();
 	cursorX = partable->cursorX;
 	cursorY = partable->cursorY;
 	tty_set_full_screen_attrib(0x07);

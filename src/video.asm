@@ -1,7 +1,6 @@
 ;all functions here use the cdecl calling convention unless specified otherwise
 BITS 32
 
-extern linewidth
 extern hexprint
 
 SECTION .text
@@ -20,6 +19,13 @@ SECTION .text
 global video_init:function
 video_init:	;(void) returns void
 		call getCRTCPorts
+		call get_line_width
+		;shr eax, 1
+		mov [screenwidth], eax
+		call vga_get_screenheight
+		mov [screenheight], eax
+		call getvirt_ychars
+		mov [vscreen_ychars], ax
 		
 		ret
 
@@ -33,7 +39,15 @@ getCRTCPorts:	;(void) returns void
 		mov ax, 0x3B5
 		mov [CRTC_value_port], ax
 	.end:	ret
-		
+
+getvirt_ychars:	;(void) returns short
+		xor eax, eax
+		mov ax, [vram_size]
+		xor edx, edx
+		mov ebx, [screenwidth]
+		div ebx
+		shr ax, 1
+		ret
 
 global get_line_width:function
 get_line_width:	;(void) returns int width
@@ -83,8 +97,8 @@ get_line_width:	;(void) returns int width
 		pop ebp
 		ret
 
-global vga_get_vertchars:function
-vga_get_vertchars: ;(void) returns int
+global vga_get_screenheight:function
+vga_get_screenheight: ;(void) returns int
 		push ebp
 		mov ebp, esp
 		sub esp, 12
@@ -160,14 +174,14 @@ vga_set_cursor:	;(int cursorX, int cursorY) returns void
 		mov ebp, esp
 		;mov edx, [ss:ebp+8]
 		mov eax, [ss:ebp+12]
-		mul dword [linewidth]
+		mul dword [screenwidth]
 		shr eax, 1
 		;push eax
 		;call hexprint
 		;jmp $
 		mov edx, eax
 		mov eax, [ss:ebp+8]
-		;shl eax, 1
+		;shr eax, 1
 		add eax, edx
 		mov [ss:ebp+8], eax
 		;save old index port
@@ -191,10 +205,60 @@ vga_set_cursor:	;(int cursorX, int cursorY) returns void
 		pop ebp
 		ret
 
+global vga_set_scroll:function
+vga_set_scroll:	;(int scrollY) returns void
+		push ebp
+		mov ebp, esp
+		sub esp, 8
+
+		mov eax, [ss:ebp+8]
+		xor edx, edx
+		mov ebx, [screenwidth]
+		shr ebx, 1
+		mul ebx
+		mov [ss:ebp-8], eax ;save the address offset
+
+		mov dx, [CRTC_index_port]
+		in al, dx
+		mov [ss:ebp-4], al ;save old index value
+
+		mov al, 0x0D ;start address low
+		out dx, al
+		mov dx, [CRTC_value_port]
+		mov al, [ss:ebp-8]
+		out dx, al
+
+		mov dx, [CRTC_index_port]
+		mov al, 0x0C ;start address high
+		out dx, al
+		mov dx, [CRTC_value_port]
+		mov al, [ss:ebp-7]
+		out dx, al
+		
+		mov dx, [CRTC_index_port]
+		mov al, [ss:ebp-4]
+		out dx, al ;restore old index port value
+
+		leave
+		ret
+
 SECTION .data
 global vram:data
 vram:		dd 0xB8000
+vram_size:	dw 0x08000
+
+global scrollY:data
+scrollY:	dw 0
 
 CRTC_index_port: dw 0x03D4
 CRTC_value_port: dw 0x03D5
+
+SECTION .bss
+
+vscreen_ychars:	resw 1
+
+global screenwidth:data
+screenwidth:	resd 1
+global screenheight:data
+screenheight:	resd 1
 
