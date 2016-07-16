@@ -24,8 +24,8 @@ out.img: src/bootsector.asm
 BOOT:	src/btst2.asm
 	nasm -f bin -o BOOT src/btst2.asm
 
-KERNEL:	kernel.o keyb.o pit.o ps2.o video.o io.o memory.o irq.o tty.o ${KRNLHEADERS}
-	${LD} ${LDFLAGS} ld_scripts/kernel
+KERNEL:	kernel.o keyb.o pit.o ps2.o video.o io.o memory.o irq.o tty.o ${KRNLHEADERS} ld_scripts/kernel.lds
+	${LD} ${LDFLAGS} ld_scripts/kernel.lds
 
 kernel.o:src/kernel.c src/kernel.h
 	${CC} ${CFLAG} -c -o kernel.o src/kernel.c

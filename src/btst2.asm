@@ -614,6 +614,29 @@ getparameters:	;store them in a table
 		stosb
 		mov al, dh
 		stosb
+
+		;memory detection
+		xor ebx, ebx
+		mov edx, 0x534D4150 ;magic number
+	.start:	
+		mov eax, 0xE820
+		mov ecx, 24
+		int 0x15
+		jc .end
+		cmp eax, 0x534D4150 ;more magic number
+		jne .bioserr
+		mov ax, di
+		call hexprintbyte
+		or ebx, ebx
+		jz .end
+		add di, 24
+		jmp .start
+
+	.bioserr:
+		mov eax, 0xdeadbeef
+		jmp $
+
+	.end:	;jmp $
 		ret
 
 pmode:		cli

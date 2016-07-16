@@ -7,6 +7,16 @@ struct paramtable {
 
 	char cursorX;
 	char cursorY;
+
+	memdetectentry memory_table[];
+};
+struct memdetectentry {
+	int baseLow;
+	int baseHigh;
+	int lengthLow;
+	int lengthHigh;
+	int type;
+	int unused;
 };
 
 volatile struct paramtable *partable = (volatile struct paramtable*)0x3000;
