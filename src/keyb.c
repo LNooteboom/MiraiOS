@@ -62,8 +62,30 @@ void presskey(char scancode) {
 			case (char)0x7D: //page up
 			vga_set_scroll(--scrollY);
 			break;
+			case (char)0x75: //cursor up
+			cursorY--;
+			shift_cursor_left();
+			vga_set_cursor(cursorX, cursorY);
+			break;
 			case (char)0x7A: //page down
 			vga_set_scroll(++scrollY);
+			break;
+			case (char)0x72: //cursor down
+			cursorY++;
+			shift_cursor_left();
+			vga_set_cursor(cursorX, cursorY);
+			break;
+
+			case (char)0x6B: //cursor left
+			if (cursorX != 0) {
+				cursorX--;
+				vga_set_cursor(cursorX, cursorY);
+			}
+			break;
+			case (char)0x74: //cursor right
+			cursorX++;
+			shift_cursor_left();
+			vga_set_cursor(cursorX, cursorY);
 			break;
 		}
 		break;

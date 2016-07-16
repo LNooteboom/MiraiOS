@@ -3,5 +3,8 @@ Custom OS currently in development
 
 short term TODO list:
 - terminal scrolling
-- keyboard driver
+- Memory manager
+ - Memory detection (kernel parameter?)
+ - Memory chunk list
+ - memory allocation & freeing
 
