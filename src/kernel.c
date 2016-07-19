@@ -8,6 +8,7 @@
 #include "pit.h"
 #include "ps2.h"
 
+int temp;
 
 void kmain(void) {
 	init_memory();
@@ -26,6 +27,13 @@ void kmain(void) {
 	PIT_init();
 
 	globalpages_setup();
+	//test:
+	alloc_page(&temp);
+	hexprint(temp, currentattrib);
+	newline();
+	alloc_page(&temp);
+	hexprint(temp, currentattrib);
+	newline();
 
 	sprint("Initialization complete!", currentattrib);
 	while (1) {};

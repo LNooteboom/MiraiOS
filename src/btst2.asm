@@ -229,6 +229,12 @@ next:		call test_a20 ;test if A20 is already enabled
 		jmp $
 	.next0:	;jmp $
 		call load_krnl
+		;turn off floppy drive motor
+		mov dx, 0x3F2
+		in al, dx
+		and al, 0x0F
+		out dx, al
+
 		call getparameters
 		call pmode
 		;jmp $

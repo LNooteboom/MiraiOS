@@ -62,27 +62,26 @@ init_memory:	;(void) returns void
 		pop ebp
 		ret
 
-global alloc_page_to_kernel:function
-alloc_page_to_kernel: ;(int page) returns void
-		;1:1 paging
+global movemem:function
+movemem:	;(char *startaddr, int nrofbytes, int offset) returns void
 		push ebp
 		mov ebp, esp
 
-		mov eax, [ss:ebp+8]
-		mov ebx, 4 ;size per entry in bytes
-		mul ebx
-		add eax, 0x2000 ;kernel page table location
-		mov ebx, eax
+		mov eax, [ss:ebp+0x10]
+		mov esi, eax
+		add eax, [ss:ebp+0x08]
+		mov edi, eax
 
-		mov eax, [ss:ebp+8]
-		shl eax, 12 ;shift left to store it
-		mov al, 0x07
-		mov [ebx], eax
+		mov ecx, [ss:ebp+0x0C]
 
-		mov eax, cr3
-		mov cr3, eax ;update TLB
+		rep movsb
 
 		leave
+		ret
+
+global TLB_update:function
+TLB_update:	mov eax, cr3
+		mov cr3, eax
 		ret
 
 SECTION .data
