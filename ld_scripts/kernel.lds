@@ -11,6 +11,7 @@ INPUT
 	ps2.o
 	pit.o
 	keyb.o
+	param.o
 )
 STARTUP(kernel.o)
 

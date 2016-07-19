@@ -62,6 +62,29 @@ init_memory:	;(void) returns void
 		pop ebp
 		ret
 
+global alloc_page_to_kernel:function
+alloc_page_to_kernel: ;(int page) returns void
+		;1:1 paging
+		push ebp
+		mov ebp, esp
+
+		mov eax, [ss:ebp+8]
+		mov ebx, 4 ;size per entry in bytes
+		mul ebx
+		add eax, 0x2000 ;kernel page table location
+		mov ebx, eax
+
+		mov eax, [ss:ebp+8]
+		shl eax, 12 ;shift left to store it
+		mov al, 0x07
+		mov [ebx], eax
+
+		mov eax, cr3
+		mov cr3, eax ;update TLB
+
+		leave
+		ret
+
 SECTION .data
 
 krnloff:	dd 0x00007000

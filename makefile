@@ -24,7 +24,7 @@ out.img: src/bootsector.asm
 BOOT:	src/btst2.asm
 	nasm -f bin -o BOOT src/btst2.asm
 
-KERNEL:	kernel.o keyb.o pit.o ps2.o video.o io.o memory.o irq.o tty.o ${KRNLHEADERS} ld_scripts/kernel.lds
+KERNEL:	kernel.o keyb.o pit.o ps2.o video.o io.o param.o memory.o irq.o tty.o ${KRNLHEADERS} ld_scripts/kernel.lds
 	${LD} ${LDFLAGS} ld_scripts/kernel.lds
 
 kernel.o:src/kernel.c src/kernel.h
@@ -36,8 +36,17 @@ video.o:src/video.asm
 io.o:	src/io.asm
 	nasm -f elf -o io.o src/io.asm
 
-memory.o:src/memory.asm
-	nasm -f elf -o memory.o src/memory.asm
+param.o:src/param.c
+	${CC} ${CFLAG} -c -o param.o src/param.c
+
+memoryasm.o:src/memory.asm
+	nasm -f elf -o memoryasm.o src/memory.asm
+
+memoryc.o:src/memory.c
+	${CC} ${CFLAG} -c -o memoryc.o src/memory.c
+
+memory.o:memoryc.o memoryasm.o
+	${LD} -r -o memory.o memoryc.o memoryasm.o
 
 irq.o:	src/irq.asm
 	nasm -f elf -o irq.o src/irq.asm

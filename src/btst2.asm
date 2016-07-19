@@ -596,6 +596,9 @@ progheaddecode:	;this function decodes a program header table entry and executes
 		ret
 
 getparameters:	;store them in a table
+		push bp
+		mov bp, sp
+		sub sp, 4
 		mov ax, PARAM_TABLE_SEG
 		mov es, ax
 		xor ax, ax
@@ -614,11 +617,28 @@ getparameters:	;store them in a table
 		stosb
 		mov al, dh
 		stosb
+		;reserve memory table size
+		;save di
+		mov [ss:bp-2], di
+		mov [ss:bp-4], word 0
+		add di, 2
+		;table pointer
+		mov dx, di
+		add di, 4
+		xor ebx, ebx
+		xor eax, eax
+		mov bx, di
+		mov ax, es
+		shl eax, 4 ;times 16 for memory address
+		add eax, ebx
+		mov di, dx
+		stosd
 
 		;memory detection
 		xor ebx, ebx
 		mov edx, 0x534D4150 ;magic number
 	.start:	
+		inc word [ss:bp-4]
 		mov eax, 0xE820
 		mov ecx, 24
 		int 0x15
@@ -637,6 +657,12 @@ getparameters:	;store them in a table
 		jmp $
 
 	.end:	;jmp $
+		push di
+		mov di, [ss:bp-2]
+		mov ax, [ss:bp-4]
+		stosw
+		pop di
+		leave
 		ret
 
 pmode:		cli

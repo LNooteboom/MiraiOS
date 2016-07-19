@@ -8,8 +8,11 @@ struct paramtable {
 	char cursorX;
 	char cursorY;
 
-	memdetectentry memory_table[];
+	short memtable_sz;
+
+	struct memdetectentry *memory_table;
 };
+
 struct memdetectentry {
 	int baseLow;
 	int baseHigh;
@@ -19,6 +22,5 @@ struct memdetectentry {
 	int unused;
 };
 
-volatile struct paramtable *partable = (volatile struct paramtable*)0x3000;
-
+extern struct paramtable *partable;
 #endif

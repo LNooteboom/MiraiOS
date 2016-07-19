@@ -24,6 +24,10 @@ void kmain(void) {
 	tty_clear_screen();
 	ps2_init();
 	PIT_init();
+
+	globalpages_setup();
+
+	sprint("Initialization complete!", currentattrib);
 	while (1) {};
 }
 
