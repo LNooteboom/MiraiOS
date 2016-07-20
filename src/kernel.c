@@ -9,7 +9,7 @@
 #include "ps2.h"
 
 void kmain(void) {
-	init_memory();
+	//init_memory();
 	video_init();
 	irq_init();
 	initPICS();
@@ -18,13 +18,9 @@ void kmain(void) {
 	tty_set_full_screen_attrib(0x07);
 	sprint("Kernel initialising...\n", currentattrib);
 
-	//cursorY = 0;
-	//cursorX = 0;
-	//tty_clear_screen();
 	ps2_init();
 	PIT_init();
-
-	globalpages_setup();
+	page_stack_setup();
 
 	newline();
 	int page = alloc_page();
