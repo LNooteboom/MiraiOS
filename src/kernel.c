@@ -8,8 +8,6 @@
 #include "pit.h"
 #include "ps2.h"
 
-int temp;
-
 void kmain(void) {
 	init_memory();
 	video_init();
@@ -20,22 +18,26 @@ void kmain(void) {
 	tty_set_full_screen_attrib(0x07);
 	sprint("Kernel initialising...\n", currentattrib);
 
-	cursorY = 0;
-	cursorX = 0;
-	tty_clear_screen();
+	//cursorY = 0;
+	//cursorX = 0;
+	//tty_clear_screen();
 	ps2_init();
 	PIT_init();
 
 	globalpages_setup();
-	//test:
-	alloc_page(&temp);
-	hexprint(temp, currentattrib);
-	newline();
-	alloc_page(&temp);
-	hexprint(temp, currentattrib);
-	newline();
 
-	sprint("Initialization complete!", currentattrib);
+	newline();
+	int page = alloc_page();
+	hexprint(page, currentattrib);
+	newline();
+	int page2 = alloc_page();
+	hexprint(page2, currentattrib);
+	newline();
+	dealloc_page(page);
+	page = alloc_page();
+	hexprint(page, currentattrib);
+
+	sprint("\nInitialization complete!", currentattrib);
 	while (1) {};
 }
 

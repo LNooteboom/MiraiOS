@@ -2,6 +2,9 @@ LOWMEM_SZ:	equ 0x100000 ;1mb
 
 SECTION .text
 
+extern hexprint
+extern currentattrib
+
 global init_memory:function
 init_memory:	;(void) returns void
 		push ebp
@@ -79,6 +82,18 @@ movemem:	;(char *startaddr, int nrofbytes, int offset) returns void
 		leave
 		ret
 
+global movemem_test:function
+movemem_test:	push 1
+		push 6
+		push testarray
+		call movemem
+		add esp, 0x0C
+		push dword [currentattrib]
+		push dword [testarray]
+		call hexprint
+		add esp, 0x08
+		ret
+
 global TLB_update:function
 TLB_update:	mov eax, cr3
 		mov cr3, eax
@@ -88,4 +103,6 @@ SECTION .data
 
 krnloff:	dd 0x00007000
 stackoff:	dd 0x9c00
+
+testarray:	db 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06
 
