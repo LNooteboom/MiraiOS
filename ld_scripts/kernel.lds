@@ -19,7 +19,7 @@ OUTPUT(KERNEL)
 ENTRY(kmain)
 
 SECTIONS {
-	. = 0x7000;
+	. = 0xC0000000;
 	.text : {
 		irq.o (.text);
 	}

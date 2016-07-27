@@ -213,6 +213,8 @@ currentsector:	dw	0
 stage2loadedmsg:db	"Loaded stage 2", endl
 badsectormsg:	db	"ERROR: bad sector detected!", endl
 
+;This whole damn bootloader is the definition of the dutch word 'krakkemikkig'
+;I really don't trust it.
 
 next:		call test_a20 ;test if A20 is already enabled
 		or al, al
@@ -236,14 +238,19 @@ next:		call test_a20 ;test if A20 is already enabled
 		out dx, al
 
 		call getparameters
+		mov ax, jmpfar
+		call hexprintbyte
+		mov al, ah
+		call hexprintbyte
 		call pmode
 		;jmp $
 		mov ax, 0x18
 		mov es, ax
 		xor bx, bx
 		;mov [es:00], byte 'K'
-		mov ax, [krnlentry]
-		mov [jmpfar + 1], ax ;self modifying code
+		mov eax, [krnlentry]
+		mov [jmpfar + 2], eax ;self modifying code
+		
 
 		;Now we hand the system over to the kernel
 		mov ax, 0x0010
@@ -252,7 +259,7 @@ next:		call test_a20 ;test if A20 is already enabled
 		mov ds, ax
 		mov ax, 0x0018
 		mov es, ax
-	jmpfar:	jmp 8:0x7000 ;bye
+	jmpfar:	jmp 8:dword 0x7000 ;bye
 
 test_a20:	pushf
 		push ds
@@ -494,7 +501,8 @@ progheaddecode:	;this function decodes a program header table entry and executes
 		;-14h current file offset (high)
 		;-16h current memory offset (low) unused
 		;-18h current memory offset (high) unused
-		sub sp, 0x18
+		;-1Ah di
+		sub sp, 0x1A
 		mov [ss:bp-0x2], cx
 		mov [ss:bp-0x4], bx
 		mov ax, es
@@ -507,9 +515,9 @@ progheaddecode:	;this function decodes a program header table entry and executes
 		add eax, [es:bx+20]
 		mov [krnlmemsz], eax
 
-		mov ax, KRNLSEG
+		mov ax, 0xFFFF ;load at 0x10000
 		mov [ss:bp-0xC], ax ;destination segment
-		sub ax, 0x0020
+		mov ax, KRNLSEG
 		mov [ss:bp-0xA], ax ;buffer segment
 		
 		mov ax, [es:bx+16]
@@ -526,6 +534,8 @@ progheaddecode:	;this function decodes a program header table entry and executes
 		mov [ss:bp-0x16], ax ;current memory offset (low)
 		mov ax, [es:bx+10]
 		mov [ss:bp-0x18], ax ;high
+
+		mov [ss:bp-0x1A], word 0x10
 
 	.start:	;first we need the cluster nr
 		;code must be aligned to 0x200
@@ -560,7 +570,7 @@ progheaddecode:	;this function decodes a program header table entry and executes
 		mov es, ax
 
 		mov si, 0
-		mov di, 0
+		mov di, [ss:bp-0x1A]
 
 		rep movsb
 
@@ -576,9 +586,13 @@ progheaddecode:	;this function decodes a program header table entry and executes
 		mov [ss:bp-0x10], ax ;and high
 
 		;now update destination segment
-		mov ax, [ss:bp-0xC]
-		add ax, 0x0020
-		mov [ss:bp-0xC], ax
+		;mov ax, [ss:bp-0xC]
+		;add ax, 0x0020
+		;mov [ss:bp-0xC], ax
+		;update di
+		mov ax, [ss:bp-0x1A]
+		add ax, 0x200
+		mov [ss:bp-0x1A], ax
 
 		;and the file offset
 		mov ax, [ss:bp-0x14]
@@ -652,7 +666,7 @@ getparameters:	;store them in a table
 		cmp eax, 0x534D4150 ;more magic number
 		jne .bioserr
 		mov ax, di
-		call hexprintbyte
+		;call hexprintbyte
 		or ebx, ebx
 		jz .end
 		add di, 24
@@ -691,7 +705,7 @@ a20enabledmsg:	db 'A20 line is enabled', endl
 a20errormsg:	db 'ERROR: Could not enable A20', endl
 
 krnlfilename:	db 'KERNEL     '
-krnlnfounderror:db 'ERROR: File ', 0x60, 'KERNEL', 0x60, ' could not be found!', endl
+krnlnfounderror:db 'ERROR: File KERNEL could not be found!', endl
 krnlfoundmsg:	db 'KERNEL found, loading...', endl
 krnlloadedmsg:	db 'KERNEL loaded!', endl
 krnlformaterror:db 'KERNEL format error', endl
