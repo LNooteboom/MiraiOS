@@ -238,20 +238,19 @@ next:		call test_a20 ;test if A20 is already enabled
 		out dx, al
 
 		call getparameters
-		mov ax, jmpfar
+		mov ax, [krnlentry]
 		call hexprintbyte
 		mov al, ah
 		call hexprintbyte
 
 		call init_paging
 		call pmode
-		jmp $
 		mov ax, 0x18
 		mov es, ax
 		xor bx, bx
 		;mov [es:00], byte 'K'
 		mov eax, [krnlentry]
-		mov [jmpfar + 2], eax ;self modifying code
+		;mov [jmpfar + 2], eax ;self modifying code
 		
 
 		;Now we hand the system over to the kernel
@@ -261,7 +260,7 @@ next:		call test_a20 ;test if A20 is already enabled
 		mov ds, ax
 		mov ax, 0x0018
 		mov es, ax
-	jmpfar:	jmp 8:dword 0x7000 ;bye
+	jmpfar:	jmp 8:dword 0xC0000000 ;bye
 
 test_a20:	pushf
 		push ds
@@ -712,7 +711,7 @@ init_paging:
 
 		;fill page table
 		mov cx, 1024*2
-		mov ax, 0x2000
+		mov ax, 0x0200
 		mov es, ax
 		xor di, di
 		xor ax, ax
@@ -738,15 +737,20 @@ init_paging:
 	.next:	;now setup higher half paging
 		;add pointer in page directory
 		;get offset
-		mov ax, ((0xC000 >> 6) * 4 ) + 0x4000
+		mov ax, 0x0100
+		mov es, ax
+		mov ax, ((0xC000 >> 6) * 4 )
 		mov di, ax
-		;kernel is actually loaded at 0x100000
-		mov ax, 0x0009 ;low addr + flags
+		;kernel page table is loaded at 0x4000
+		mov ax, 0x4009 ;low addr + flags
 		stosw
-		mov ax, 0x0010
+		xor ax, ax
 		stosw ;high addr
 		
 		;fill the entire table (1024 entries)
+		mov ax, 0x0400
+		mov es, ax
+		xor di, di
 		xor cx, cx
 	.start2:cmp cx, 1024
 		jge .next2
@@ -755,7 +759,7 @@ init_paging:
 		or al, 0x03 ;flags
 		stosw
 		mov ax, cx
-		add ax, 0x0010
+		add ax, 0x0100
 		shr ax, 4
 		stosw
 

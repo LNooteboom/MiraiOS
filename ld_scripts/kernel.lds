@@ -20,9 +20,9 @@ ENTRY(kmain)
 
 SECTIONS {
 	. = 0xC0000000;
-	.text : {
+/*	.text : {
 		irq.o (.text);
-	}
+	}*/
 	.text : {
 		*.o (.text);
 	}
