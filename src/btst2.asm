@@ -242,8 +242,10 @@ next:		call test_a20 ;test if A20 is already enabled
 		call hexprintbyte
 		mov al, ah
 		call hexprintbyte
+
+		call init_paging
 		call pmode
-		;jmp $
+		jmp $
 		mov ax, 0x18
 		mov es, ax
 		xor bx, bx
@@ -685,10 +687,92 @@ getparameters:	;store them in a table
 		leave
 		ret
 
+init_paging:
+		push bp
+		mov bp, sp
+		push es
+
+		;fill page directory
+		mov ax, 0x100
+		mov es, ax
+		mov di, 0
+		mov cx, 1024*2 ;number of entries
+		xor ax, ax
+		cld
+		rep stosw
+
+		;now add entry
+		xor di, di
+		;point entry to 0x2000
+		mov ax, 0x2009 ;add flags also
+		stosw
+		;high address
+		xor ax, ax
+		stosw
+
+		;fill page table
+		mov cx, 1024*2
+		mov ax, 0x2000
+		mov es, ax
+		xor di, di
+		xor ax, ax
+		rep stosw
+
+		;setup 1:1 lowmem paging
+		xor cx, cx
+		mov di, 0
+
+	.start:	cmp cx, 0x100 ;amount of pages
+		jge .next
+		mov ax, cx
+		shl ax, 12 ;shift to page nr field
+		or al, 0x03 ;flags
+		stosw
+		mov ax, cx
+		shr ax, 4
+		stosw
+
+		inc cx
+		jmp .start
+
+	.next:	;now setup higher half paging
+		;add pointer in page directory
+		;get offset
+		mov ax, ((0xC000 >> 6) * 4 ) + 0x4000
+		mov di, ax
+		;kernel is actually loaded at 0x100000
+		mov ax, 0x0009 ;low addr + flags
+		stosw
+		mov ax, 0x0010
+		stosw ;high addr
+		
+		;fill the entire table (1024 entries)
+		xor cx, cx
+	.start2:cmp cx, 1024
+		jge .next2
+		mov ax, cx
+		shl ax, 12
+		or al, 0x03 ;flags
+		stosw
+		mov ax, cx
+		add ax, 0x0010
+		shr ax, 4
+		stosw
+
+		inc cx
+		jmp .start2
+
+	.next2:	mov eax, 0x1000
+		mov cr3, eax
+
+		pop es
+		leave
+		ret
+
 pmode:		cli
 		lgdt [gdtr]
 		mov eax, cr0
-		or eax, 1
+		or eax, 0x80000001 ;enable pmode + paging
 		mov cr0, eax
 
 		ret
