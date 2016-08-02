@@ -15,6 +15,6 @@ void sprint(char *text, char attrib);
 void tty_set_full_screen_attrib(char attrib);
 void tty_clear_screen(void);
 
-void errorscreen(char *msg, int addr);
+void panic(char *msg, int addr, char errorcode);
 
 #endif

@@ -2,11 +2,11 @@ BITS 32
 
 NROFIDTENTS:	equ 0x100
 BYTESPERIDTENT:	equ 0x08
-IDTOFFSET:	equ 0x3800
+IDTOFFSET:	equ 0xC0006000
 NROFEXCINTS:	equ 17
 NROFPICINTS:	equ 0x10
 
-extern errorscreen
+extern panic
 extern sprint
 extern currentattrib
 extern pic_eoi
@@ -110,28 +110,31 @@ irq_ata2:	push 15
 exc_diverror:	;mov eax, 0xdeadbeef
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4] ;get old eip
 		push eax ;and push it
 		mov eax, diverrormsg
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 		;iret
 
 exc_debug_error:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, dbgerror
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 		iret
 
 exc_breakpoint:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov al, [currentattrib]
 		push eax
 		mov eax, breakpointerr
@@ -143,108 +146,118 @@ exc_breakpoint:
 exc_overflow:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, overflowerr
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 
 exc_bounds_check:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, bndrangeerr
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 
 exc_inv_opcode:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, invopcodeerr
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 		iret
 
 exc_coproc_navail:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, coprocnavail
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 		iret
 
 exc_double_fault: ;BSOD time!
 		push ebp
 		mov esp, ebp
+		push 0
 		mov eax, [ss:ebp+8]
 		push eax
 		mov eax, dblfault
 		push eax
-		call errorscreen
+		call panic
 		
 		jmp $
 
 exc_coproc_seg_overrun:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, coprocsegoverrun
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 		iret
 
 exc_invalid_tss:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, invalidTSSerr
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 		iret
 
 exc_seg_npresent:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, segnpresent
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 		iret
 
 exc_stack:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, stackfault
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 		iret
 
 exc_gen_prot:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, genprot
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 		iret
 
@@ -253,20 +266,23 @@ exc_page_fault:
 		mov ebp, esp
 		mov eax, [ss:ebp+4]
 		push eax
+		mov eax, [ss:ebp+8]
+		push eax
 		mov eax, pagefault
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 		iret
 
 exc_coproc_error:
 		push ebp
 		mov ebp, esp
+		push 0
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, coprocerr
 		push eax
-		call errorscreen
+		call panic
 		jmp $
 		iret
 
@@ -281,18 +297,27 @@ irq_init:	;(void) returns void
 		mov ebp, esp
 		sub esp, 4
 
+		cld
 		mov ax, es
 		mov [ss:ebp-4], ax
 		mov ax, 0x10
 		mov es, ax
 		xor cx, cx
 		mov edi, IDTOFFSET
+
 	.start:	cmp cx, NROFIDTENTS
 		je .cont
-		mov eax, [idt_undefined]
-		stosd
-		mov eax, [idt_undefined + 4]
-		stosd
+		mov eax, irq_undefined
+		stosw
+		mov ax, 0x08
+		stosw
+		mov al, 0x00
+		stosb
+		mov al, 0x8F
+		stosb
+		mov eax, irq_undefined
+		shr eax, 16
+		stosw
 
 		inc cx
 		jmp .start
@@ -300,30 +325,64 @@ irq_init:	;(void) returns void
 	.cont:	;we now have a template idt
 		;now fill it for the important interrupts
 		;exceptions first
-		mov ecx, NROFEXCINTS * BYTESPERIDTENT
-		mov edi, IDTOFFSET
-		mov esi, idt_exception
-		rep movsb
+		mov ax, ds
+		mov es, ax
+		xor cl, cl
+		mov edi, IDTOFFSET ;interrupt table is from 0x6000 - 0x9FFF
+		mov esi, exc_list
+	.start2:cmp cl, NROFEXCINTS
+		jge .end2
+		movsw ;low word of offset
+		mov ax, 0x08 ;Selector in GDT
+		stosw
+		mov al, 0x00 ;Zero
+		stosb
+		mov al, 0x8F ;type and flags
+		stosb
+		movsw ;high word of offset
+		inc cl
+		jmp .start2
 
-		;now the pic interrupts
-		mov ecx, NROFPICINTS * BYTESPERIDTENT
-		mov edi, IDTOFFSET + (0x20 * BYTESPERIDTENT)
-		mov esi, idt_pic
-		rep movsb
+	.end2:	;now irqs:
+		xor cl, cl
+		mov esi, irq_list
+		mov edi, (32 * 8) + IDTOFFSET
+	.start3:cmp cl, NROFPICINTS
+		jge .end3
+		movsw
+		mov ax, 0x08 ;selector in GDT
+		stosw
+		mov al, 0x00
+		stosb
+		mov al, 0x8E ;type
+		stosb
+		movsw
+		inc cl
+		jmp .start3
 
-		;and finally the main kernel interrupt
-		mov ecx, BYTESPERIDTENT
-		mov edi, IDTOFFSET + (0x80 * BYTESPERIDTENT)
-		mov esi, idt_krnl
-		rep movsb
+	.end3:	;now the kernel interrupt
+		mov edx, kernel_int
+		mov edi, (0x80 * 8) + IDTOFFSET
+		mov ax, dx
+		stosw
+		mov ax, 0x08
+		stosw
+		mov al, 0x00
+		stosb
+		mov al, 0x8F
+		stosb
+		shr edx, 16
+		mov ax, dx
+		stosw
+
 
 		lidt [idtr]
 		mov edx, 0
 		;div edx ;deliberately cause crash
 		;sti
 		;int 0x21 ;fake keyboard interrupt
-		mov ax, [ss:bp-4]
-		mov es, ax
+		mov ax, [ss:ebp-4]
+		;mov es, ax
 		leave
 		ret
 
@@ -396,32 +455,3 @@ irq_list:
 		dd irq_coproc
 		dd irq_ata1
 		dd irq_ata2
-
-idt_undefined:	
-	;	dw irq_undefined ;lower word of offset
-	;	dw 0x08 ;selector
-	;	db 0 ;unused
-	;	db 0x8F ;type + flags
-	;	dw 0 ;high word of offset
-
-idt_krnl:
-	;	dw kernel_int ;lower word of offset
-	;	dw 0x08 ;selector
-	;	db 0 ;unused
-	;	db 0x8F ;type + flags
-	;;	dw 0 ;high word of offset
-
-idt_pic:
-	;	dw irq_PIT ;lower word of offset
-	;	dw 0x08 ;selector
-	;	db 0 ;unused
-	;	db 0x8E ;type + flags
-	;	dw 0 ;high word of offset
-
-
-idt_exception:
-	;	dw exc_diverror ;lower word of offset
-	;	dw 0x08 ;selector
-	;	db 0 ;unused
-	;	db 0x8F ;type + flags
-	;	dw 0 ;high word of offset

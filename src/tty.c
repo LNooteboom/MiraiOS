@@ -87,6 +87,9 @@ void sprint(char *text, char attrib) {
 void tty_set_full_screen_attrib(char attrib) {
 	currentattrib = attrib;
 	volatile char *video = vram + 1;
+	hexprint(screenwidth, currentattrib);
+	hexprint(screenheight, currentattrib);
+	//while(1);
 	for (int y = 0; y < screenheight; y++) {
 		for (int x = 0; x < screenwidth / 2; x++) {
 			//volatile char *video = (volatile char*)((y * screenwidth) + (x * 2) + vram + 1);
@@ -108,7 +111,7 @@ void tty_clear_screen(void) {
 	cursorY = 0;
 	vga_set_cursor(cursorX, cursorY);
 }
-void errorscreen(char *msg, int addr) {
+void panic(char *msg, int addr, char errorcode) {
 	char attrib = 0x1F;
 	tty_clear_screen();
 	tty_set_full_screen_attrib(attrib);
@@ -118,4 +121,10 @@ void errorscreen(char *msg, int addr) {
 	newline();
 	sprint("At ", attrib);
 	hexprint(addr, attrib);
+	newline();
+	if (errorcode) {
+		sprint("Error code: ", attrib);
+		hexprint(errorcode, attrib);
+		newline();
+	}
 }

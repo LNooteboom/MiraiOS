@@ -244,8 +244,8 @@ vga_set_scroll:	;(int scrollY) returns void
 
 SECTION .data
 global vram:data
-vram:		dd 0xB8000
-vram_size:	dw 0x08000
+vram:		dd 0xC00B8000
+vram_size:	dw 0x8000
 
 global scrollY:data
 scrollY:	dw 0

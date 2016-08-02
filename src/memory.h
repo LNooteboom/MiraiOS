@@ -1,7 +1,8 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#define MEMTABLE_1_ADDR 0x4000
+#define MEMTABLE_1_ADDR 0xC0005000
+#define PAGE_DIR	0xC0001000
 
 //memory.asm
 
@@ -22,5 +23,7 @@ void page_stack_setup(void);
 int alloc_page(void);
 
 void dealloc_page(int page);
+
+void set_in_kernel_pages(int vmem, int pmem);
 
 #endif

@@ -34,9 +34,9 @@ initPICS:	;(void) returns void
 
 		;save masks
 		in al, PIC1_DATA
-		mov [ss:bp-4], eax
+		mov [ss:ebp-4], eax
 		in al, PIC2_DATA
-		mov [ss:bp-8], eax
+		mov [ss:ebp-8], eax
 
 		;ICW1
 		mov al, 0x11

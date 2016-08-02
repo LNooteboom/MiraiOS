@@ -10,7 +10,8 @@ struct paramtable {
 
 	short memtable_sz;
 
-	struct memdetectentry *memory_table;
+	//struct memdetectentry *memory_table;
+	int memory_table;
 };
 
 struct memdetectentry {

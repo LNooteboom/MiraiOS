@@ -251,16 +251,21 @@ next:		call test_a20 ;test if A20 is already enabled
 		;mov [es:00], byte 'K'
 		mov eax, [krnlentry]
 		;mov [jmpfar + 2], eax ;self modifying code
-		
+
+		xor eax, eax
+		mov ax, sp
+		add eax, 0xC0000000
+		mov esp, eax
 
 		;Now we hand the system over to the kernel
 		mov ax, 0x0010
+		mov ss, ax
 		mov fs, ax
 		mov gs, ax
 		mov ds, ax
 		mov ax, 0x0018
 		mov es, ax
-	jmpfar:	jmp 8:dword 0xC0000000 ;bye
+	jmpfar:	jmp 8:dword 0xC0100000 ;bye
 
 test_a20:	pushf
 		push ds
@@ -739,7 +744,7 @@ init_paging:
 		;get offset
 		mov ax, 0x0100
 		mov es, ax
-		mov ax, ((0xC000 >> 6) * 4 )
+		mov ax, (0xC000 >> 4)
 		mov di, ax
 		;kernel page table is loaded at 0x4000
 		mov ax, 0x4009 ;low addr + flags
@@ -759,7 +764,7 @@ init_paging:
 		or al, 0x03 ;flags
 		stosw
 		mov ax, cx
-		add ax, 0x0100
+		;add ax, 0x0100
 		shr ax, 4
 		stosw
 

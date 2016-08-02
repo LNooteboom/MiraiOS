@@ -7,64 +7,12 @@ extern currentattrib
 
 global init_memory:function
 init_memory:	;(void) returns void
-		push ebp
-		mov ebp, esp
-		sub esp, 0x04
-
-		mov ax, es
-		mov [ss:bp-4], ax
-		mov ax, ds
-		mov es, ax
-
-		;now setup paging
-		mov ecx, 1024 ;amount of entries: 1024
-		mov eax, 0x00000002 ;write allowed, not present
-		mov edi, 0x1000
-		cld
-		rep stosd
-
-		;add entry that points to the (future) kernel page table (at 0x2000)
-		mov eax, 0x00002000 ;address
-		mov al, 0x09 ;present + supervisor only + write allow
-		mov ebx, 0x1000
-		mov [ds:0x1000], eax ;and store it
-
-		;now fill kernel page table ...
-		mov ecx, 1024
-		mov eax, 0x00000000 ;nothing allowed
-		mov edi, 0x2000
-		cld
-		rep stosd
-
-		;setup 1:1 paging in lowmem for kernel
-		xor ecx, ecx
-		mov edi, 0x2000
-
-	.start:	cmp ecx, LOWMEM_SZ
-		jge .cont
-		;add to page table
-		mov eax, ecx
-		mov al, 0x07
-		stosd
-
-		add ecx, 0x1000 ;4kb
-		jmp .start
-
-
-	.cont:	mov eax, 0x1000
+		lgdt [gdtr] ;load new gdt
+		xor eax, eax
+		mov [ds:0xC0001000], eax
+		mov eax, cr3
 		mov cr3, eax
-
-	.next:	;now enable paging
-		mov eax, cr0
-		or eax, 0x80000000
-		mov cr0, eax
-
-	.n:	mov ax, [ss:bp-4]
-		mov es, ax
-		mov esp, ebp
-		pop ebp
 		ret
-
 
 global TLB_update:function
 TLB_update:	mov eax, cr3
@@ -75,3 +23,42 @@ SECTION .data
 
 krnloff:	dd 0x00007000
 stackoff:	dd 0x9c00
+
+gdtr:		dw (5*8) + (26 * 4)
+		dd gdt
+
+gdt:
+		dq 0 ;dummy
+		;entry 0x08: kernel CS
+		dw 0xFFFF	;limit 0:15
+		dw 0x0000	;base 0:15
+		db 0x00		;base 16:23
+		db 10011010b	;access byte
+		db 0xCF		;Flags = limit 16:19
+		db 0x00		;base 24:31
+
+		;entry 0x10: kernel DS
+		dw 0xFFFF	;limit 0:15
+		dw 0x0000	;base 0:15
+		db 0x00		;base 16:23
+		db 10010010b	;access byte
+		db 0xCF		;Flags = limit 16:19
+		db 0x00		;base 24:31
+
+		;entry 0x18: usermode CS
+		dw 0xFFFF	;limit 0:15
+		dw 0x0000	;base 0:15
+		db 0x00		;base 16:23
+		db 11111010b	;access byte
+		db 0xCF		;Flags = limit 16:19
+		db 0x00		;base 24:31
+
+		;entry 0x20: usermode DS
+		dw 0xFFFF	;limit 0:15
+		dw 0x0000	;base 0:15
+		db 0x00		;base 16:23
+		db 11110010b	;access byte
+		db 0xCF		;Flags = limit 16:19
+		db 0x00		;base 24:31
+
+		times 26 dd 0 ;room for tss
