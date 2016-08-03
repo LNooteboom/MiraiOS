@@ -134,7 +134,6 @@ exc_debug_error:
 exc_breakpoint:
 		push ebp
 		mov ebp, esp
-		push 0
 		mov al, [currentattrib]
 		push eax
 		mov eax, breakpointerr

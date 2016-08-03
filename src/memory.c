@@ -4,14 +4,9 @@
 
 struct page_stack_page *current_page_stack;
 
-int kernel_mem_end = 0xC0100000;
+int kernel_mem_end = 0xC0110000;
 
 void page_stack_setup(void) {
-	kernel_mem_end += partable->krnlmemsize;
-	if ((kernel_mem_end & 0x0FFF) != 0) { //round off to pages
-		kernel_mem_end &= 0xFFFFF000;
-		kernel_mem_end += 0x00001000;
-	}
 	//start by assigning a pointer
 	current_page_stack = (struct page_stack_page*)(MEMTABLE_1_ADDR);
 	current_page_stack->next_page_stack = (void*)0;
@@ -31,10 +26,6 @@ void page_stack_setup(void) {
 		}
 		memDetect++;
 	}
-	while(1);
-	hexprint((int) current_page_stack, currentattrib);
-	newline();
-	hexprint(kernel_mem_end, currentattrib);
 }
 
 int alloc_page(void) {
@@ -68,16 +59,11 @@ void dealloc_page(int page) {
 		current_page_stack = newstack;
 	}
 	current_page_stack->sp++;
-	current_page_stack->free_pages[current_page_stack->sp - 1] = page;
+	current_page_stack->free_pages[current_page_stack->sp - 1] = page; //this is where something goes wrong
 	//hexprint(current_page_stack->sp, currentattrib);
 }
 
 void set_in_kernel_pages(int vmem, int pmem) {
-	sprint("Kernel page add: vmem: ", currentattrib);
-	hexprint(vmem, currentattrib);
-	sprint(" pmem: ", currentattrib);
-	hexprint(pmem, currentattrib);
-	newline();
 	if ((vmem & 0xFF800000) != 0xC0000000) {
 		//for this we need to create a second table
 		panic("Out of kernel address space!", (int)set_in_kernel_pages, 0);
@@ -86,5 +72,5 @@ void set_in_kernel_pages(int vmem, int pmem) {
 	int *page_entry = (int*)(((vmem & 0x007FF000) >> 12) + PAGE_DIR);
 	pmem &= 0xFFFFF000;
 	*page_entry = pmem | 0x03; //flags
-	while(1);
+	//asm volatile ("xchgw %bx, %bx"); //magic breakpoint
 }

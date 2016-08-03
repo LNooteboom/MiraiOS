@@ -13,12 +13,10 @@ void kmain(void) {
 	video_init();
 	irq_init();
 	initPICS();
-	//crashtest();
 	cursorX = partable->cursorX;
 	cursorY = partable->cursorY;
 	tty_set_full_screen_attrib(0x07);
 	sprint("Kernel initialising...\n", currentattrib);
-	while(1){};
 
 	ps2_init();
 	PIT_init();
@@ -35,7 +33,7 @@ void kmain(void) {
 	page = alloc_page();
 	hexprint(page, currentattrib);
 
-	sprint("\nInitialization complete!", currentattrib);
+	sprint("\nPurification complete!", currentattrib);
 	while (1) {};
 }
 
