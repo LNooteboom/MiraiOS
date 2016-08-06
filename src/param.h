@@ -12,7 +12,7 @@ struct paramtable {
 
 	//struct memdetectentry *memory_table;
 	int memory_table;
-};
+}__attribute__((packed));
 
 struct memdetectentry {
 	int baseLow;

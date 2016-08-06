@@ -10,11 +10,12 @@ int kernel_mem_end = 0xC0110000;
 
 void init_memory_manager(void) {
 	page_stack_setup();
+	asm ("xchgw %bx, %bx");
 	set_in_kernel_pages(kernel_mem_end, alloc_page());
 	current_mem_block_table = (struct mem_block_table*)kernel_mem_end;
 	mem_block_table_setup((void*)kernel_mem_end, (struct mem_block_table*)0);
-	sprint("current_page_stack: ");
-	hexprint((int) current_page_stack);
+	sprint("current mem block table: ");
+	hexprint((int) current_mem_block_table);
 	newline();
 	sprint("kernel mem end: ");
 	hexprint(kernel_mem_end);
@@ -24,6 +25,7 @@ void init_memory_manager(void) {
 	current_mem_block_table->content[0].address = kernel_mem_end;
 	current_mem_block_table->content[0].size = 0xFFFFFFFF - kernel_mem_end;
 	current_mem_block_table->content[0].metadata = 1; //mark as free
+	while(1);
 }
 
 void page_stack_setup(void) {
@@ -37,7 +39,7 @@ void page_stack_setup(void) {
 		if (memDetect->type == 0x01 /*&& memDetect->baseLow >= 0x100000*/) {
 			//found free space
 			int currentpage = memDetect->baseLow;
-			while (currentpage < memDetect->lengthLow) {
+			while (currentpage < memDetect->lengthLow) {//something goes wrong here
 				if (currentpage > partable->krnlmemsize + 0x100000) {
 					dealloc_page(currentpage);
 				}
@@ -58,8 +60,8 @@ int alloc_page(void) {
 		}
 		struct page_stack_page *old_page_stack = current_page_stack;
 		current_page_stack = old_page_stack->next_page_stack;
+		current_page_stack->free_pages[current_page_stack->sp] = (int)old_page_stack;
 		current_page_stack->sp++;
-		current_page_stack->free_pages[current_page_stack->sp - 1] = (int)old_page_stack;
 	}
 	return returnvalue;
 }
@@ -78,8 +80,8 @@ void dealloc_page(int page) {
 		newstack->sp = 0;
 		current_page_stack = newstack;
 	}
+	current_page_stack->free_pages[current_page_stack->sp/* - 1*/] = page; //this is where something goes wrong
 	current_page_stack->sp++;
-	current_page_stack->free_pages[current_page_stack->sp - 1] = page; //this is where something goes wrong
 }
 
 void set_in_kernel_pages(int vmem, int pmem) {
@@ -92,7 +94,7 @@ void set_in_kernel_pages(int vmem, int pmem) {
 	pmem &= 0xFFFFF000;
 	*page_entry = pmem | 0x03; //flags
 	//asm volatile ("xchgw %bx, %bx"); //magic breakpoint
-	//TLB_update();
+	TLB_update();
 }
 
 void mem_block_table_setup(void *destination, struct mem_block_table *prev_table) {
