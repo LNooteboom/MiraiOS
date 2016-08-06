@@ -5,13 +5,13 @@ int cursorX;
 int cursorY;
 char currentattrib = 0x07; //white text on black background
 
-void cprint(char c, char attrib) {
+void cprint(char c) {
 	volatile char *video = (volatile char*)((cursorY * screenwidth) + (cursorX * 2) + vram);
 	//write_to_vram(c, offset);
 	//offset++;
 	//write_to_vram(attrib, offset);
 	*video++ = c;
-	*video = attrib;
+	*video = currentattrib;
 
 	cursorX++;
 	if (cursorX >= (screenwidth / 2)) {
@@ -60,7 +60,7 @@ void shift_cursor_left(void) {
 		video -= 2;
 	}
 }
-void hexprint(int value, char attrib) {
+void hexprint(int value) {
 	for (int i = 7; i >= 0; i--) {
 		char currentnibble = (value >> (i * 4)) & 0x0F;
 		if (currentnibble < 10) {
@@ -69,16 +69,16 @@ void hexprint(int value, char attrib) {
 		} else {
 			currentnibble += 'A' - 10;
 		}
-		cprint(currentnibble, attrib);
+		cprint(currentnibble);
 	}
 }
-void sprint(char *text, char attrib) {
+void sprint(char *text) {
 	while (*text != 0) {
 		if (*text == '\n') {
 			newline();
 			vga_set_cursor(cursorX, cursorY);
 		} else {
-			cprint(*text, attrib);
+			cprint(*text);
 		}
 		text++;
 	}
@@ -87,9 +87,6 @@ void sprint(char *text, char attrib) {
 void tty_set_full_screen_attrib(char attrib) {
 	currentattrib = attrib;
 	volatile char *video = vram + 1;
-	hexprint(screenwidth, currentattrib);
-	hexprint(screenheight, currentattrib);
-	//while(1);
 	for (int y = 0; y < screenheight; y++) {
 		for (int x = 0; x < screenwidth / 2; x++) {
 			//volatile char *video = (volatile char*)((y * screenwidth) + (x * 2) + vram + 1);
@@ -112,19 +109,20 @@ void tty_clear_screen(void) {
 	vga_set_cursor(cursorX, cursorY);
 }
 void panic(char *msg, int addr, char errorcode) {
-	char attrib = 0x1F;
+	currentattrib = 0x1F;
+	vga_set_scroll(0);
 	tty_clear_screen();
-	tty_set_full_screen_attrib(attrib);
+	tty_set_full_screen_attrib(currentattrib);
 	cursorX = 0;
 	cursorY = 0;
-	sprint(msg, attrib);
+	sprint(msg);
 	newline();
-	sprint("At ", attrib);
-	hexprint(addr, attrib);
+	sprint("At ");
+	hexprint(addr);
 	newline();
 	if (errorcode) {
-		sprint("Error code: ", attrib);
-		hexprint(errorcode, attrib);
+		sprint("Error code: ");
+		hexprint(errorcode);
 		newline();
 	}
 }

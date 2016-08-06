@@ -1,7 +1,6 @@
 
 SECTION .text
 extern sprint
-extern currentattrib
 
 ps2_read_wait:	;(void) returns void
 		in al, 0x64
@@ -33,9 +32,7 @@ ps2_send_port1:	;(char data) returns void
 		leave
 		ret
 
-	.err:	mov eax, [currentattrib]
-		push eax
-		mov eax, timeouterr
+	.err:	mov eax, timeouterr
 		push eax
 		call sprint
 		add esp, 8

@@ -8,11 +8,11 @@ NROFPICINTS:	equ 0x10
 
 extern panic
 extern sprint
-extern currentattrib
 extern pic_eoi
 extern cursorX
 extern cursorY
 extern hexprint
+extern newline
 
 extern presskey
 
@@ -21,8 +21,6 @@ SECTION .text
 irq_PIT:	xor eax, eax
 		mov [cursorX], eax
 		mov [cursorY], eax
-		mov al, [currentattrib]
-		push eax
 		mov eax, [counter]
 		inc dword [counter]
 		push eax
@@ -134,8 +132,6 @@ exc_debug_error:
 exc_breakpoint:
 		push ebp
 		mov ebp, esp
-		mov al, [currentattrib]
-		push eax
 		mov eax, breakpointerr
 		push eax
 		call sprint
@@ -263,6 +259,10 @@ exc_gen_prot:
 exc_page_fault:
 		push ebp
 		mov ebp, esp
+		push edx
+		push ecx
+		push ebx
+		push eax
 		mov eax, [ss:ebp+4]
 		push eax
 		mov eax, [ss:ebp+8]
@@ -270,6 +270,21 @@ exc_page_fault:
 		mov eax, pagefault
 		push eax
 		call panic
+		add esp, 0x0C
+
+		xor ecx, ecx
+		mov ebp, regs
+	.start:	;inc ebp
+		push ebp
+		call sprint
+		add esp, 4
+		call hexprint
+		add esp, 4
+		call newline
+		add ebp, 6
+		cmp ebp, regsend
+		jb .start
+		
 		jmp $
 		iret
 
@@ -394,6 +409,12 @@ crashtest:	;jmp $
 		jmp $
 
 SECTION .data
+
+regs:		db 'eax: ', 0
+		db 'ebx: ', 0
+		db 'ecx: ', 0
+		db 'edx: ', 0
+regsend:
 
 counter:	dd 0
 keybmsg:	db 'Keyboard interrupt received.', 0

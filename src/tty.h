@@ -5,12 +5,12 @@ extern int cursorX;
 extern int cursorY;
 extern char currentattrib;
 
-void cprint(char c, char attrib);
-void hexprint(int value, char attrib);
+void cprint(char c);
+void hexprint(int value);
 void newline(void);
 void backspace(void);
 void shift_cursor_left(void);
-void sprint(char *text, char attrib);
+void sprint(char *text);
 
 void tty_set_full_screen_attrib(char attrib);
 void tty_clear_screen(void);

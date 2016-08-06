@@ -2,9 +2,6 @@ LOWMEM_SZ:	equ 0x100000 ;1mb
 
 SECTION .text
 
-extern hexprint
-extern currentattrib
-
 global init_memory:function
 init_memory:	;(void) returns void
 		lgdt [gdtr] ;load new gdt

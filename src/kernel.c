@@ -16,24 +16,13 @@ void kmain(void) {
 	cursorX = partable->cursorX;
 	cursorY = partable->cursorY;
 	tty_set_full_screen_attrib(0x07);
-	sprint("Kernel initialising...\n", currentattrib);
+	sprint("Kernel initialising...\n");
 
 	ps2_init();
 	PIT_init();
-	page_stack_setup();
+	init_memory_manager();
 
-	newline();
-	int page = alloc_page();
-	hexprint(page, currentattrib);
-	newline();
-	int page2 = alloc_page();
-	hexprint(page2, currentattrib);
-	newline();
-	dealloc_page(page);
-	page = alloc_page();
-	hexprint(page, currentattrib);
-
-	sprint("\nPurification complete!", currentattrib);
+	sprint("\nPurification complete!");
 	while (1) {};
 }
 

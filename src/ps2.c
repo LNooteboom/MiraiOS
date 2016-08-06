@@ -3,7 +3,7 @@
 #include "tty.h"
 
 void ps2_init(void) {
-	sprint("Initialising PS/2...\n", currentattrib);
+	sprint("Initialising PS/2...\n");
 	//disable devices
 	ps2_send_command(0xAD); //first port
 	ps2_send_command(0xA7); //second port
@@ -21,7 +21,7 @@ void ps2_init(void) {
 	//perform self test
 	ps2_send_command(0xAA);
 	if (ps2_read_data() != 0x55) {
-		sprint("PS/2 self test failed!", currentattrib);
+		sprint("PS/2 self test failed!");
 		while (1) {}
 	}
 
@@ -47,17 +47,17 @@ void ps2_init(void) {
 	//check port 1
 	ps2_send_command(0xAB);
 	if (ps2_read_data() == 0) {
-		sprint("PS/2 port 1 test complete.\n", currentattrib);
+		sprint("PS/2 port 1 test complete.\n");
 	} else {
-		sprint("PS/2 port 1 test failed.\n", currentattrib);
+		sprint("PS/2 port 1 test failed.\n");
 	}
 	//check port 2, if it exists
 	if (chnl2_exists) {
 		ps2_send_command(0xA9);
 		if (ps2_read_data() == 0) {
-			sprint("PS/2 port 2 test complete.\n", currentattrib);
+			sprint("PS/2 port 2 test complete.\n");
 		} else {
-			sprint("PS/2 port 2 test failed.\n", currentattrib);
+			sprint("PS/2 port 2 test failed.\n");
 		}
 	}
 

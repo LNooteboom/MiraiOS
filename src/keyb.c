@@ -108,7 +108,7 @@ void presskey(char scancode) {
 			dispchar = scantable[(int)scancode];
 		}
 		if (dispchar != 0) {
-			cprint(dispchar, currentattrib);
+			cprint(dispchar);
 		}
 		break;
 	}

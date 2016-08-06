@@ -4,7 +4,27 @@
 
 struct page_stack_page *current_page_stack;
 
+struct mem_block_table *current_mem_block_table;
+
 int kernel_mem_end = 0xC0110000;
+
+void init_memory_manager(void) {
+	page_stack_setup();
+	set_in_kernel_pages(kernel_mem_end, alloc_page());
+	current_mem_block_table = (struct mem_block_table*)kernel_mem_end;
+	mem_block_table_setup((void*)kernel_mem_end, (struct mem_block_table*)0);
+	sprint("current_page_stack: ");
+	hexprint((int) current_page_stack);
+	newline();
+	sprint("kernel mem end: ");
+	hexprint(kernel_mem_end);
+	newline();
+	kernel_mem_end += 0x1000;
+
+	current_mem_block_table->content[0].address = kernel_mem_end;
+	current_mem_block_table->content[0].size = 0xFFFFFFFF - kernel_mem_end;
+	current_mem_block_table->content[0].metadata = 1; //mark as free
+}
 
 void page_stack_setup(void) {
 	//start by assigning a pointer
@@ -34,7 +54,7 @@ int alloc_page(void) {
 	if (current_page_stack->sp == 0) {
 		if (current_page_stack->next_page_stack == 0) {
 			//out of memory!
-			sprint("\nOut of memory!", currentattrib);
+			sprint("\nOut of memory!");
 		}
 		struct page_stack_page *old_page_stack = current_page_stack;
 		current_page_stack = old_page_stack->next_page_stack;
@@ -60,7 +80,6 @@ void dealloc_page(int page) {
 	}
 	current_page_stack->sp++;
 	current_page_stack->free_pages[current_page_stack->sp - 1] = page; //this is where something goes wrong
-	//hexprint(current_page_stack->sp, currentattrib);
 }
 
 void set_in_kernel_pages(int vmem, int pmem) {
@@ -73,4 +92,59 @@ void set_in_kernel_pages(int vmem, int pmem) {
 	pmem &= 0xFFFFF000;
 	*page_entry = pmem | 0x03; //flags
 	//asm volatile ("xchgw %bx, %bx"); //magic breakpoint
+	//TLB_update();
+}
+
+void mem_block_table_setup(void *destination, struct mem_block_table *prev_table) {
+	if (((int)destination & 0xFFF) != 0) {
+		sprint("WARN: please align memory block table to 4kb!");
+	}
+	if (prev_table != 0) {
+		prev_table->next_mem_block_table = (struct mem_block_table*)destination;
+	}
+
+	struct mem_block_table *table = (struct mem_block_table*)destination;
+	table->next_mem_block_table = 0;
+	for (int i = 0; i < MEM_BLOCK_TABLE_SIZE; i++) {
+		table->content[i].metadata = 0;
+	}
+}
+
+void *alloc_mem(struct mem_block_table *table, int size) {
+	struct mem_block *free_block;
+	struct mem_block *new_block;
+	char blocks_found = 0;
+	//find first free block
+	for (int i = 0; i < MEM_BLOCK_TABLE_SIZE; i++) {
+		if (table->content[i].metadata == 1 && (blocks_found & 1) == 0) {
+			//found free page
+			free_block = (table->content + i);
+			blocks_found |= 1;
+		} else if (table->content[i].metadata == 0 && (blocks_found & 2) == 0) {
+			//found empty entry
+			new_block = (table->content + i);
+			blocks_found |= 2;
+		}
+		if (blocks_found == 3) {
+			break;
+		}
+		if (i == MEM_BLOCK_TABLE_SIZE - 1) {
+			//search next block
+			if (table->next_mem_block_table != 0) {
+				table = (struct mem_block_table*)(table->next_mem_block_table);
+			} else {
+				//create new table
+				//TODO
+				sprint("TODO: create new table!!");
+				while(1);
+			}
+		}
+	}
+	new_block->metadata = 2;
+	new_block->address = free_block->address;
+	new_block->size = size;
+	free_block->address += size;
+	free_block->size -= size;
+
+	return (void*)(new_block->address);
 }
