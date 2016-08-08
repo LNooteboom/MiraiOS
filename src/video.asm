@@ -44,8 +44,8 @@ getvirt_ychars:	;(void) returns short
 		xor eax, eax
 		mov ax, [vram_size]
 		xor edx, edx
-		mov ebx, [screenwidth]
-		div ebx
+		mov ecx, [screenwidth]
+		div ecx
 		shr ax, 1
 		ret
 
@@ -151,9 +151,9 @@ vga_get_screenheight: ;(void) returns int
 		mov ax, dx
 		xor edx, edx
 		;load the amount of scanlines per char
-		xor ebx, ebx
-		mov bl, [ss:ebp-8]
-		div ebx ;divide the amount of scanlines by the amount
+		;xor ecx, ecx
+		movzx ecx, byte [ss:ebp-8]
+		div ecx ;divide the amount of scanlines by the amount
 		;of scanlines per char
 		inc eax
 		mov [ss:ebp-8], eax ;save the quotient for now
@@ -213,9 +213,9 @@ vga_set_scroll:	;(int scrollY) returns void
 
 		mov eax, [ss:ebp+8]
 		xor edx, edx
-		mov ebx, [screenwidth]
-		shr ebx, 1
-		mul ebx
+		mov ecx, [screenwidth]
+		shr ecx, 1
+		mul ecx
 		mov [ss:ebp-8], eax ;save the address offset
 
 		mov dx, [CRTC_index_port]

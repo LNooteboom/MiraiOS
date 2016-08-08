@@ -31,13 +31,19 @@ irq_PIT:	xor eax, eax
 		add esp, 4
 		iret
 
-irq_keyb:	in al, 0x60
+irq_keyb:	push edx
+		push ecx
+		push eax
+		in al, 0x60
 		push eax
 		call presskey
 		add esp, 4
 		push 1
 		call pic_eoi
 		add esp, 4
+		pop eax
+		pop ecx
+		pop edx
 		iret
 
 irq_COM2:	push 3
@@ -402,10 +408,10 @@ irq_init:	;(void) returns void
 
 global crashtest:function
 crashtest:	;jmp $
-		mov ebx, 0
+		mov ecx, 0
 		mov eax, 1
 		mov edx, 0
-		div ebx
+		div ecx
 		jmp $
 
 SECTION .data
