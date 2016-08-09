@@ -69,8 +69,8 @@ initPICS:	;(void) returns void
 		call pic_wait
 
 		;restore masks
-		;mov al, [ss:ebp-4] ;mask everything but keyboard
-		mov al, 0xFD
+		;mov al, [ss:ebp-4] ;mask everything but keyboard and pit
+		mov al, 0xFC
 		out PIC1_DATA, al
 		mov al, [ss:ebp-8]
 		out PIC2_DATA, al

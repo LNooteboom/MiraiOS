@@ -3,4 +3,6 @@
 
 void PIT_init(void);
 
+void sleep(int time_in_ms);
+
 #endif

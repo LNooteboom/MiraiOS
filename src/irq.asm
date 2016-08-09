@@ -18,17 +18,28 @@ extern presskey
 
 SECTION .text
 
-irq_PIT:	xor eax, eax
-		mov [cursorX], eax
-		mov [cursorY], eax
-		mov eax, [counter]
-		inc dword [counter]
+irq_PIT:	;xchg bx, bx
+		push edx
+		push ecx
 		push eax
-		call hexprint
-		add esp, 8
-		push 0
+		
+		mov al, [timer_enabled]
+		or al, al
+		jz .end
+
+		dec dword [counter]
+		mov eax, [counter]
+		or eax, eax
+		jnz .end
+
+		dec byte [timer_enabled]
+		
+	.end:	push 0
 		call pic_eoi
 		add esp, 4
+		pop eax
+		pop ecx
+		pop edx
 		iret
 
 irq_keyb:	push edx
@@ -425,7 +436,11 @@ regs:		db 'eax: ', 0
 		db 'edx: ', 0
 regsend:
 
+global counter:data
 counter:	dd 0
+global timer_enabled:data
+timer_enabled:	db 0
+
 keybmsg:	db 'Keyboard interrupt received.', 0
 
 diverrormsg:	db 'Division error',0
