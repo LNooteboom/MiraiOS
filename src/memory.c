@@ -16,11 +16,9 @@ void init_memory_manager(void) {
 	mem_block_table_setup((void*)kernel_mem_end, (struct mem_block_table*)0);
 	kernel_mem_end += 0x1000;
 	sprint("current mem block table: ");
-	hexprint((int) current_mem_block_table);
-	newline();
+	hexprintln((int) current_mem_block_table);
 	sprint("kernel mem end: ");
-	hexprint(kernel_mem_end);
-	newline();
+	hexprintln(kernel_mem_end);
 
 	current_mem_block_table->content[0].address = 0;
 	current_mem_block_table->content[0].size = kernel_mem_end;

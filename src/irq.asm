@@ -12,7 +12,7 @@ extern pic_eoi
 extern cursorX
 extern cursorY
 extern hexprint
-extern newline
+extern hexprintln
 
 extern presskey
 
@@ -284,9 +284,8 @@ exc_page_fault:
 		push ebp
 		call sprint
 		add esp, 4
-		call hexprint
+		call hexprintln
 		add esp, 4
-		call newline
 		add ebp, 6
 		cmp ebp, regsend
 		jb .start

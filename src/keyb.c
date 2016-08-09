@@ -60,7 +60,9 @@ void presskey(char scancode) {
 			ps2_read_data();
 			break;
 			case (char)0x7D: //page up
-			vga_set_scroll(--scrollY);
+			if (scrollY != 0) {
+				vga_set_scroll(--scrollY);
+			}
 			break;
 			case (char)0x75: //cursor up
 			cursorY--;
@@ -102,13 +104,15 @@ void presskey(char scancode) {
 		break;
 
 		default:
-		if ((keybstate & 1) != 0) { //shift pressed
-			dispchar = scantable_shift[(int) scancode];
-		} else {
-			dispchar = scantable[(int)scancode];
-		}
-		if (dispchar != 0) {
-			cprint(dispchar);
+		if ((int) scancode < sizeof(scantable)) {
+			if ((keybstate & 1) != 0) { //shift pressed
+				dispchar = scantable_shift[(int) scancode];
+			} else {
+				dispchar = scantable[(int)scancode];
+			}
+			if (dispchar != 0) {
+				cprint(dispchar);
+			}
 		}
 		break;
 	}

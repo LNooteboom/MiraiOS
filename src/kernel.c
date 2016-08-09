@@ -23,17 +23,11 @@ void kmain(void) {
 	init_memory_manager();
 
 	void *test = alloc_mem(current_mem_block_table, 10);
-	hexprint((int) test);
-	newline();
+	hexprintln((int) test);
 	void *test2 = alloc_mem(current_mem_block_table, 32);
-	hexprint((int) test2);
-	newline();
-	asm("xchgw %bx,%bx");
+	hexprintln((int) test2);
 	dealloc_mem(current_mem_block_table, test);
-	//hexprint((int) current_mem_block_table);
-	asm("xchgw %bx,%bx");
 	dealloc_mem(current_mem_block_table, test2);
-	asm("xchgw %bx,%bx");
 
 	sprint("\nInitialisation complete!");
 	while (1) {};
