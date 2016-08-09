@@ -10,7 +10,7 @@ int kernel_mem_end = 0xC0110000;
 
 void init_memory_manager(void) {
 	page_stack_setup();
-	asm ("xchgw %bx, %bx");
+	//asm ("xchgw %bx, %bx");
 	set_in_kernel_pages(kernel_mem_end, alloc_page());
 	current_mem_block_table = (struct mem_block_table*)kernel_mem_end;
 	mem_block_table_setup((void*)kernel_mem_end, (struct mem_block_table*)0);
@@ -22,10 +22,14 @@ void init_memory_manager(void) {
 	hexprint(kernel_mem_end);
 	newline();
 
-	current_mem_block_table->content[0].address = kernel_mem_end;
-	current_mem_block_table->content[0].size = 0xFFFFFFFF - kernel_mem_end;
-	current_mem_block_table->content[0].metadata = 1; //mark as free
-	while(1);
+	current_mem_block_table->content[0].address = 0;
+	current_mem_block_table->content[0].size = kernel_mem_end;
+	current_mem_block_table->content[0].metadata = 2; //mark as used
+
+	current_mem_block_table->content[1].address = kernel_mem_end;
+	current_mem_block_table->content[1].size = KERNEL_FREEMEM_SIZE;
+	current_mem_block_table->content[1].metadata = 1; //mark as free
+	//while(1);
 }
 
 void page_stack_setup(void) {
@@ -149,4 +153,57 @@ void *alloc_mem(struct mem_block_table *table, int size) {
 	free_block->size -= size;
 
 	return (void*)(new_block->address);
+}
+
+void dealloc_mem(struct mem_block_table *table, void *memptr) {
+	struct mem_block_table *old_table = table;
+	struct mem_block *block_current;
+	for (int i = 0; i < MEM_BLOCK_TABLE_SIZE; i++) {
+		if (table->content[i].address == (int)memptr && table->content[i].metadata == 2) {
+			block_current = &table->content[i];
+			break;
+		}
+		if (i == (MEM_BLOCK_TABLE_SIZE - 1)) {
+			if (table->next_mem_block_table != 0) {
+				table = (struct mem_block_table*)(table->next_mem_block_table);
+				i = 0;
+			} else {
+				sprint("Could not find memory block or memory block is already freed!\n");
+				//while(1);
+				return;
+			}
+		}
+	}
+	block_current->metadata = 1;
+	char blocks_found = 0;
+	struct mem_block *block_lower;
+	struct mem_block *block_higher;
+	table = old_table;
+
+	for (int i = 0; i < MEM_BLOCK_TABLE_SIZE; i++) {
+		if ((blocks_found & 1) == 0 && table->content[i].address + table->content[i].size == block_current->address) {
+			block_lower = &table->content[i];
+			blocks_found |= 1;
+		} else if ((blocks_found & 2) == 0 && table->content[i].address == (block_current->address + block_current->size)) {
+			block_higher = &table->content[i];
+			blocks_found |= 2;
+		}
+		if (blocks_found == 3) {
+			break;
+		}
+		if (i == (MEM_BLOCK_TABLE_SIZE - 1) && table->next_mem_block_table != 0) {
+			table = (struct mem_block_table*)(table->next_mem_block_table);
+			i = 0;
+		}
+	}
+
+	if ((blocks_found & 1) != 0 && block_lower->metadata == 1) {
+		block_lower->size += block_current->size;
+		block_current->metadata = 0;
+		block_current = block_lower;
+	}
+	if ((blocks_found & 2) != 0 && block_higher->metadata == 1) {
+		block_current->size += block_higher->size;
+		block_higher->metadata = 0;
+	}
 }

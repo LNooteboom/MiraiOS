@@ -316,6 +316,8 @@ irq_init:	;(void) returns void
 		push ebp
 		mov ebp, esp
 		sub esp, 4
+		push edi
+		push esi
 
 		cld
 		mov ax, es
@@ -403,6 +405,8 @@ irq_init:	;(void) returns void
 		;int 0x21 ;fake keyboard interrupt
 		mov ax, [ss:ebp-4]
 		;mov es, ax
+		pop edi
+		pop esi
 		leave
 		ret
 

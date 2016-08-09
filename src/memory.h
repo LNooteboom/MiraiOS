@@ -6,6 +6,8 @@
 
 #define MEM_BLOCK_TABLE_SIZE 340
 
+#define KERNEL_FREEMEM_SIZE 0x100000
+
 //memory.asm
 
 void init_memory(void);
@@ -13,6 +15,8 @@ void init_memory(void);
 void TLB_update(void);
 
 //memory.c
+
+extern struct mem_block_table *current_mem_block_table;
 
 struct page_stack_page {
 	void *next_page_stack;
@@ -42,5 +46,7 @@ void set_in_kernel_pages(int vmem, int pmem);
 void mem_block_table_setup(void *destination, struct mem_block_table *prev_table);
 
 void *alloc_mem(struct mem_block_table *table, int size);
+
+void dealloc_mem(struct mem_block_table *table, void *memptr);
 
 #endif
