@@ -2,7 +2,6 @@ BITS 16
 ORG	0x0500
 CURRENTSEG	equ	0x0000
 FATSEG		equ	0x7000
-KRNLSEG		equ	0x0700 ;values above 0800 dont work, idk why
 KRNL_LOADADDR	equ	0x10000
 KRNL_BUFFERADDR	equ	0x7C00
 KRNL_ELFADDR	equ	0x7E00
@@ -579,8 +578,7 @@ getparameters:	;store them in a table
 		xor ax, ax
 		mov di, ax
 		;kernel offset and memsize
-		mov eax, KRNLSEG
-		shl eax, 4
+		mov eax, 0x100000
 		stosd
 		mov eax, krnlmemsz
 		stosd
