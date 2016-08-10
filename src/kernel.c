@@ -21,18 +21,8 @@ void kmain(void) {
 	ps2_init();
 	PIT_init();
 	init_memory_manager();
-	asm ("sti");
-
-	void *test = alloc_mem(current_mem_block_table, 10);
-	hexprintln((int) test);
-	void *test2 = alloc_mem(current_mem_block_table, 32);
-	hexprintln((int) test2);
-	dealloc_mem(current_mem_block_table, test);
-	dealloc_mem(current_mem_block_table, test2);
 
 	sprint("Initialisation complete!\n");
-	sleep(2000);
-	sprint("timer");
 	while (1) {};
 }
 

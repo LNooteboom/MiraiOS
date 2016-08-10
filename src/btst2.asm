@@ -1,8 +1,13 @@
 BITS 16
-;ORG	0x00000
-CURRENTSEG	equ	0x0050
+ORG	0x0500
+CURRENTSEG	equ	0x0000
 FATSEG		equ	0x7000
 KRNLSEG		equ	0x0700 ;values above 0800 dont work, idk why
+KRNL_LOADADDR	equ	0x10000
+KRNL_BUFFERADDR	equ	0x7C00
+KRNL_ELFADDR	equ	0x7E00
+KRNL_PROGHEADADDR equ	0x7E00
+ROOTDIR_ADDR	equ	0x7C00
 
 SECTPERTRACK	equ	0x0012
 NROFHEADS	equ	0x0002
@@ -37,7 +42,7 @@ _stage2:
 		mov ax, [currentsector]
 		mov cx, 1
 		xor dx, dx
-		mov bx, 0x0200
+		mov bx, 0x0700
 		call followfat
 
 		mov si, stage2loadedmsg
@@ -230,6 +235,7 @@ next:		call test_a20 ;test if A20 is already enabled
 		call print
 		jmp $
 	.next0:	;jmp $
+		call unreal_mode
 		call load_krnl
 		;turn off floppy drive motor
 		mov dx, 0x3F2
@@ -345,9 +351,32 @@ kyb_wait_out:	in al, 0x64
 		jz kyb_wait_out
 		ret
 
-load_krnl:	mov ax, KRNLSEG
-		mov es, ax
-		xor bx, bx
+unreal_mode:	push es
+		push ds
+
+		lgdt [gdtr]
+		;switch to pmode
+		mov eax, cr0
+		or al, 0x01
+		mov cr0, eax
+
+		jmp $+2
+
+		mov bx, 0x10 ;data seg
+		mov ds, bx
+		mov es, bx
+
+		;switch back to real mode
+		and al, 0xFE
+		mov cr0, eax
+
+		pop ds
+		pop es
+
+		ret
+
+load_krnl:	
+		mov bx, ROOTDIR_ADDR
 		mov ax, RESSECTORS + (NROFFATS * NROFFATSECTS) + 1
 		mov cl, NROFROOTDIRENTS/16
 		call loadsector
@@ -358,37 +387,33 @@ load_krnl:	mov ax, KRNLSEG
 		je .nfound ;if it has run out of entries to look in
 		mov bx, cx
 		shl bx, 5 ;times 32 to get address
+		add bx, ROOTDIR_ADDR
 		mov si, krnlfilename
 	.start2:mov al, bl
-		and al, 0x0F
-		cmp al, 0x0B
+		and al, 0x1F ;31
+		cmp al, 0x0B ;if all chars have been compared
 		je .found
 		lodsb
-		cmp al, [es:bx]
-		pushf
 		inc bl
-		popf
+		cmp al, [es:bx-1]
 		je .start2
-
 	.end2:	inc cx
-		;push cx
-		mov al, cl
 		jmp .start
 	
 	.nfound:mov si, krnlnfounderror
 		call print
 		jmp $
 
-	.found:	and bl, 0xF0
+	.found:	and bl, 0xE0 ;ignore lowest 5 bits
 		add bx, 0x1A ;start of file cluster nr
 		mov ax, [es:bx]
-		mov [krnlsector], ax
+		mov [krnlsector], ax ;save it
 
 		mov si, krnlfoundmsg
 		call print
 
-		mov ax, KRNLSEG
-		mov es, ax
+		;mov ax, KRNL_ELFADDR
+		;mov es, ax
 		;fat table should still be loaded in fs
 
 		mov ax, [krnlsector]
@@ -396,64 +421,57 @@ load_krnl:	mov ax, KRNLSEG
 		;clc
 		;call followfat
 		;first we need to load in the first cluster to interpret the ELF header
-		xor bx, bx
+		mov bx, KRNL_ELFADDR
 		mov cl, 1
 		call loadsector
 		;ok now we need to verify if the 'magic' bytes are correct
-		cmp [es:0x0000], word 0x457F ;0x7F & 0x45 ('E')
+		cmp [KRNL_ELFADDR], word 0x457F ;0x7F & 0x45 ('E')
 		jne .ferror
-		cmp [es:0x0002], word 0x464C ;0x4C & 0x46 ('LF') remember, we use little endian
+		cmp [KRNL_ELFADDR+0x02], word 0x464C ;0x4C & 0x46 ('LF') remember, we use little endian
 		jne .ferror
 		;now that the magic bytes are verified, we need to make sure the file is
 		;32 bit and little endian (other modes are not supported)
-		cmp [es:0x0004], word 0x0101
+		cmp [KRNL_ELFADDR+0x04], word 0x0101
 		jne .ferror ;I should probably make more error messages, oh well
 		;Now check the instruction set
-		cmp [es:0x0012], word 0x0003 ;x86
+		cmp [KRNL_ELFADDR+0x12], word 0x0003 ;x86
 		jne .ferror
 
 		;Let's now get the program header
 		;make sure that the 9 most significant bits are cleared
-		cmp [es:0x001F], byte 0x00
+		cmp [KRNL_ELFADDR+0x1F], byte 0x00
 		jne .ferror
-		test [es:0x001E], byte 0x80
+		test [KRNL_ELFADDR+0x1E], byte 0x80
 		jnz .ferror
 		;now get the program header position, the least significant byte doesnt matter
 		;as we are just looking at the cluster it is in
-		mov ax, [es:0x001D] ;here we are looking into the 2 middle bytes
+		mov ax, [KRNL_ELFADDR+0x1D] ;here we are looking into the 2 middle bytes
 		shr ax, 1 ;divide it by 2 to get relative cluster nr
 		mov [progheadcluoffset], ax
 		;now we need to get the offset from the cluster in bytes
-		mov ax, [es:0x001C]
+		mov ax, [KRNL_ELFADDR+0x1C]
 		and ax, 0x01FF ;only the lowest 9 bits matter
 		mov [progheadboffset], ax
 		;as well as the number of entries
-		mov ax, [es:0x002C]
+		mov ax, [KRNL_ELFADDR+0x2C]
 		mov [progheadsize], ax
 		;now get the total program header table size in bytes
-		mov dx, [es:0x002E]
+		mov dx, [KRNL_ELFADDR+0x2E]
 		mul dx ;and multiply it to get the size in bytes
 		mov [progheadsizeb], ax
 		shr ax, 9 ;divide by 512 for the amount of clusters
 		inc al
 		mov [progheadsizecluster], al
 		;and we also need the size 1 entry takes up
-		mov ax, word [es:0x002A]
+		mov ax, word [KRNL_ELFADDR+0x2A]
 		mov [progheadentsize], ax
 
 		;store entry offset:
-		mov eax, [es:24]
+		mov eax, [KRNL_ELFADDR+24]
 		mov [krnlentry], eax
 
-		;Ok now we need to set es
-		mov ax, 0x7E00
-		mov dx, [progheadsizeb]
-		shr dx, 4
-		inc dx ;to account for the last cluster
-		sub ax, dx
-		mov es, ax
 		;now we can finally start loading in the program headers
-		xor bx, bx
+		mov bx, KRNL_PROGHEADADDR
 		mov cx, [progheadcluoffset]
 		mov dl, [progheadsizecluster]
 		xor dh, dh
@@ -461,6 +479,7 @@ load_krnl:	mov ax, KRNLSEG
 		call followfat
 
 		mov bx, [progheadboffset]
+		add bx, KRNL_PROGHEADADDR
 		mov cx, [progheadsize]
 		;now we have to decode the header entries
 	.start3:jcxz .succ
@@ -472,7 +491,11 @@ load_krnl:	mov ax, KRNLSEG
 		call .perror
 		jmp .end3 ;skip it
 
-	.cont:	call progheaddecode
+	.cont:	push cx
+		push bx
+		call progheaddecode
+		pop bx
+		pop cx
 
 	.end3:	add bx, 0x0020
 		dec cx
@@ -494,131 +517,57 @@ load_krnl:	mov ax, KRNLSEG
 progheaddecode:	;this function decodes a program header table entry and executes it
 		push bp
 		mov bp, sp
+		;push 0x10000
+		mov edi, 0x100000 ;edi = current offset in pmem
 		;stack map:
-		;-2h cx reserved
-		;-4h bx program header offset
-		;-6h old es
-		;-8h old ds
-		;-Ah buffer segment
-		;-Ch destination segment
-		;-Eh current bytes remaining (low)
-		;-10h current bytes remaining (high)
-		;-12h current file offset (low)
-		;-14h current file offset (high)
-		;-16h current memory offset (low) unused
-		;-18h current memory offset (high) unused
-		;-1Ah di
-		sub sp, 0x1A
-		mov [ss:bp-0x2], cx
-		mov [ss:bp-0x4], bx
-		mov ax, es
-		mov [ss:bp-0x6], ax
-		mov ax, ds
-		mov [ss:bp-0x8], ax
-
-		;add to total memory size
-		mov eax, [krnlmemsz]
-		add eax, [es:bx+20]
-		mov [krnlmemsz], eax
-
-		mov ax, 0xFFFF ;load at 0x10000
-		mov [ss:bp-0xC], ax ;destination segment
-		mov ax, KRNLSEG
-		mov [ss:bp-0xA], ax ;buffer segment
-		
-		mov ax, [es:bx+16]
-		mov [ss:bp-0xE], ax ;current bytes remaining (low)
-		mov ax, [es:bx+18]
-		mov [ss:bp-0x10], ax ;high
-
-		mov ax, [es:bx+4]
-		mov [ss:bp-0x12], ax ;current file offset (low)
-		mov ax, [es:bx+6]
-		mov [ss:bp-0x14], ax ;high
-
-		mov ax, [es:bx+8]
-		mov [ss:bp-0x16], ax ;current memory offset (low)
-		mov ax, [es:bx+10]
-		mov [ss:bp-0x18], ax ;high
-
-		mov [ss:bp-0x1A], word 0x10
-
-	.start:	;first we need the cluster nr
-		;code must be aligned to 0x200
-		mov ax, [ss:bp-0x14] ;high word first
-		shl eax, 16 ;and shift it
-		mov ax, [ss:bp-0x12] ;low word
-		shr eax, 9 ;divide it 512 times to get cluster nr
-		
-		;now load it into buffer
+		;+4h program header offset (please preserve)
+		;first load in the file at the current offset into the bufferxit
+	.start:	mov bx, [ss:bp+0x04]
+		mov eax, [bx+4] ;p_offset
+		xor edx, edx
+		mov ecx, 0x200
+		div ecx
+		push dx
 		mov cx, ax
-		mov ax, [ss:bp-0x8]
-		mov ds, ax
-		mov ax, [ss:bp-0xA]
-		mov es, ax
-		xor bx, bx
+		mov bx, KRNL_BUFFERADDR
 		mov dx, 1
 		mov ax, [krnlsector]
 		call followfat
-
-		;now get the amount of bytes to copy from the buffer, capped at 0x200
-		mov ax, [ss:bp-0xE]
-		cmp ax, 0x200
-		jle .cont
-		mov ax, 0x200
-	.cont:	xor ecx, ecx
-		mov cx, ax
 		
-		;set ds to buffer and es to destination
-		mov ax, es ;buffer segment should still be in es
-		mov ds, ax
-		mov ax, [ss:bp-0xC]
-		mov es, ax
+		;now copy it from the buffer to the desired mem location
+		pop ax
+		mov bx, [ss:bp+0x04]
+		mov ecx, [bx+16] ;p_filesz
+		cmp ecx, 0x200
+		jbe .lower
+		mov ecx, 0x200
+	.lower:	sub cx, ax
+		movzx esi, ax
+		add esi, KRNL_BUFFERADDR
+		;subtract buffer size from filesize
+		mov eax, [bx+16]
+		sub eax, ecx
+		mov [bx+16], eax
+		;and add it to file offset
+		mov edx, [bx+4]
+		add edx, ecx
+		mov [bx+4], edx
 
-		mov si, 0
-		mov di, [ss:bp-0x1A]
+	.loop:	or cx, cx
+		jz .end
+		mov al, [esi]
+		inc esi
+		dec cx
+		mov [edi], al
+		inc edi
+		jmp .loop
 
-		rep movsb
-
-		;check the current bytes remaining
-		mov ax, [ss:bp-0x10]
-		shl eax, 16
-		mov ax, [ss:bp-0xE]
-		;and decrease it by 512
-		sub eax, 0x200
-		jl .done ;if the bytes remaining was less than 512, we're done
-		mov [ss:bp-0xE], ax ;store low
-		shr eax, 16
-		mov [ss:bp-0x10], ax ;and high
-
-		;now update destination segment
-		;mov ax, [ss:bp-0xC]
-		;add ax, 0x0020
-		;mov [ss:bp-0xC], ax
-		;update di
-		mov ax, [ss:bp-0x1A]
-		add ax, 0x200
-		mov [ss:bp-0x1A], ax
-
-		;and the file offset
-		mov ax, [ss:bp-0x14]
-		shl eax, 16
-		mov ax, [ss:bp-0x12]
-		add eax, 0x200
-		mov [ss:bp-0x12], ax
-		shr eax, 16
-		mov [ss:bp-0x14], ax
+	.end:	mov eax, [bx+16]
+		or eax, eax
+		jz .exit
 		jmp .start
 
-	.done:	mov ax, [ss:bp-0x6]
-		mov es, ax
-		mov ax, [ss:bp-0x8]
-		mov ds, ax
-
-		mov cx, [ss:bp-0x2]
-		mov bx, [ss:bp-0x4]
-		mov sp, bp
-		pop bp
+	.exit:	leave
 		ret
 
 getparameters:	;store them in a table

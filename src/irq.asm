@@ -499,3 +499,4 @@ irq_list:
 		dd irq_coproc
 		dd irq_ata1
 		dd irq_ata2
+
