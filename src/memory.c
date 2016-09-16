@@ -85,7 +85,7 @@ void dealloc_page(void *page) {
 void *sbrk(size_t size) {
 	void *start = kernel_heap_end;
 	if (size & 0xFFF) {
-		size &= 0xFFF;
+		size &= 0xFFFFF000;
 		size += PAGE_SIZE;
 	}
 	for (int i = 0; i < size / PAGE_SIZE; i++) {
@@ -141,14 +141,6 @@ void set_in_kernel_pages(void *vmem, void *pmem) {
 	*page_entry = (void*)( (int)pmem | 0x03); //flags
 	//asm volatile ("xchgw %bx, %bx"); //magic breakpoint
 	TLB_update();
-}
-char page_is_present(int vmem) {
-	if ((vmem & 0xFF800000) != 0xC0000000) {
-		sprint("Trying to get page index out of table!");
-		while(1);
-	}
-	int *page_entry = (int*)(((vmem & 0x007FF000) >> 12) + PAGE_DIR);
-	return (char)(*page_entry & 1);
 }
 
 void mem_block_table_setup(void *destination, struct mem_block_table *prev_table) {
