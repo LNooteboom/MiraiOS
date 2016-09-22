@@ -31,14 +31,11 @@ struct page_stack_page {
 	int sp; //stack pointer
 	void *free_pages[1022];
 };
-struct mem_block {
-	void* address;
+
+struct freemem_marker {
+	char magic[4];
+	struct freemem_marker *next;
 	size_t size;
-	char metadata; //bit 0&1 = type, 00 = ignore 01 = free 10 =in-use
-};
-struct mem_block_table {
-	void *next_mem_block_table;
-	struct mem_block content[MEM_BLOCK_TABLE_SIZE];
 };
 
 void init_memory_manager(void);
@@ -49,9 +46,9 @@ void *alloc_page(void);
 
 void dealloc_page(void *page);
 
-void set_in_kernel_pages(void *vmem, void *pmem);
+void *ksbrk(size_t size);
 
-void mem_block_table_setup(void *destination, struct mem_block_table *prev_table);
+void add_freemem_marker(void *pos, struct freemem_marker *next, size_t size);
 
 void *alloc_mem(struct mem_block_table *table, size_t size);
 
