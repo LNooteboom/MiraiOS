@@ -3,15 +3,7 @@ OUTPUT_FORMAT(elf32-i386)
 
 INPUT
 (
-	video.o
-	io.o
-	memory.o
-	irq.o
-	tty.o
-	ps2.o
-	pit.o
-	keyb.o
-	param.o
+	*.o
 )
 STARTUP(kernel.o)
 
