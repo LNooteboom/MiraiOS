@@ -66,7 +66,7 @@ void presskey(char scancode) {
 			break;
 			case (char)0x75: //cursor up
 			cursorY--;
-			shift_cursor_left();
+			shift_cursorLeft();
 			vga_set_cursor(cursorX, cursorY);
 			break;
 			case (char)0x7A: //page down
@@ -74,7 +74,7 @@ void presskey(char scancode) {
 			break;
 			case (char)0x72: //cursor down
 			cursorY++;
-			shift_cursor_left();
+			shift_cursorLeft();
 			vga_set_cursor(cursorX, cursorY);
 			break;
 
@@ -86,7 +86,7 @@ void presskey(char scancode) {
 			break;
 			case (char)0x74: //cursor right
 			cursorX++;
-			shift_cursor_left();
+			shift_cursorLeft();
 			vga_set_cursor(cursorX, cursorY);
 			break;
 		}

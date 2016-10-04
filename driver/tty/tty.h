@@ -14,7 +14,7 @@ void decprintln(int value);
 
 void newline(void);
 void backspace(void);
-void shift_cursor_left(void);
+void shift_cursorLeft(void);
 void sprint(char *text);
 
 void tty_set_full_screen_attrib(char attrib);

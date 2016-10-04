@@ -686,7 +686,10 @@ init_paging:
 		inc cx
 		jmp .start
 
-	.next:	;now setup higher half paging
+	.next:	;add page directory entry to itself
+		mov eax, 0x1003
+		mov [es:(0x1000 - 0x04)], eax ;it's the last entry
+		;now setup higher half paging
 		;add pointer in page directory
 		;get offset
 		mov ax, 0x0100

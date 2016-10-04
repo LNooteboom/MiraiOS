@@ -49,7 +49,7 @@ void backspace(void) {
 	}
 	vga_set_cursor(cursorX, cursorY);
 }
-void shift_cursor_left(void) {
+void shift_cursorLeft(void) {
 	volatile char *video = (volatile char*)((cursorY * screenwidth) + (cursorX * 2) + vram);
 	video -= 2;
 	while (*video == 0) {

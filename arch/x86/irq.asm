@@ -361,7 +361,7 @@ irq_init:	;(void) returns void
 		mov es, ax
 		xor cl, cl
 		mov edi, IDTOFFSET ;interrupt table is from 0x6000 - 0x9FFF
-		mov esi, exc_list
+		mov esi, excList
 	.start2:cmp cl, NROFEXCINTS
 		jge .end2
 		movsw ;low word of offset
@@ -377,7 +377,7 @@ irq_init:	;(void) returns void
 
 	.end2:	;now irqs:
 		xor cl, cl
-		mov esi, irq_list
+		mov esi, irqList
 		mov edi, (32 * 8) + IDTOFFSET
 	.start3:cmp cl, NROFPICINTS
 		jge .end3
@@ -464,7 +464,7 @@ dblfault:	db 'Double Fault', 0
 idtr:		dw NROFIDTENTS * BYTESPERIDTENT
 		dd IDTOFFSET
 
-exc_list:
+excList:
 		dd exc_diverror
 		dd exc_debug_error
 		dd irq_undefined ;NMI
@@ -483,7 +483,7 @@ exc_list:
 		dd irq_undefined ;reserved
 		dd exc_coproc_error
 
-irq_list:
+irqList:
 		dd irq_PIT
 		dd irq_keyb
 		dd irq_COM2

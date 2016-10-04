@@ -1,12 +1,3 @@
-#include "io.h"
-#include "video.h"
-#include "kernel.h"
-#include "memory.h"
-#include "param.h"
-#include "irq.h"
-#include "tty.h"
-#include "pit.h"
-#include "ps2.h"
 
 void kmain(void) {
 	init_memory();

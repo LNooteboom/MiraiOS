@@ -19,7 +19,7 @@ SECTION .text
 global video_init:function
 video_init:	;(void) returns void
 		call getCRTCPorts
-		call get_line_width
+		call getLine_width
 		;shr eax, 1
 		mov [screenwidth], eax
 		call vga_get_screenheight
@@ -49,8 +49,8 @@ getvirt_ychars:	;(void) returns short
 		shr ax, 1
 		ret
 
-global get_line_width:function
-get_line_width:	;(void) returns int width
+global getLine_width:function
+getLine_width:	;(void) returns int width
 		push ebp
 		mov ebp, esp
 

@@ -6,7 +6,7 @@ global init_memory:function
 init_memory:	;(void) returns void
 		lgdt [gdtr] ;load new gdt
 		xor eax, eax
-		mov [ds:0xC0001000], eax
+		mov [ds:0xC0001000], eax ;clear first PDE
 		mov eax, cr3
 		mov cr3, eax
 		ret
