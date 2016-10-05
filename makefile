@@ -1,13 +1,25 @@
 SHELL = /bin/sh
 TARGET = i686-elf
 
-CFLAG = "-Wall -c"
+export LD_LIBRARY_PATH = ${PWD}/include/
+
+CFLAG = "-Wall -std=gnu99"
 CC = ${TARGET}-gcc
 
 LD = ${TARGET}-ld
 LDFLAGS = "-T"
 
-OBJECTS = "*.o"
+obj_all = ${obj_mm}
+
+obj_mm = paging.o physpaging.o
+
+%.o: %.c
+	${CC} ${CFLAG} -c -o $@ $<
+
+clean:
+	rm *.o
+
+test: obj_all
 
 all:	out.img BOOT KERNEL
 	mkdir temp
@@ -25,20 +37,6 @@ out.img: boot/bootsector.asm
 BOOT: boot/stage2.asm
 	nasm -f bin -o $@ $+
 
-KERNEL: OBJECTS
+KERNEL: ${OBJECTS}
 	${LD} -T ld_scripts/kernel.lds
 
-kmain.o: main/kmain.c
-	${CC} ${CFLAG} -o $@ $+
-
-param.o: param/param.c
-	${CC} ${CFLAG} -o $@ $+
-
-memory.o: memory_c.o memory_asm.o
-	ld -o $@ $+
-
-memory_c.o: memory/init.c memory/memdetect.c memory/paging.c memory/alloc.c memory/dealloc.c
-	${CC} ${CFLAG} -o $@ $+
-
-memory_asm.o: memory/init.asm
-	nasm -f elf -o $@ $+

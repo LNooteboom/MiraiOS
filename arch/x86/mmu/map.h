@@ -11,4 +11,14 @@ Note that the vaddr must be >= 0xFFC00000
 */
 void newPageTable(void *vaddr);
 
+/*
+This function returns a pointer to a PDE with its matching vaddr
+*/
+PDE_t *getPDE(void *vaddr);
+
+/*
+This function returns a pointer to a PTE with its matching vaddr
+*/
+PTE_t *getPTE(void *vaddr);
+
 #endif

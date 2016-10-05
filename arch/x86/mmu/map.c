@@ -1,6 +1,7 @@
 #include "map.h"
 #include <pagemap.h>
 
+#include <global.h>
 #include <paging.h>
 
 #define PAGEDIRVADDR 0xFFFFF000
@@ -46,14 +47,35 @@ void newPageTable(void *vaddr) {
 	}
 }
 
-void setInPageMaps(void *vaddr, void *paddr) {
+PDE_t *getPDE(void *vaddr) {
 	uint32_t indexPD = ((uintptr_t)(vaddr) & PDEINDEXMASK) >> PDEINDEXSHIFT;
-	PDE_t entryPD = pageDir[indexPD];
+	return (pageDir + indexPD);
+}
+PTE_t *getPTE(void *vaddr) {
+	return (PTE_t*)((uintptr_t)(vaddr) & PTEINDEXMASK | PDEINDEXMASK);
+}
+
+void mapPage(void *vaddr, void *paddr) {
+	PDE_t entryPD = *(getPDE(vaddr));
 	//check if a page table exists with that address
 	if (entryPD & PDE_PTE_PRESENT == 0) {
 		//page table does not exist, so create one
 		newPageTable((void*)(entryPD & PDE_PTE_ADDRMASK));
 	}
-	PTE_t *entryPT = (uintptr_t)(vaddr) & PTEINDEXMASK | PDEINDEXMASK;
+	PTE_t *entryPT = getPTE(vaddr);
 	*entryPT = (uintptr_t)(paddr) | PTEFLAGS;
+}
+
+void unmapPage(void *vaddr) {
+	PTE_t *entryPT = getPTE(vaddr);
+	*entryPT &= ~(PDE_PTE_PRESENT);
+}
+
+void *getPhysPage(void *vaddr) {
+	PTE_t entryPT = *(getPTE(vaddr));
+	if (entryPT & PDE_PTE_PRESENT) {
+		entryPT &= PDE_PTE_ADDRMASK;
+		return (void*)(entryPT);
+	}
+	return NULL;
 }
