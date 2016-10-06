@@ -1,17 +1,19 @@
 SHELL = /bin/sh
-TARGET = i686-elf
+export TARGET = i686-elf
 
-export LD_LIBRARY_PATH = ${PWD}/include/
+#export LD_LIBRARY_PATH = ${PWD}/include/
 
-CFLAG = "-Wall -std=gnu99"
-CC = ${TARGET}-gcc
+export CFLAG = "-Wall"  "-I${PWD}/include/"
+export CC = ${TARGET}-gcc
 
-LD = ${TARGET}-ld
-LDFLAGS = "-T"
+export LD = ${TARGET}-ld
+export LDFLAGS = ""
 
-obj_all = ${obj_mm}
+obj_all = mm/mm.o
 
-obj_mm = paging.o physpaging.o
+
+mm.o: 
+	cd mm && $(MAKE)
 
 %.o: %.c
 	${CC} ${CFLAG} -c -o $@ $<

@@ -2,6 +2,9 @@
 #define GLOBAL_H
 
 #define PTRSIZE 4
+#define PAGESIZE 4096
+
+#define NULL 0
 
 
 //signed integer types
@@ -15,5 +18,6 @@ typedef unsigned long uint32_t;
 
 typedef uint32_t uintptr_t;
 
-typedef enum {false, true} bool
+typedef enum {false, true} bool;
 
+#endif
