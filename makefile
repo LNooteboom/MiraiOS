@@ -19,7 +19,7 @@ mm.o:
 	${CC} ${CFLAG} -c -o $@ $<
 
 clean:
-	rm *.o
+	cd mm && $(MAKE) clean
 
 test: obj_all
 

@@ -2,6 +2,7 @@
 #include "physpaging.h"
 
 #include <global.h>
+#include <mm/pagemap.h>
 
 #define PAGESTACKSTART 0xFF700000
 #define PAGESTACKLIMIT 0xFFC00000
@@ -20,7 +21,7 @@ void *allocPhysPage(void) {
 		//no more free memory :(
 		return NULL;
 	}
-	if ((pageStackPtr & PAGEENTRIESINPAGEMASK) == PAGEENTRIESINPAGEMASK && !newPageStackDealloced) {
+	if ((pageStackPtr & (PAGEENTRIESINPAGEMASK)) == PAGEENTRIESINPAGEMASK && !newPageStackDealloced) {
 		//stack space becomes allocated page
 		newPageStackDealloced = true;
 		void *vaddr = (void*)((pageStackPtr+1) * PTRSIZE + PAGESTACKSTART);
@@ -31,7 +32,7 @@ void *allocPhysPage(void) {
 }
 
 void deallocPhysPage(void *page) {
-	if ((pageStackPtr & PAGEENTRIESINPAGEMASK) == PAGEENTRIESINPAGEMASK && !newPageStackAlloced) {
+	if ((pageStackPtr & (PAGEENTRIESINPAGEMASK)) == PAGEENTRIESINPAGEMASK && !newPageStackAlloced) {
 		//deallocated page becomes more stack space
 		newPageStackAlloced = true;
 		void *vaddr = (void*)((pageStackPtr+1) * PTRSIZE + PAGESTACKSTART);

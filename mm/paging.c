@@ -1,6 +1,8 @@
-#include <paging.h>
+#include <mm/paging.h>
 
 #include <global.h>
+#include <mm/physpaging.h>
+#include <mm/pagemap.h>
 
 
 uint8_t allocPage(void *addr) {
