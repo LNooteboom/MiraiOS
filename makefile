@@ -7,21 +7,22 @@ export CFLAG = "-Wall"  "-I${PWD}/include/"
 export CC = ${TARGET}-gcc
 
 export LD = ${TARGET}-ld
-export LDFLAGS = ""
 
-obj_all = mm/mm.o
+export ARCH = x86
 
+MODULES = mm drivers
+OBJECTS = $(patsubst %, %/main.o, ${MODULES})
+KERNEL = KERNEL
 
-mm.o: 
-	cd mm && $(MAKE)
-
-%.o: %.c
-	${CC} ${CFLAG} -c -o $@ $<
+${KERNEL}: ${OBJECTS}
+	#TODO: replace this with linker script
+	${LD} -o $@ $+
 
 clean:
 	cd mm && $(MAKE) clean
+	cd drivers && $(MAKE) clean
 
-test: obj_all
+test: ${OUTPUT}
 
 all:	out.img BOOT KERNEL
 	mkdir temp
