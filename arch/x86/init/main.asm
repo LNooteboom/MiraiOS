@@ -10,7 +10,7 @@ SECTION multiboot
 
 SECTION boottext
 
-bootstrap:
+__init:
 	;mov [multiBootInfo], ebx
 
 	;setup paging
@@ -35,7 +35,7 @@ bootstrap:
 	stosd
 	add eax, 0x1000
 	inc ecx
-	jmp start
+	jmp .start
 
 	.end:
 	;add entry in page directoty pointing to page table

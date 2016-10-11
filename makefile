@@ -8,17 +8,22 @@ export LD = ${TARGET}-ld
 
 export ARCH = x86
 
-MODULES = mm driver
-OBJECTS = $(patsubst %, %/main.o, ${MODULES})
 KERNEL = KERNEL
+MODULES = mm driver
+OBJ_INIT = init.o
+
+
+OBJECTS = $(patsubst %, %/main.o, ${MODULES}) + ${OBJ_INIT}
+INITDIR = arch/${ARCH}/init
 
 all: ${KERNEL}
 
-test: driver
+${OBJ_INIT}: ${INITDIR}/makefile
+	$(MAKE) -C $<
+	cp ${INITDIR}/main.o $@
 
 ${KERNEL}: ${OBJECTS}
-	#TODO: replace this with linker script
-	${LD} -o $@ $+
+	${LD} -T kernel.ld
 
 %/main.o:
 	$(MAKE) -C $(patsubst %/main.o,%,$@)
