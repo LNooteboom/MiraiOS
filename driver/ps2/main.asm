@@ -2,20 +2,25 @@
 SECTION .text
 extern sprint
 
-ps2_read_wait:	;(void) returns void
+global ps2SendPort1:function
+global ps2SendCommand:function
+global ps2ReadData:function
+global ps2WriteData:function
+global ps2ReadStatus:function
+
+ps2ReadWait:	;(void) returns void
 		in al, 0x64
 		test al, 0x01
-		jz ps2_read_wait
+		jz ps2ReadWait
 		ret
 
-ps2_write_wait:	;(void) returns void
+ps2WriteWait:	;(void) returns void
 		in al, 0x64
 		test al, 0x02
-		jnz ps2_write_wait
+		jnz ps2WriteWait
 		ret
 
-global ps2_send_port1:function
-ps2_send_port1:	;(char data) returns void
+ps2SendPort1:	;(char data) returns void
 		push ebp
 		mov ebp, esp
 
@@ -32,46 +37,42 @@ ps2_send_port1:	;(char data) returns void
 		leave
 		ret
 
-	.err:	mov eax, timeouterr
+	.err:	mov eax, timeoutErr
 		push eax
 		call sprint
 		add esp, 8
 		jmp $
 
-global ps2_send_command:function
-ps2_send_command:;(char command) returns void
+ps2SendCommand:;(char command) returns void
 		push ebp
 		mov ebp, esp
 
-		call ps2_write_wait
+		call ps2WriteWait
 		mov al, [ss:ebp+8]
 		out 0x64, al
 
 		leave
 		ret
 
-global ps2_read_data:function
-ps2_read_data:	;(void) returns char data
-		call ps2_read_wait
+ps2ReadData:	;(void) returns char data
+		call ps2ReadWait
 		in al, 0x60
 		ret
 
-global ps2_write_data:function
-ps2_write_data:	;(char data) returns void
+ps2WriteData:	;(char data) returns void
 		push ebp
 		mov ebp, esp
 
-		call ps2_write_wait
+		call ps2WriteWait
 		mov al, [ss:ebp+8]
 		out 0x60, al
 
 		leave
 		ret
 
-global ps2_read_status:function
-ps2_read_status:;(void) returns char status
+ps2ReadStatus:;(void) returns char status
 		in al, 0x64
 		ret
 
-SECTION .data
-timeouterr:	db 'PS/2 device timed out.', 0
+SECTION .rodata
+timeoutErr:	db 'PS/2 device timed out.', 0

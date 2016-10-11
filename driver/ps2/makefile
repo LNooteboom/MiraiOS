@@ -12,3 +12,7 @@ ${MAINOBJ}: ${OBJECTS}
 
 %asm.o: %.asm
 	nasm -f elf -o $@ $<
+
+clean:
+	rm *.o
+

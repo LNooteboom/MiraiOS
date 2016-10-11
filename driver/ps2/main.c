@@ -46,7 +46,7 @@ void ps2_init(void) {
 		//possibly 2 channels
 		ps2SendCommand(PS2COMMAND_ENABLEPORT2);
 		ps2SendCommand(PS2COMMAND_READCONFIG);
-		uint8_t config = ps2ReadData();
+		config = ps2ReadData();
 		if (!(config & 0x20)) {
 			//dual channel
 			chnl2Exists = true;
@@ -82,7 +82,7 @@ void ps2_init(void) {
 	ps2SendCommand(PS2COMMAND_ENABLEPORT1);
 
 	ps2SendCommand(PS2COMMAND_READCONFIG);
-	uint8_t config = ps2ReadData();
+	config = ps2ReadData();
 	if (chnl2Exists) {
 		config |=0x03; //turn on interrupts for port 1+2
 	} else {

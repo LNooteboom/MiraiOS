@@ -1,5 +1,5 @@
 
-OUTPUT = mm.o
+OUTPUT = main.o
 OBJECTS = physpaging.o paging.o
 
 %.o: %.c
