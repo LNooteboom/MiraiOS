@@ -1,3 +1,8 @@
+extern panic
+extern sprint
+extern hexprintln
+
+SECTION .text
 
 exc_diverror:	;mov eax, 0xdeadbeef
 		push ebp
@@ -195,6 +200,12 @@ exc_coproc_error:
 
 SECTION .rodata
 
+regs:		db 'eax: ', 0
+		db 'ebx: ', 0
+		db 'ecx: ', 0
+		db 'edx: ', 0
+regsend:
+
 diverrormsg:	db 'Division error',0
 dbgerror:	db 'Debug error', 0
 breakpointerr:	db 'Breakpoint reached', 0
@@ -214,7 +225,7 @@ dblfault:	db 'Double Fault', 0
 excList:
 		dd exc_diverror
 		dd exc_debug_error
-		dd irq_undefined ;NMI
+		;dd irq_undefined ;NMI
 		dd exc_breakpoint
 		dd exc_overflow
 		dd exc_bounds_check
@@ -227,5 +238,5 @@ excList:
 		dd exc_stack
 		dd exc_gen_prot
 		dd exc_page_fault
-		dd irq_undefined ;reserved
+		;dd irq_undefined ;reserved
 		dd exc_coproc_error

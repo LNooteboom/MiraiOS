@@ -1,5 +1,5 @@
-#ifndef INCLUDEPAGING_H
-#define PAGING_H
+#ifndef INCLUDE_PAGING_H
+#define INCLUDE_PAGING_H
 
 #include <global.h>
 

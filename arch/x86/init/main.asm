@@ -81,7 +81,7 @@ __init:
 	jmp .hang
 
 
-global init_memory:function
+;global init_memory:function
 init_memory:	;(void) returns void
 		lgdt [gdtr] ;load new gdt
 		xor eax, eax
@@ -90,7 +90,7 @@ init_memory:	;(void) returns void
 		mov cr3, eax
 		ret
 
-global TLB_update:function
+;global TLB_update:function
 TLB_update:	mov eax, cr3
 		mov cr3, eax
 		ret

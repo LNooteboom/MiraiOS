@@ -10,7 +10,7 @@ inb:	;(uint16_t port) returns uint8_t value
 	ret
 
 outb:	;(uint16_t port, uint8_t value) returns void
-	mov dx [esp+4]
+	mov dx, [esp+4]
 	mov al, [esp+8]
 	out dx, al
 	ret

@@ -1,5 +1,5 @@
-#ifndef INCLUDEPAGEMAP
-#define INCLUDEPAGEMAP
+#ifndef INCLUDE_PAGEMAP_H
+#define INCLUDE_PAGEMAP_H
 
 /*
 This function maps the physical page paddr to virtual address vaddr

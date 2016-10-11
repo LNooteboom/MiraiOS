@@ -4,11 +4,11 @@ OUTPUT_FORMAT(elf32-i386)
 INPUT
 (
 	init.o
-	arch.o
-	driver.o
-	kernel.o
-	mm.o
-	param.o
+	arch/x86/main.o
+	driver/main.o
+	kernel/main.o
+	mm/main.o
+	param/main.o
 )
 STARTUP(init.o)
 

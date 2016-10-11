@@ -1,6 +1,7 @@
-#include "main.h"
+#include <irq.h>
 
 #include <global.h>
+#include "idt.h"
 
 #define MINSWIVALUE 0x30
 

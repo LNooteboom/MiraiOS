@@ -1,5 +1,5 @@
-#ifndef GLOBAL_H
-#define GLOBAL_H
+#ifndef INCLUDE_GLOBAL_H
+#define INCLUDE_GLOBAL_H
 
 #define PTRSIZE 4
 #define PAGESIZE 4096

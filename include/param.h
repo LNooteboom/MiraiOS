@@ -1,5 +1,5 @@
-#ifndef PARAM_H
-#define PARAM_H
+#ifndef INCLUDE_PARAM_H
+#define INCLUDE_PARAM_H
 
 struct paramtable {
 	int krnloffset;

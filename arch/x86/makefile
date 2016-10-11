@@ -1,6 +1,6 @@
 export NASM = nasm
 
-OUTPUT = arch.o
+OUTPUT = main.o
 SUBDIRS = irq #timer mmu pic
 OBJECTS = io.o
 

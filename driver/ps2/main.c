@@ -1,6 +1,7 @@
 #include "main.h"
 
 #include <global.h>
+#include <pio.h>
 
 #define PS2COMMAND_READCONFIG 0x20
 #define PS2COMMAND_WRITECONFIG 0x60
@@ -18,13 +19,13 @@
 #define PS2COMMAND_WRITECONTROLLEROUTPUT 0xD1
 
 
-void ps2_init(void) {
-	sprint("Initialising PS/2...\n");
+void ps2Init(void) {
+	//sprint("Initialising PS/2...\n");
 	//disable devices
 	ps2SendCommand(PS2COMMAND_DISABLEPORT1); //first port
 	ps2SendCommand(PS2COMMAND_DISABLEPORT2); //second port
 
-	ps2_flush_output();
+	ps2FlushOutput();
 
 	//set controller configuration
 	ps2SendCommand(PS2COMMAND_READCONFIG); //read controller output
@@ -37,7 +38,7 @@ void ps2_init(void) {
 	//perform self test
 	ps2SendCommand(PS2COMMAND_TESTCONTROLLER);
 	if (ps2ReadData() != 0x55) {
-		sprint("PS/2 self test failed!");
+		//sprint("PS/2 self test failed!");
 		while (1) {}
 	}
 
@@ -64,17 +65,17 @@ void ps2_init(void) {
 	//check port 1
 	ps2SendCommand(PS2COMMAND_TESTPORT1);
 	if (ps2ReadData() == 0) {
-		sprint("PS/2 port 1 test complete.\n");
+		//sprint("PS/2 port 1 test complete.\n");
 	} else {
-		sprint("PS/2 port 1 test failed.\n");
+		//sprint("PS/2 port 1 test failed.\n");
 	}
 	//check port 2, if it exists
 	if (chnl2Exists) {
 		ps2SendCommand(PS2COMMAND_TESTPORT2);
 		if (ps2ReadData() == 0) {
-			sprint("PS/2 port 2 test complete.\n");
+			//sprint("PS/2 port 2 test complete.\n");
 		} else {
-			sprint("PS/2 port 2 test failed.\n");
+			//sprint("PS/2 port 2 test failed.\n");
 		}
 	}
 
@@ -95,7 +96,7 @@ void ps2_init(void) {
 	ps2SendPort1(0xFF);
 }
 
-void ps2_flush_output(void) {
+void ps2FlushOutput(void) {
 	while ((ps2ReadStatus() & 0x01) == 1){
 		inb(0x60);
 	}

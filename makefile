@@ -9,16 +9,16 @@ export LD = ${TARGET}-ld
 export ARCH = x86
 
 KERNEL = KERNEL
-MODULES = mm driver
+MODULES = kernel arch/${ARCH} mm driver param
 OBJ_INIT = init.o
 
 
-OBJECTS = $(patsubst %, %/main.o, ${MODULES}) + ${OBJ_INIT}
+OBJECTS = $(patsubst %, %/main.o, ${MODULES}) ${OBJ_INIT}
 INITDIR = arch/${ARCH}/init
 
 all: ${KERNEL}
 
-${OBJ_INIT}: ${INITDIR}/makefile
+${OBJ_INIT}: ${INITDIR}
 	$(MAKE) -C $<
 	cp ${INITDIR}/main.o $@
 
