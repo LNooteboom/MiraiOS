@@ -18,6 +18,8 @@ typedef unsigned long uint32_t;
 
 typedef uint32_t uintptr_t;
 
+typedef uint32_t size_t;
+
 typedef enum {false, true} bool;
 
 #endif

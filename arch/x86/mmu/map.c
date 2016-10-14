@@ -1,13 +1,14 @@
 #include "map.h"
-#include <pagemap.h>
+#include <mm/pagemap.h>
 
 #include <global.h>
-#include <paging.h>
+#include <mm/paging.h>
+#include <mm/physpaging.h>
 
 #define PAGEDIRVADDR 0xFFFFF000
 
 #define PDEINDEXMASK 0xFFC00000
-//#define PDEINDEXSHIFT 22
+#define PDEINDEXSHIFT 22
 #define PTEINDEXMASK 0x003FF000
 #define PTEINDEXSHIFT 12
 
@@ -22,7 +23,7 @@
 
 #define PAGEDIRSIZE (PAGESIZE / 4)
 
-PDE_t *pageDir = PAGEDIRVADDR;
+PDE_t *pageDir = (PDE_t*)PAGEDIRVADDR;
 
 size_t pageTableSize = 0;
 
@@ -31,10 +32,10 @@ void setupPaging(void) {
 
 void newPageTable(void *vaddr) {
 	if (((uintptr_t)(vaddr) & PDEINDEXMASK) != PDEINDEXMASK) {
-		panic("Attempted to create page table outside boundary.");
+		//panic("Attempted to create page table outside boundary.");
 		return;
 	}
-	PDE_t newPT = (PDE_t*) allocPhysPage();
+	PDE_t newPT = (PDE_t)allocPhysPage();
 	newPT |= PDEFLAGS;
 	//map the new PDE
 	uint32_t index = (((uintptr_t)(vaddr) & PTEINDEXMASK) >> PTEINDEXSHIFT);
@@ -52,18 +53,18 @@ PDE_t *getPDE(void *vaddr) {
 	return (pageDir + indexPD);
 }
 PTE_t *getPTE(void *vaddr) {
-	return (PTE_t*)((uintptr_t)(vaddr) & PTEINDEXMASK | PDEINDEXMASK);
+	return (PTE_t*)(((uintptr_t)(vaddr) & PTEINDEXMASK) | PDEINDEXMASK);
 }
 
 void mapPage(void *vaddr, void *paddr) {
 	PDE_t entryPD = *(getPDE(vaddr));
 	//check if a page table exists with that address
-	if (entryPD & PDE_PTE_PRESENT == 0) {
+	if ((entryPD & PDE_PTE_PRESENT) == 0) {
 		//page table does not exist, so create one
 		newPageTable((void*)(entryPD & PDE_PTE_ADDRMASK));
 	}
 	PTE_t *entryPT = getPTE(vaddr);
-	*entryPT = (uintptr_t)(paddr) | PTEFLAGS;
+	*entryPT = ((uintptr_t)(paddr)) | (PTEFLAGS);
 }
 
 void unmapPage(void *vaddr) {

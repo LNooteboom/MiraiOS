@@ -1,26 +1,28 @@
 #include "tty.h"
-#include "video.h"
 
-int cursorX;
-int cursorY;
+#include <global.h>
+#include "vga.h"
+
+uint8_t cursorX = 0;
+uint16_t cursorY = 0;
 char currentattrib = 0x07; //white text on black background
 
 void cprint(char c) {
-	volatile char *video = (volatile char*)((cursorY * screenwidth) + (cursorX * 2) + vram);
+	volatile char *video = (volatile char*)((cursorY * screenWidth) + (cursorX * 2) + vram);
 	*video++ = c;
 	*video = currentattrib;
 
 	cursorX++;
-	if (cursorX >= (screenwidth / 2)) {
+	/*if (cursorX >= (screenWidth / 2)) {
 		newline();
-	}
-	vga_set_cursor(cursorX, cursorY);
+	}*/
+	vgaSetCursor(cursorX, cursorY);
 }
 void sprint(char *text) {
 	while (*text != 0) {
 		if (*text == '\n') {
 			newline();
-			vga_set_cursor(cursorX, cursorY);
+			vgaSetCursor(cursorX, cursorY);
 		} else {
 			cprint(*text);
 		}
@@ -31,20 +33,20 @@ void sprint(char *text) {
 void newline(void) {
 	cursorX = 0;
 	cursorY++;
-	if (cursorY >= screenheight) {
-		vga_set_scroll(++scrollY);
+	if (cursorY >= screenHeight) {
+		vgaSetScroll(++scrollY);
 	}
-	vga_set_cursor(cursorX, cursorY);
+	vgaSetCursor(cursorX, cursorY);
 }
 void backspace(void) {
-	volatile char *video = (volatile char*)((cursorY * screenwidth) + (cursorX * 2) + vram);
+	volatile char *video = (volatile char*)((cursorY * screenWidth) + (cursorX * 2) + vram);
 	video -= 2;
 	if (cursorX == 0) {
 		if (cursorY == 0) {
 			return; //cursor at start of the screen
 		}
 		cursorY--;
-		cursorX = (screenwidth / 2);
+		cursorX = (screenWidth / 2);
 		while (*video == 0) {
 			if (cursorX == 0) {
 				break;
@@ -56,10 +58,10 @@ void backspace(void) {
 		*video = 0;
 		cursorX--;
 	}
-	vga_set_cursor(cursorX, cursorY);
+	vgaSetCursor(cursorX, cursorY);
 }
 void cursorLeft(void) {
-	volatile char *video = (volatile char*)((cursorY * screenwidth) + (cursorX * 2) + vram);
+	volatile char *video = (volatile char*)((cursorY * screenWidth) + (cursorX * 2) + vram);
 	video -= 2;
 	while (*video == 0) {
 		if (cursorX == 0) {
@@ -73,9 +75,9 @@ void cursorLeft(void) {
 void setFullScreenColor(char attrib) {
 	currentattrib = attrib;
 	volatile char *video = vram + 1;
-	for (int y = 0; y < screenheight; y++) {
-		for (int x = 0; x < screenwidth / 2; x++) {
-			//volatile char *video = (volatile char*)((y * screenwidth) + (x * 2) + vram + 1);
+	for (int y = 0; y < screenHeight; y++) {
+		for (int x = 0; x < screenWidth / 2; x++) {
+			//volatile char *video = (volatile char*)((y * screenWidth) + (x * 2) + vram + 1);
 			*video = attrib;
 			video += 2;
 		}
@@ -83,14 +85,14 @@ void setFullScreenColor(char attrib) {
 }
 void clearScreen(void) {
 	volatile char *video = vram;
-	for (int y = 0; y < screenheight; y++) {
-		for (int x = 0; x < screenwidth / 2; x++) {
-			//volatile char *video = (volatile char*)((y * screenwidth) + (x * 2) + vram);
+	for (int y = 0; y < screenHeight; y++) {
+		for (int x = 0; x < screenWidth / 2; x++) {
+			//volatile char *video = (volatile char*)((y * screenWidth) + (x * 2) + vram);
 			*video = 0;
 			video += 2;
 		}
 	}
 	cursorX = 0;
 	cursorY = 0;
-	vga_set_cursor(cursorX, cursorY);
+	vgaSetCursor(cursorX, cursorY);
 }

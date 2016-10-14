@@ -1,5 +1,5 @@
 
-DRIVERS = ps2# ps2keyboard vga tty
+DRIVERS = ps2 vga# ps2keyboard
 OUTPUT = main.o
 OBJECTS = $(patsubst %, %/main.o, ${DRIVERS})
 

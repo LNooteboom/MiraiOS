@@ -1,101 +1,129 @@
+BITS 32
+
 LOWMEM_SZ:	equ 0x100000 ;1mb
-PAGEFLAGS: equ 0x03
 PAGEDIRSIZE: equ 4096
 PAGETABLESIZE: equ 4096
 
+
+VMEM_OFFSET: equ 0xC0000000
+RELOCTABLE_SIZE: equ 3*4
+NROF_PAGEDIR_ENTRIES: equ 1024
+NROF_PAGETABLE_ENTRIES: equ 1024
+PAGEFLAGS: equ 0x03
+
 extern kernelEnd
 extern kmain
+global __init:function
 
 SECTION multiboot
 
 SECTION boottext
 
 __init:
-	;mov [multiBootInfo], ebx
+	;EXTREME BOOTSTRAPPING!!
+	cmp eax, 0xBEEFCAFE
+	;je floppyBoot
+
+	;setup gdt
+	mov edi, gdtr - VMEM_OFFSET + 2
+	mov eax, [edi]
+	sub eax, 0xC0000000
+	mov [edi], eax
+
+	;reload segment registers
+	mov ax, 0x10
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov ss, ax
+
+	;setup stack
+	mov esp, stackEnd - VMEM_OFFSET
+	mov ebp, esp
+
+	;push 0x08
+	;push .cont - VMEM_OFFSET
+	;retf
+	jmp 0x08:(.cont - VMEM_OFFSET)
+
+	.cont:
 
 	;setup paging
-	;initialise page directory to 0
-	mov edi, pageDir
-	mov ecx, PAGEDIRSIZE
-	mov al, 0x00
-	rep stosb
+	push pageTable - VMEM_OFFSET
+	push pageDir - VMEM_OFFSET
+	sub ebp, 4
 
-	;initialise page table to 0
-	mov edi, pageTable
-	mov ecx, PAGETABLESIZE
-	rep stosb
-
-	;identity map the whole page
-	mov eax, PAGEFLAGS
-	mov edi, pageTable
+	;map page table
 	xor ecx, ecx
+	mov eax, PAGEFLAGS
+	mov edi, [ebp]
+
 	.start:
-	cmp ecx, PAGETABLESIZE / 4
-	jae .end
+	cmp ecx, NROF_PAGETABLE_ENTRIES
+	je .end
 	stosd
+
 	add eax, 0x1000
 	inc ecx
 	jmp .start
 
 	.end:
-	;add entry in page directoty pointing to page table
-	mov eax, pageTable
-	or eax, PAGEFLAGS
-	mov edi, pageDir
-	add edi, (0xC0000000 >> 22)
-	mov [edi], eax
-	;also add same entry to pos 0x00000000 to prevent page fault
-	;(This entry will be removed later)
-	mov [pageDir], eax
+	;map page dir
+	;init everything to zero
+	mov edi, [ebp-4]
+	mov ecx, NROF_PAGEDIR_ENTRIES
+	xor eax, eax
 
-	;add entry pointing to itself
-	mov eax, pageDir
+	rep stosd
+
+	;add entry at 0x00000000
+	mov edi, [ebp-4]
+	mov eax, [ebp]
 	or eax, PAGEFLAGS
-	mov edi, pageDirEnd
-	sub edi, 0x04
 	mov [edi], eax
 
-	lgdt [gdtr]
-	jmp 0x08:dword .next
+	;and at 0xC0000000
+	mov [edi+(0xC0000000 >> 20)], eax
 
-.next:
-	mov ax, 0x10
-	mov ds, ax
-	mov es, ax
-	mov ss, ax
-	mov fs, ax
-	mov gs, ax
+	;also add entry at 0xFFC00000 to itself
+	mov [edi+(1023*4)], edi
 
+	mov eax, [ebp-4]
+	mov cr3, eax
+
+	mov eax, cr0
+	or eax, 0x80000000
+	mov cr0, eax
+
+	mov eax, 0xDEADBEEF
+	xchg bx, bx
+	;jmp absolute .cont2
+	push .cont2
+	retn
+	.cont2: ;we are now in paged mode so we can use virtual addresses safely
+	xor eax, eax
 	mov esp, stackEnd
-	mov ebp, esp
+	mov ebp, stackEnd
+	mov [bootInfo], ebx
 
-	;We can now use the stack
+	;we can now get rid of the pde at 0x00000000
+	mov [pageDir], eax
 
 	call kmain
 
-	;if kmain ever returns:
+	;if it ever returns, halt
 	cli
-	
-	.hang:
+	.halt:
 	hlt
-	jmp .hang
+	jmp .halt
 
+relocTable:
+dd stackEnd
+dd pageDir
+dd pageTable
 
-;global init_memory:function
-init_memory:	;(void) returns void
-		lgdt [gdtr] ;load new gdt
-		xor eax, eax
-		mov [ds:0xC0001000], eax ;clear first PDE
-		mov eax, cr3
-		mov cr3, eax
-		ret
-
-;global TLB_update:function
-TLB_update:	mov eax, cr3
-		mov cr3, eax
-		ret
-
-SECTION bootdata
+SECTION .data
 gdtr:	;dw (5*8) + (26 * 4)
 		dw (gdtEnd - gdt)
 		dd gdt
@@ -137,7 +165,7 @@ gdt:
 		times 26 dd 0 ;room for tss
 gdtEnd:
 
-[SECTION bootbss nobits align=0x1000]
+SECTION .bss align=4096
 pageDir:
 resb 0x1000
 pageDirEnd:
@@ -147,4 +175,5 @@ pageTableEnd:
 stackStart:
 resb 0x4000
 stackEnd:
-
+bootInfo:
+resd 1

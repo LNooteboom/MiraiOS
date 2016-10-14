@@ -5,25 +5,14 @@ extern hexprint
 
 SECTION .text
 
-;global write_to_vram:function
-;write_to_vram:	;(uint8_t value, uint16_t offset)
-;		;es must be set to vram first
-;		push ebp
-;		mov ebp, esp
-;		mov al, [ebp + 8] ;value
-;		mov ebx, [ebp + 12] ;address
-;		mov [es:ebx], al
-;		pop ebp
-;		ret
-
-global video_init:function
-video_init:	;(void) returns void
+global initVga:function
+initVga:	;(void) returns void
 		call getCRTCPorts
-		call getLine_width
+		call vgaGetScreenWidth
 		;shr eax, 1
-		mov [screenwidth], eax
-		call vga_get_screenheight
-		mov [screenheight], eax
+		mov [screenWidth], eax
+		call vgaGetScreenHeight
+		mov [screenHeight], eax
 		call getvirt_ychars
 		mov [vscreen_ychars], ax
 		
@@ -35,34 +24,34 @@ getCRTCPorts:	;(void) returns void
 		test al, 0x01 ;test first bit
 		jnz .end ;leave to default
 		mov ax, 0x3B4
-		mov [CRTC_index_port], ax
+		mov [CRTCIndexPort], ax
 		mov ax, 0x3B5
-		mov [CRTC_value_port], ax
+		mov [CRTCDataPort], ax
 	.end:	ret
 
 getvirt_ychars:	;(void) returns short
 		xor eax, eax
 		mov ax, [vram_size]
 		xor edx, edx
-		mov ecx, [screenwidth]
+		mov ecx, [screenWidth]
 		div ecx
 		shr ax, 1
 		ret
 
-global getLine_width:function
-getLine_width:	;(void) returns int width
+global vgaGetScreenWidth:function
+vgaGetScreenWidth:	;(void) returns int width
 		push ebp
 		mov ebp, esp
 
 		;save the old value in the address register
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		in al, dx
 		push eax
 		;first we need to find out what mode is currently enabled
 		;check if dword mode bit is set
 		mov al, 0x14
 		out dx, al
-		mov dx, [CRTC_value_port]
+		mov dx, [CRTCDataPort]
 		in al, dx
 		test al, 0x40
 		jnz .not_dword
@@ -71,9 +60,9 @@ getLine_width:	;(void) returns int width
 
 	.not_dword:
 		mov al, 0x17
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		out dx, al
-		mov dx, [CRTC_value_port]
+		mov dx, [CRTCDataPort]
 		in al, dx
 		test al, 0x40 ;0b01000000
 		jz .byte
@@ -81,9 +70,9 @@ getLine_width:	;(void) returns int width
 		jmp .cont
 	.byte:	mov cl, 0
 	.cont:	mov al, 0x13
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		out dx, al
-		mov dx, [CRTC_value_port]
+		mov dx, [CRTCDataPort]
 		xor eax, eax
 		in al, dx
 		shl eax, cl
@@ -91,27 +80,27 @@ getLine_width:	;(void) returns int width
 		mov edx, eax
 		pop eax
 		push edx
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		out dx, al
 		pop eax
 		pop ebp
 		ret
 
-global vga_get_screenheight:function
-vga_get_screenheight: ;(void) returns int
+global vgaGetScreenHeight:function
+vgaGetScreenHeight: ;(void) returns int
 		push ebp
 		mov ebp, esp
 		sub esp, 12
 
 		;save old index value
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		in al, dx
 		mov [ss:ebp-4], al
 
 		;get maximum scanline per char
 		mov al, 0x09 ;maximum scan line register
 		out dx, al
-		mov dx, [CRTC_value_port]
+		mov dx, [CRTCDataPort]
 		in al, dx
 		;now AND it to filter out other settings
 		and al, 0x1F
@@ -121,18 +110,18 @@ vga_get_screenheight: ;(void) returns int
 		mov [ss:ebp-8], al ;save it for now
 
 		;now get the number of scanlines in the active display
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		mov al, 0x12 ;vertical display end register
 		out dx, al
-		mov dx, [CRTC_value_port]
+		mov dx, [CRTCDataPort]
 		in al, dx
 		;the 2 higher bits are loaded in the overflow register
 		mov [ss:ebp-12], al ;save it for now
 
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		mov al, 0x07
 		out dx, al
-		mov dx, [CRTC_value_port]
+		mov dx, [CRTCDataPort]
 
 		in al, dx ;get bit 9
 		mov ah, al
@@ -159,7 +148,7 @@ vga_get_screenheight: ;(void) returns int
 		mov [ss:ebp-8], eax ;save the quotient for now
 
 		;restore old index port value
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		mov al, [ss:ebp-4]
 		out dx, al
 
@@ -167,14 +156,14 @@ vga_get_screenheight: ;(void) returns int
 		leave ;and return
 		ret
 
-global vga_set_cursor:function
-vga_set_cursor:	;(int cursorX, int cursorY) returns void
+global vgaSetCursor:function
+vgaSetCursor:	;(int cursorX, int cursorY) returns void
 		;updates VGA cursor position
 		push ebp
 		mov ebp, esp
 		;mov edx, [ss:ebp+8]
 		mov eax, [ss:ebp+12]
-		mul dword [screenwidth]
+		mul dword [screenWidth]
 		shr eax, 1
 		;push eax
 		;call hexprint
@@ -185,57 +174,57 @@ vga_set_cursor:	;(int cursorX, int cursorY) returns void
 		add eax, edx
 		mov [ss:ebp+8], eax
 		;save old index port
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		in al, dx
 		mov [ss:ebp+12], al
 		;low byte
 		mov al, 0x0F
 		out dx, al
-		mov dx, [CRTC_value_port]
+		mov dx, [CRTCDataPort]
 		mov al, [ss:ebp+8]
 		out dx, al
 		;high byte
 		mov al, 0x0E
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		out dx, al
 		mov al, [ss:ebp+9]
-		mov dx, [CRTC_value_port]
+		mov dx, [CRTCDataPort]
 		out dx, al
 
 		pop ebp
 		ret
 
-global vga_set_scroll:function
-vga_set_scroll:	;(int scrollY) returns void
+global vgaSetScroll:function
+vgaSetScroll:	;(int scrollY) returns void
 		push ebp
 		mov ebp, esp
 		sub esp, 8
 
 		mov eax, [ss:ebp+8]
 		xor edx, edx
-		mov ecx, [screenwidth]
+		mov ecx, [screenWidth]
 		shr ecx, 1
 		mul ecx
 		mov [ss:ebp-8], eax ;save the address offset
 
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		in al, dx
 		mov [ss:ebp-4], al ;save old index value
 
 		mov al, 0x0D ;start address low
 		out dx, al
-		mov dx, [CRTC_value_port]
+		mov dx, [CRTCDataPort]
 		mov al, [ss:ebp-8]
 		out dx, al
 
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		mov al, 0x0C ;start address high
 		out dx, al
-		mov dx, [CRTC_value_port]
+		mov dx, [CRTCDataPort]
 		mov al, [ss:ebp-7]
 		out dx, al
 		
-		mov dx, [CRTC_index_port]
+		mov dx, [CRTCIndexPort]
 		mov al, [ss:ebp-4]
 		out dx, al ;restore old index port value
 
@@ -250,15 +239,15 @@ vram_size:	dw 0x8000
 global scrollY:data
 scrollY:	dw 0
 
-CRTC_index_port: dw 0x03D4
-CRTC_value_port: dw 0x03D5
+CRTCIndexPort: dw 0x03D4
+CRTCDataPort: dw 0x03D5
 
 SECTION .bss
 
 vscreen_ychars:	resw 1
 
-global screenwidth:data
-screenwidth:	resd 1
-global screenheight:data
-screenheight:	resd 1
+global screenWidth:data
+screenWidth:	resd 1
+global screenHeight:data
+screenHeight:	resd 1
 

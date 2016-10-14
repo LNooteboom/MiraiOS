@@ -1,7 +1,6 @@
-export NASM = nasm
 
 OUTPUT = main.o
-SUBDIRS = irq #timer mmu pic
+SUBDIRS = irq mmu#timer pic
 OBJECTS = io.o
 
 

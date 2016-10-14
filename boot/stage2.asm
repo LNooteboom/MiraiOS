@@ -248,14 +248,16 @@ next:		call test_a20 ;test if A20 is already enabled
 		mov al, ah
 		call hexprintbyte
 
-		call init_paging
+		;call init_paging
 		call pmode
 		mov ax, 0x18
 		mov es, ax
 		xor bx, bx
 		;mov [es:00], byte 'K'
 		mov eax, [krnlentry]
-		;mov [jmpfar + 2], eax ;self modifying code
+		xchg bx, bx
+		sub eax, 0xC0000000
+		mov [jmpfar + 2], eax ;self modifying code
 
 		xor eax, eax
 		mov ax, sp
@@ -270,7 +272,7 @@ next:		call test_a20 ;test if A20 is already enabled
 		mov ds, ax
 		mov ax, 0x0018
 		mov es, ax
-	jmpfar:	jmp 8:dword 0xC0100000 ;bye
+	jmpfar:	jmp 8:dword 0x00100000 ;bye
 
 test_a20:	pushf
 		push ds
@@ -731,7 +733,7 @@ init_paging:
 pmode:		cli
 		lgdt [gdtr]
 		mov eax, cr0
-		or eax, 0x80000001 ;enable pmode + paging
+		or eax, 0x00000001 ;enable pmode
 		mov cr0, eax
 
 		ret
