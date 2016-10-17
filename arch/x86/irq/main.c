@@ -2,12 +2,13 @@
 
 #include <global.h>
 #include "idt.h"
+#include "exception.h"
 
 #define MINSWIVALUE 0x30
 
 void initInterrupts(void) {
 	initIDT();
-	//TODO: map exceptions in IDT
+	initExceptions();
 }
 
 void routeSoftwareInterrupt(void (*ISR)(void), interrupt_t interrupt) {

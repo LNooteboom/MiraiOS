@@ -255,7 +255,6 @@ next:		call test_a20 ;test if A20 is already enabled
 		xor bx, bx
 		;mov [es:00], byte 'K'
 		mov eax, [krnlentry]
-		xchg bx, bx
 		sub eax, 0xC0000000
 		mov [jmpfar + 2], eax ;self modifying code
 

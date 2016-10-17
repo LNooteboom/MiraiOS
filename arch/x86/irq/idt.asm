@@ -37,8 +37,8 @@ initIDT:	;(void) returns void
 
 	.cont:
 		mov eax, IDT
-		sub eax, 0xC0000000
-		mov [idtr+2], eax
+		;sub eax, 0xC0000000
+		;mov [idtr+2], eax
 		lidt [idtr]
 		sti
 
@@ -63,6 +63,7 @@ routeInterrupt: ;(void (*ISR)(void), uint8_t interrupt, uint8_t flags) returns v
 		add edi, IDT
 		
 		mov eax, [ebp+8]
+		xchg bx, bx
 		stosw
 		mov ax, 0x08
 		stosw
@@ -72,14 +73,15 @@ routeInterrupt: ;(void (*ISR)(void), uint8_t interrupt, uint8_t flags) returns v
 		mov al, [ebp+16]
 		test al, 0x01
 		jnz .trap
-		mov al, 0x0E
+		mov al, 0x8E
 		jmp .end
-	.trap:	mov al, 0x0F
+	.trap:	mov al, 0x8F
 
 	.end:	stosb
 
 		shr eax, 16
 		stosw
+
 
 		pop edi
 		pop ebp
@@ -103,8 +105,8 @@ unrouteInterrupt: ;(uint8_t interrupt) returns void
 
 SECTION .data
 
-idtr:	dw (NROFIDTENTS * BYTESPERIDTENT)
-	dd 0 ;(IDT - 0xC0000000)
+idtr:	dw (NROFIDTENTS)
+	dd IDT;0 ;(IDT - 0xC0000000)
 
-SECTION .bss
+SECTION .bss align=4096
 IDT:	resb (NROFIDTENTS * BYTESPERIDTENT)

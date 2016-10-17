@@ -13,18 +13,24 @@ void cprint(char c) {
 	*video = currentattrib;
 
 	cursorX++;
-	/*if (cursorX >= (screenWidth / 2)) {
+	if (cursorX >= (screenWidth / 2)) {
 		newline();
-	}*/
+	}
 	vgaSetCursor(cursorX, cursorY);
 }
 void sprint(char *text) {
 	while (*text != 0) {
-		if (*text == '\n') {
-			newline();
-			vgaSetCursor(cursorX, cursorY);
-		} else {
-			cprint(*text);
+		switch (*text) {
+			case '\n':
+				newline();
+				break;
+			case '\033':
+				clearScreen();
+				break;
+
+			default:
+				cprint(*text);
+				break;
 		}
 		text++;
 	}

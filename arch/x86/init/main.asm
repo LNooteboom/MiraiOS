@@ -26,9 +26,9 @@ __init:
 
 	;setup gdt
 	mov edi, gdtr - VMEM_OFFSET + 2
-	mov eax, [edi]
-	sub eax, 0xC0000000
-	mov [edi], eax
+	;mov eax, [edi]
+	;sub eax, 0xC0000000
+	;mov [edi], eax
 
 	;reload segment registers
 	mov ax, 0x10
@@ -97,11 +97,10 @@ __init:
 	mov cr0, eax
 
 	mov eax, 0xDEADBEEF
-	xchg bx, bx
-	;jmp absolute .cont2
 	push .cont2
 	retn
 	.cont2: ;we are now in paged mode so we can use virtual addresses safely
+	lgdt [gdtr]
 	xor eax, eax
 	mov esp, stackEnd
 	mov ebp, stackEnd
