@@ -3,7 +3,7 @@
 
 void initVga(void);
 
-void cprint(char c);
-void sprint(char *text);
+void vgaCPrint(char c);
+void vgaSPrint(char *text);
 
 #endif

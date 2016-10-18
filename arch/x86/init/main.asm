@@ -14,6 +14,7 @@ PAGEFLAGS: equ 0x03
 extern kernelEnd
 extern kmain
 global __init:function
+global bootInfo:data
 
 SECTION multiboot
 

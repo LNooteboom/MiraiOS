@@ -48,6 +48,6 @@ ${IMAGE}: boot/bootsector.asm
 
 clean:
 	find . -name "*.o" -type f -delete
-	rm *.img
-	rm KERNEL
-	rm BOOT
+	rm -f *.img
+	rm -f KERNEL
+	rm -f BOOT

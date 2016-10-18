@@ -1,6 +1,8 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
+#include <global.h>
+
 //volatile char *vram = (volatile char*)0xB8000;
 extern volatile char *vram;
 extern uint16_t scrollY;

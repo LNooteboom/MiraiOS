@@ -1,13 +1,20 @@
+#include <vga.h>
 #include "tty.h"
 
 #include <global.h>
-#include "vga.h"
+#include "crtc.h"
+
+#define PARSEINT8_LEN 3
 
 uint8_t cursorX = 0;
 uint16_t cursorY = 0;
 char currentattrib = 0x07; //white text on black background
 
-void cprint(char c) {
+void vgaCPrint(char c) {
+	if (c == '\n') {
+		newline();
+		return;
+	}
 	volatile char *video = (volatile char*)((cursorY * screenWidth) + (cursorX * 2) + vram);
 	*video++ = c;
 	*video = currentattrib;
@@ -18,22 +25,90 @@ void cprint(char c) {
 	}
 	vgaSetCursor(cursorX, cursorY);
 }
-void sprint(char *text) {
-	while (*text != 0) {
+void vgaSPrint(char *text) {
+	while (*text) {
 		switch (*text) {
-			case '\n':
-				newline();
-				break;
-			case '\033':
-				clearScreen();
+			case '\e':
+				text = execCommand(text + 1);
 				break;
 
 			default:
-				cprint(*text);
+				vgaCPrint(*text);
 				break;
 		}
 		text++;
 	}
+}
+
+char *execCommand(char *command) {
+	switch (*command) {
+		case '[':
+			command++;
+			char *commandLetter = command;
+			while (*commandLetter < 64 || *commandLetter > 126) {
+				commandLetter++;
+			}
+
+			switch (*commandLetter) {
+				case 'J':
+					switch (*command) {
+						case '0':
+							//clear up
+							break;
+						case '1':
+							//clear down
+							break;
+						case '2':
+							//clear screen
+							clearScreen();
+							break;
+					}
+					break;
+
+				case 'm':
+					do {
+						uint8_t number0 = (*command++ - '0');
+						uint8_t number1;
+						if (*command >= '0' && *command <= '9') {
+							number1 = *command - '0';
+							command += 2;
+						} else {
+							number1 = number0;
+							number0 = 0;
+							command += 1;
+						}
+						switch (number0) {
+							case 0:
+								//misc
+								switch (number1) {
+									case 0:
+										//reset
+										currentattrib = 0x07;
+									case 1:
+										currentattrib |= 0x08;
+										break;
+									case 2:
+										currentattrib &= 0x77;
+										break;
+								}
+								break;
+
+							case 3:
+								//foreground color
+								currentattrib = (currentattrib & 0xF8) | number1;
+								break;
+
+							case 4:
+								//background color
+								currentattrib = (currentattrib & 0x8F) | (number1 << 4);
+								break;
+						}
+					} while (*(command - 1) == ';');
+			}
+
+			return commandLetter;
+	}
+	return command;
 }
 
 void newline(void) {
@@ -94,8 +169,8 @@ void clearScreen(void) {
 	for (int y = 0; y < screenHeight; y++) {
 		for (int x = 0; x < screenWidth / 2; x++) {
 			//volatile char *video = (volatile char*)((y * screenWidth) + (x * 2) + vram);
-			*video = 0;
-			video += 2;
+			*video++ = 0;
+			*video++ = currentattrib;
 		}
 	}
 	cursorX = 0;

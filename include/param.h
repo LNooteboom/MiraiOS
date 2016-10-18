@@ -1,27 +1,8 @@
 #ifndef INCLUDE_PARAM_H
 #define INCLUDE_PARAM_H
 
-struct paramtable {
-	int krnloffset;
-	int krnlmemsize;
+#include <global.h>
 
-	char cursorX;
-	char cursorY;
+extern uint32_t bootInfo;
 
-	short memtable_sz;
-
-	//struct memdetectentry *memory_table;
-	int memory_table;
-};
-
-struct memdetectentry {
-	int baseLow;
-	int baseHigh;
-	int lengthLow;
-	int lengthHigh;
-	int type;
-	int unused;
-};
-
-extern struct paramtable *partable;
 #endif

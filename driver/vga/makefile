@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = tty.o vga.o
+OBJECTS = tty.o crtc.o
 
 all: ${OUTPUT}
 

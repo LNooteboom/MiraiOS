@@ -1,5 +1,16 @@
+#include <print.h>
 
-void hexprint(int value) {
+#include <global.h>
+#include <vga.h>
+
+void cprint(char c) {
+	vgaCPrint(c);
+}
+void sprint(char *text) {
+	vgaSPrint(text);
+}
+
+void hexprint(uint32_t value) {
 	for (int i = 7; i >= 0; i--) {
 		char currentnibble = (value >> (i * 4)) & 0x0F;
 		if (currentnibble < 10) {
@@ -11,8 +22,12 @@ void hexprint(int value) {
 		cprint(currentnibble);
 	}
 }
+void hexprintln(uint32_t value) {
+	hexprint(value);
+	cprint('\n');
+}
 
-void decprint(int value) {
+void decprint(int32_t value) {
 	char buffer[10];
 	if (value < 0) {
 		value = -value;
@@ -31,4 +46,8 @@ void decprint(int value) {
 			all_zeros = 0;
 		}
 	}
+}
+void decprintln(int32_t value) {
+	decprint(value);
+	cprint('\n');
 }

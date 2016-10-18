@@ -63,7 +63,7 @@ routeInterrupt: ;(void (*ISR)(void), uint8_t interrupt, uint8_t flags) returns v
 		add edi, IDT
 		
 		mov eax, [ebp+8]
-		xchg bx, bx
+		;xchg bx, bx
 		stosw
 		mov ax, 0x08
 		stosw
