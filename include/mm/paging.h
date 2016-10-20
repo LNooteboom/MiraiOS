@@ -3,14 +3,17 @@
 
 #include <global.h>
 
+typedef uintptr_t physPage_t;
+typedef uintptr_t virtPage_t;
+
 /*
 This function allocates a page at a specified address (must be 4kb aligned)
 */
-uint8_t allocPage(void *addr);
+uint8_t allocPage(virtPage_t addr);
 
 /*
 This function deallocates a page
 */
-uint8_t deallocPage(void *addr);
+uint8_t deallocPage(virtPage_t addr);
 
 #endif

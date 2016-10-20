@@ -18,7 +18,7 @@
 #define PDE_PTE_WRITE 2
 #define PDE_PTE_USER 4
 
-#define PDEFLAGS PDE_PTE_PRESENT + PDE_PTE_WRITE + PDE_PTE_USER
+#define PDEFLAGS (PDE_PTE_PRESENT + PDE_PTE_WRITE + PDE_PTE_USER)
 #define PTEFLAGS PDEFLAGS
 
 #define PAGEDIRSIZE (PAGESIZE / 4)
@@ -30,15 +30,15 @@ size_t pageTableSize = 0;
 void setupPaging(void) {
 }
 
-void newPageTable(void *vaddr) {
-	if (((uintptr_t)(vaddr) & PDEINDEXMASK) != PDEINDEXMASK) {
+void newPageTable(virtPage_t vaddr) {
+	if ((vaddr & PDEINDEXMASK) != PDEINDEXMASK) {
 		//panic("Attempted to create page table outside boundary.");
 		return;
 	}
 	PDE_t newPT = (PDE_t)allocPhysPage();
 	newPT |= PDEFLAGS;
 	//map the new PDE
-	uint32_t index = (((uintptr_t)(vaddr) & PTEINDEXMASK) >> PTEINDEXSHIFT);
+	uint32_t index = ((vaddr & PTEINDEXMASK) >> PTEINDEXSHIFT);
 	pageDir[index] = newPT;
 
 	//initialize everything to 0
@@ -48,35 +48,35 @@ void newPageTable(void *vaddr) {
 	}
 }
 
-PDE_t *getPDE(void *vaddr) {
-	uint32_t indexPD = ((uintptr_t)(vaddr) & PDEINDEXMASK) >> PDEINDEXSHIFT;
+PDE_t *getPDE(virtPage_t vaddr) {
+	uint32_t indexPD = (vaddr & PDEINDEXMASK) >> PDEINDEXSHIFT;
 	return (pageDir + indexPD);
 }
-PTE_t *getPTE(void *vaddr) {
-	return (PTE_t*)(((uintptr_t)(vaddr) & PTEINDEXMASK) | PDEINDEXMASK);
+PTE_t *getPTE(virtPage_t vaddr) {
+	return (PTE_t*)((vaddr & PTEINDEXMASK) | PDEINDEXMASK);
 }
 
-void mapPage(void *vaddr, void *paddr) {
+void mapPage(virtPage_t vaddr, physPage_t paddr) {
 	PDE_t entryPD = *(getPDE(vaddr));
 	//check if a page table exists with that address
 	if ((entryPD & PDE_PTE_PRESENT) == 0) {
 		//page table does not exist, so create one
-		newPageTable((void*)(entryPD & PDE_PTE_ADDRMASK));
+		newPageTable(entryPD & PDE_PTE_ADDRMASK);
 	}
 	PTE_t *entryPT = getPTE(vaddr);
-	*entryPT = ((uintptr_t)(paddr)) | (PTEFLAGS);
+	*entryPT = paddr | PTEFLAGS;
 }
 
-void unmapPage(void *vaddr) {
+void unmapPage(virtPage_t vaddr) {
 	PTE_t *entryPT = getPTE(vaddr);
 	*entryPT &= ~(PDE_PTE_PRESENT);
 }
 
-void *getPhysPage(void *vaddr) {
+physPage_t getPhysPage(virtPage_t vaddr) {
 	PTE_t entryPT = *(getPTE(vaddr));
 	if (entryPT & PDE_PTE_PRESENT) {
 		entryPT &= PDE_PTE_ADDRMASK;
-		return (void*)(entryPT);
+		return entryPT;
 	}
 	return NULL;
 }
