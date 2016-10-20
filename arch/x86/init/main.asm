@@ -1,5 +1,10 @@
 BITS 32
 
+MULTIBOOT_MAGIC equ 0x1BADB002
+MULTIBOOT_FLAGS equ 0 + 1<<16
+MULTIBOOT_CHECKSUM equ -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
+MULTIBOOT_HEADER_PADDR equ multiBootHeader - 0xC0000000
+
 LOWMEM_SZ:	equ 0x100000 ;1mb
 PAGEDIRSIZE: equ 4096
 PAGETABLESIZE: equ 4096
@@ -17,21 +22,32 @@ global __init:function
 global bootInfo:data
 
 SECTION multiboot
+multiBootHeader:
+dd MULTIBOOT_MAGIC
+dd MULTIBOOT_FLAGS
+dd MULTIBOOT_CHECKSUM
+dd MULTIBOOT_HEADER_PADDR
+dd MULTIBOOT_HEADER_PADDR
+dd 0
+dd 0
+dd (__init - 0xC0000000)
 
 SECTION boottext
 
 __init:
 	;EXTREME BOOTSTRAPPING!!
-	cmp eax, 0xBEEFCAFE
+	mov eax, 0xBEEFCAFE
 	;je floppyBoot
 
 	;setup gdt
-	mov edi, gdtr - VMEM_OFFSET + 2
+	lgdt [(gdtrPhys - VMEM_OFFSET)]
+	xchg bx, bx
 	;mov eax, [edi]
 	;sub eax, 0xC0000000
 	;mov [edi], eax
 
 	;reload segment registers
+	;jmp $
 	mov ax, 0x10
 	mov ds, ax
 	mov es, ax
@@ -127,6 +143,10 @@ SECTION .data
 gdtr:	;dw (5*8) + (26 * 4)
 		dw (gdtEnd - gdt)
 		dd gdt
+
+gdtrPhys:
+		dw (gdtEnd - gdt)
+		dd gdt - VMEM_OFFSET
 
 gdt:
 		dq 0 ;dummy

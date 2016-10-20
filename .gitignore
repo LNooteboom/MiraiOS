@@ -1,0 +1,11 @@
+
+build/
+vmmount/
+
+*.o
+*.img
+*.sio
+
+KERNEL
+BOOT
+
