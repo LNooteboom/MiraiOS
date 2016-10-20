@@ -3,6 +3,7 @@ NROF_DEFINED_EXCS: equ 21
 extern routeInterrupt
 extern sprint
 extern hexprintln
+extern undefinedInterrupt
 
 global initExceptions:function
 
@@ -11,7 +12,7 @@ SECTION .text
 initExceptions:
 		push ebp
 		mov ebp, esp
-		xchg bx, bx
+		;xchg bx, bx
 		push ebx
 		push esi
 
@@ -61,13 +62,18 @@ excBR:
 excUD:
 excNM:
 excDF:
+excCSO:
 excTS:
 excNP:
 excSS:
 excGP:
+		;mov eax, 0xDEADBEEF
+		;jmp $
+		iret
 
 excPF:	push ebp
 		mov ebp, esp
+		;xchg bx, bx
 		push eax
 		push ecx
 		push edx
@@ -79,12 +85,12 @@ excPF:	push ebp
 		;address
 		push addressText
 		call sprint
-		mov eax, [ebp+4]
+		mov eax, [ebp+8]
 		push eax
 		call hexprintln
 		add esp, 8
 
-		;error code
+		;page
 		push PFAddr
 		call sprint
 		mov eax, cr2
@@ -92,11 +98,20 @@ excPF:	push ebp
 		call hexprintln
 		add esp, 8
 
+		;error code
+		push errorCode
+		call sprint
+		mov eax, [ebp+4]
+		push eax
+		call hexprintln
+		add esp, 8
+
 		mov edx, [ebp-12]
 		mov ecx, [ebp-8]
 		mov eax, [ebp-4]
+		jmp $
 		leave
-		;add esp, 4 ;skip over error code
+		add esp, 4 ;skip over error code
 		iret
 
 excMF:
@@ -104,14 +119,16 @@ excAC:
 excMC:
 excXM:
 excVE:
-		jmp $
+		;jmp $
+		iret
 
 SECTION .rodata
-
 addressText: db 'At: ', 0
 PFAddr: db 'Attempted to acces page: ', 0
+errorCode: db 'Error code: ', 0
 
 excList:
+dd excDE
 dd excDB
 dd excNMI
 dd excBP
@@ -120,11 +137,13 @@ dd excBR
 dd excUD
 dd excNM
 dd excDF
+dd excCSO
 dd excTS
 dd excNP
 dd excSS
 dd excGP
 dd excPF
+dd undefinedInterrupt
 dd excMF
 dd excAC
 dd excMC

@@ -4,6 +4,8 @@ global initIDT:function
 global routeInterrupt:function
 global unrouteInterrupt:function
 
+global undefinedInterrupt:function
+
 NROFIDTENTS:	equ 0x100
 BYTESPERIDTENT:	equ 0x08
 
@@ -40,7 +42,7 @@ initIDT:	;(void) returns void
 		;sub eax, 0xC0000000
 		;mov [idtr+2], eax
 		lidt [idtr]
-		sti
+		;sti
 
 		pop edi
 		leave
