@@ -30,8 +30,8 @@ struct multiBootInfo {
 	uint32_t reserved;
 
 	//if flags[6] is set
-	size_t mmapSize;
-	void *mmapAddr;
+	uint32_t mmapSize;
+	struct mmap *mmap;
 
 	//if flags[7] is set
 	size_t drivesSize;
@@ -55,6 +55,6 @@ struct multiBootInfo {
 	size_t vbeInterfaceSize;
 };
 
-extern struct multiBootInfo bootInfo;
+extern struct multiBootInfo *bootInfo;
 
 #endif

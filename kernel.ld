@@ -8,7 +8,7 @@ INPUT
 	driver/main.o
 	kernel/main.o
 	mm/main.o
-	/*param/main.o*/
+	param/main.o
 )
 STARTUP(init.o)
 ENTRY(__init)

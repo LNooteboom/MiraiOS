@@ -16,7 +16,7 @@ OUTPUT = vmmount/out.img
 KERNEL = KERNEL
 BOOT = BOOT
 IMAGE = out.img
-MODULES = arch/${ARCH} mm driver kernel #param
+MODULES = arch/${ARCH} mm driver kernel param
 OBJ_INIT = init.o
 
 

@@ -124,7 +124,7 @@ excVE:
 
 SECTION .rodata
 addressText: db 'At: ', 0
-PFAddr: db 'Attempted to acces page: ', 0
+PFAddr: db 'Attempted to access ', 0
 errorCode: db 'Error code: ', 0
 
 excList:
