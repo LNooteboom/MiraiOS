@@ -25,8 +25,6 @@
 
 PDE_t *pageDir = (PDE_t*)PAGEDIRVADDR;
 
-size_t pageTableSize = 0;
-
 void setupPaging(void) {
 }
 

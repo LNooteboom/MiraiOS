@@ -10,7 +10,7 @@
 #define ENTRYTYPE_FREE 1
 
 void initMm(void) {
-	pageInit(bootInfo->mmap, bootInfo->mmapSize);
+	pageInit((struct mmap*)(bootInfo->mmap), bootInfo->mmapSize);
 }
 
 void pageInit(struct mmap *mmap, uint32_t mmapSize) {
@@ -25,15 +25,14 @@ void pageInit(struct mmap *mmap, uint32_t mmapSize) {
 				currentPage += PAGESIZE;
 			}
 		}*/
-		asm("xchgw %bx, %bx");
 		sprint("Base: ");
-		hexprintln(currentEntry->baseLow);
+		hexprintln(currentEntry->base);
 		sprint("Length: ");
-		hexprintln(currentEntry->lengthLow);
+		hexprintln(currentEntry->length);
 		sprint("Type: ");
 		hexprintln(currentEntry->type);
 		cprint('\n');
 
-		currentEntry = (struct mmap*)((void*)(currentEntry) + currentEntry->entrySize + sizeof(size_t));
+		currentEntry = (struct mmap*)((void*)(currentEntry) + currentEntry->entrySize + sizeof(uint32_t));
 	}
 }

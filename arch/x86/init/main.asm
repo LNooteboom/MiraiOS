@@ -196,4 +196,4 @@ stackStart:
 resb 0x4000
 stackEnd:
 bootInfo:
-resd 1
+resq 1
