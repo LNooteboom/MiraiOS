@@ -15,7 +15,7 @@ void hexprint(uint32_t value) {
 		char currentnibble = (value >> (i * 4)) & 0x0F;
 		if (currentnibble < 10) {
 			//0-9
-		currentnibble += '0';
+			currentnibble += '0';
 		} else {
 			currentnibble += 'A' - 10;
 		}

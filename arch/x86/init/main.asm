@@ -16,8 +16,10 @@ NROF_PAGEDIR_ENTRIES: equ 1024
 NROF_PAGETABLE_ENTRIES: equ 1024
 PAGEFLAGS: equ 0x03
 
+extern BSS_END_ADDR
 extern kernelEnd
 extern kmain
+
 global __init:function
 global bootInfo:data
 
@@ -29,7 +31,7 @@ dd MULTIBOOT_CHECKSUM
 dd MULTIBOOT_HEADER_PADDR
 dd MULTIBOOT_HEADER_PADDR
 dd 0
-dd 0
+dd (BSS_END_ADDR - VMEM_OFFSET)
 dd (__init - 0xC0000000)
 
 SECTION boottext
@@ -104,7 +106,9 @@ __init:
 	mov [edi+(0xC0000000 >> 20)], eax
 
 	;also add entry at 0xFFC00000 to itself
-	mov [edi+(1023*4)], edi
+	mov eax, edi
+	or eax, PAGEFLAGS
+	mov [edi+(1023*4)], eax
 
 	mov eax, [ebp-4]
 	mov cr3, eax

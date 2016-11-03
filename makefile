@@ -3,7 +3,8 @@ SHELL = /bin/sh
 export PWD = /home/luke/LN-DOS
 export TARGET = i686-elf
 
-export CFLAG = "-Wall"  "-I${PWD}/include/"
+WARNINGS = "-Wall" "-Wextra"
+export CFLAG = ${WARNINGS}  "-I${PWD}/include/"
 export CC = ${TARGET}-gcc
 
 export NASM = nasm
