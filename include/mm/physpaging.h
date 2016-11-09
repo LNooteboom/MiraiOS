@@ -1,7 +1,12 @@
 #ifndef INCLUDE_PHYSPAGING_H
 #define INCLUDE_PHYSPAGING_H
 
+#include <mm/paging.h>
+
 #define PAGESIZE 4096
+
+#define PAGESTACKSTART 0xFF800000
+#define PAGESTACKLIMIT 0xFFC00000
 
 /*
 Allocates a 4kb page and returns its virtual address

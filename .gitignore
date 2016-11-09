@@ -4,7 +4,7 @@ vmmount/
 
 *.o
 *.img
-*.sio
+*.iso
 
 KERNEL
 BOOT

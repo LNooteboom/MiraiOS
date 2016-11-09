@@ -4,6 +4,7 @@
 #include <global.h>
 #include <mm/paging.h>
 #include <mm/physpaging.h>
+#include <print.h>
 
 #define PAGEDIRVADDR 0xFFFFF000
 
@@ -22,29 +23,32 @@
 #define PTEFLAGS PDEFLAGS
 
 #define PAGEDIRSIZE (PAGESIZE / 4)
+#define PAGETABLESIZE PAGEDIRSIZE
 
 PDE_t *pageDir = (PDE_t*)PAGEDIRVADDR;
 
-size_t pageTableSize = 0;
-
-void setupPaging(void) {
+void setInPageDir(virtPage_t index, physPage_t pt) {
+	pt |= PDEFLAGS;
+	pageDir[(index & PDEINDEXMASK) >> PDEINDEXSHIFT] = pt;
 }
 
 void newPageTable(virtPage_t vaddr) {
-	if ((vaddr & PDEINDEXMASK) != PDEINDEXMASK) {
-		//panic("Attempted to create page table outside boundary.");
+	vaddr &= PDE_PTE_ADDRMASK;
+	physPage_t paddr = allocPhysPage();
+
+	if (paddr == NULL) {
+		sprint("Could not allocate physical page\n");
 		return;
 	}
-	PDE_t newPT = (PDE_t)allocPhysPage();
-	newPT |= PDEFLAGS;
-	//map the new PDE
-	uint32_t index = ((vaddr & PTEINDEXMASK) >> PTEINDEXSHIFT);
-	pageDir[index] = newPT;
+	setInPageDir(vaddr, paddr);
 
-	//initialize everything to 0
-	PTE_t *table = (PTE_t*) vaddr;
-	for (uint32_t i = 0; i < PAGEDIRSIZE; i++) {
-		table[i] = 0;
+	vaddr >>= (PDEINDEXSHIFT - PTEINDEXSHIFT);
+	vaddr &= PTEINDEXMASK;
+	vaddr |= PDEINDEXMASK;
+	
+	PTE_t *newPt = (PTE_t *)vaddr;
+	for (uint16_t i = 0; i < PAGETABLESIZE; i++) {
+		newPt[i] = 0;
 	}
 }
 
@@ -53,10 +57,12 @@ PDE_t *getPDE(virtPage_t vaddr) {
 	return (pageDir + indexPD);
 }
 PTE_t *getPTE(virtPage_t vaddr) {
-	return (PTE_t*)((vaddr & PTEINDEXMASK) | PDEINDEXMASK);
+	vaddr &= PDE_PTE_ADDRMASK;
+	return (PTE_t*)((vaddr >> (PDEINDEXSHIFT - PTEINDEXSHIFT)) | PDEINDEXMASK);
 }
 
 void mapPage(virtPage_t vaddr, physPage_t paddr) {
+	asm("xchgw %bx, %bx");
 	PDE_t entryPD = *(getPDE(vaddr));
 	//check if a page table exists with that address
 	if ((entryPD & PDE_PTE_PRESENT) == 0) {

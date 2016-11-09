@@ -1,11 +1,8 @@
-#include <mm/paging.h>
-#include "physpaging.h"
+#include <mm/physpaging.h>
 
 #include <global.h>
 #include <mm/pagemap.h>
-
-#define PAGESTACKSTART 0xFF700000
-#define PAGESTACKLIMIT 0xFFC00000
+#include <mm/paging.h>
 
 #define PAGEENTRIESINPAGEMASK (PAGESIZE / PTRSIZE) - 1
 #define PAGESTACKBORDERMASK PAGESIZE - 1

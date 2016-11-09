@@ -7,13 +7,13 @@
 
 void initParam(void) {
 	//initialize all addresses
-	asm("xchgw %bx, %bx");
 	bootInfo = (struct multiBootInfo*)((void*)(bootInfo) + VMEMOFFSET);
 
 	bootInfo->cmdLine += VMEMOFFSET;
 	bootInfo->modsAddr += VMEMOFFSET;
 	bootInfo->symAddr += VMEMOFFSET;
-	bootInfo->mmap = (struct mmap*)( (void*)(bootInfo->mmap) + VMEMOFFSET);
+	//bootInfo->mmap = (struct mmap*)( (void*)(bootInfo->mmap) + VMEMOFFSET);
+	bootInfo->mmap += VMEMOFFSET;
 	bootInfo->drivesAddr += VMEMOFFSET;
 	bootInfo->configTable += VMEMOFFSET;
 	bootInfo->bootloaderName += VMEMOFFSET;

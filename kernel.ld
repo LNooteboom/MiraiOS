@@ -35,4 +35,5 @@ SECTIONS {
 	.bss : {
 		*.o (.bss);
 	}
+	BSS_END_ADDR = ALIGN(4096);
 }

@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = map.o
+OBJECTS = map.o init.o
 
 all: ${OUTPUT}
 

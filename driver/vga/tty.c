@@ -4,7 +4,7 @@
 #include <global.h>
 #include "crtc.h"
 
-uint8_t cursorX = 0;
+uint16_t cursorX = 0;
 uint16_t cursorY = 0;
 char currentattrib = 0x07; //white text on black background
 
@@ -154,8 +154,8 @@ void cursorLeft(void) {
 void setFullScreenColor(char attrib) {
 	currentattrib = attrib;
 	volatile char *video = vram + 1;
-	for (int y = 0; y < screenHeight; y++) {
-		for (int x = 0; x < screenWidth / 2; x++) {
+	for (uint16_t y = 0; y < screenHeight; y++) {
+		for (uint16_t x = 0; x < screenWidth / 2; x++) {
 			//volatile char *video = (volatile char*)((y * screenWidth) + (x * 2) + vram + 1);
 			*video = attrib;
 			video += 2;
@@ -164,8 +164,8 @@ void setFullScreenColor(char attrib) {
 }
 void clearScreen(void) {
 	volatile char *video = vram;
-	for (int y = 0; y < screenHeight; y++) {
-		for (int x = 0; x < screenWidth / 2; x++) {
+	for (uint16_t y = 0; y < screenHeight; y++) {
+		for (uint16_t x = 0; x < screenWidth / 2; x++) {
 			//volatile char *video = (volatile char*)((y * screenWidth) + (x * 2) + vram);
 			*video++ = 0;
 			*video++ = currentattrib;

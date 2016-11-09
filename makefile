@@ -3,7 +3,8 @@ SHELL = /bin/sh
 export PWD = /home/luke/LN-DOS
 export TARGET = i686-elf
 
-export CFLAG = "-Wall"  "-I${PWD}/include/"
+WARNINGS = "-Wall" "-Wextra"
+export CFLAG = ${WARNINGS}  "-I${PWD}/include/"
 export CC = ${TARGET}-gcc
 
 export NASM = nasm
@@ -23,7 +24,7 @@ OBJ_INIT = init.o
 OBJECTS = $(patsubst %, %/main.o, ${MODULES}) ${OBJ_INIT}
 INITDIR = arch/${ARCH}/init
 
-all: ${KERNEL}# ${BOOT} ${IMAGE}
+all: ${KERNEL} #${BOOT} ${IMAGE}
 	#mount ${IMAGE} mnt
 	#cp ${KERNEL} mnt
 	#cp ${BOOT} mnt
