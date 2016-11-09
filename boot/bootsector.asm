@@ -12,6 +12,7 @@ NROFFATSECTS	equ	0x0009
 NROFROOTDIRENTS	equ	0x00E0
 
 		ORG BOOTSEG
+
 		;first we need to setup the BIOS parameter block:
 		;the first 3 bytes must be a short jmp and a nop
 		jmp short bootloader
@@ -260,7 +261,7 @@ checkentry:	;al = entry number, ES = dir entries
 		mov ax, [es:bx]
 		ret
 		
-msg		db 'Welcome to LN-DOS  boot loader version 0.05!', 13, 10, 0
+msg		db 'Welcome to LN-DOS  boot loader version 0.06!', 13, 10, 0
 err:		db 'Error: file ', 0x60, 'BOOT', 0x60, ' not found', 13, 10, 0
 sect2name	db 'BOOT       ', 0
 drivenumber:	db 0

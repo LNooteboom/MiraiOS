@@ -10,7 +10,12 @@
 #define ENTRYTYPE_FREE 1
 
 void initMm(void) {
-	pageInit(bootInfo->mmap, bootInfo->mmapSize);
+	if (bootInfo->flags & (0 << 11)) {
+		pageInit(bootInfo->mmap, bootInfo->mmapSize);
+	} else {
+		sprint("\e[44mmmap is required but not present");
+		while(true);
+	}
 }
 
 void pageInit(struct mmap *mmap, uint32_t mmapSize) {
@@ -25,7 +30,6 @@ void pageInit(struct mmap *mmap, uint32_t mmapSize) {
 				currentPage += PAGESIZE;
 			}
 		}*/
-		asm("xchgw %bx, %bx");
 		sprint("Base: ");
 		hexprintln(currentEntry->baseLow);
 		sprint("Length: ");

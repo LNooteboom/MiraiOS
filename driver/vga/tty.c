@@ -4,8 +4,6 @@
 #include <global.h>
 #include "crtc.h"
 
-#define PARSEINT8_LEN 3
-
 uint8_t cursorX = 0;
 uint16_t cursorY = 0;
 char currentattrib = 0x07; //white text on black background
