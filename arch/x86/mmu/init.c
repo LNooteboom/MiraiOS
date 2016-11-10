@@ -4,6 +4,7 @@
 #include <param/mmap.h>
 #include <mm/physpaging.h>
 #include <mm/pagemap.h>
+#include <mm/heap.h>
 #include <print.h>
 
 #include "map.h"
@@ -11,13 +12,8 @@
 #define LOWMEM_END 0x00100000
 #define ENTRYTYPE_FREE 1
 
-/*
-This 'variable' is a linker symbol and has no value, it will give a page fault upon read/write.
-*/
-extern char BSS_END_ADDR;
-
 void pageInit(struct mmap *mmap, uint32_t mmapSize) {
-	uintptr_t bssEnd = ((uintptr_t) &BSS_END_ADDR) - 0xC0000000;
+	uintptr_t bssEnd = ((uintptr_t) &BSS_END_ADDR) - 0xC0000000 + HEAPSIZE;
 	bool firstPage = true;
 	struct mmap *currentEntry = mmap;
 	//for (uint32_t entryNr = 0; entryNr < mmapSize; entryNr++) {
