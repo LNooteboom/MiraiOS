@@ -5,6 +5,8 @@
 #include <mm/init.h>
 #include <param/main.h>
 
+#include <mm/heap.h>
+
 void kmain(void) {
 	initInterrupts();
 	initVga();
@@ -14,6 +16,13 @@ void kmain(void) {
 	initMm();
 	//uint8_t *ptr = (uint8_t*) 0x80000000;
 	//uint8_t a = *ptr;
+	uintptr_t p = kmalloc(0x20);
+	hexprintln(p);
+	uintptr_t p2 = kmalloc(0x08);
+	hexprintln(p2);
+	kfree(p);
+	uintptr_t p3 = kmalloc(0x08);
+	hexprintln(p3);
 
 	while (1) {};
 }

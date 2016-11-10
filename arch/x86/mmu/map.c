@@ -62,7 +62,6 @@ PTE_t *getPTE(virtPage_t vaddr) {
 }
 
 void mapPage(virtPage_t vaddr, physPage_t paddr) {
-	asm("xchgw %bx, %bx");
 	PDE_t entryPD = *(getPDE(vaddr));
 	//check if a page table exists with that address
 	if ((entryPD & PDE_PTE_PRESENT) == 0) {
