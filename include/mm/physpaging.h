@@ -4,6 +4,7 @@
 #include <mm/paging.h>
 
 #define PAGESIZE 4096
+#define LARGEPAGESIZE PAGESIZE * 1024
 
 #define PAGESTACKSTART 0xFF800000
 #define PAGESTACKLIMIT 0xFFC00000

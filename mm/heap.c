@@ -2,6 +2,7 @@
 
 #include <global.h>
 #include <mm/init.h>
+#include <spinlock.h>
 
 #define FREEMEM_MAGIC 0x1337BEEF
 
@@ -9,6 +10,7 @@ typedef size_t memArea_t;
 
 memArea_t *heapStart;
 
+spinlock_t heapLock = 0;
 
 void initHeap(void) {
 	heapStart = ((void*)(&BSS_END_ADDR) + sizeof(memArea_t));
@@ -23,11 +25,16 @@ static inline memArea_t *getFooterFromHeader(memArea_t *header) {
 
 void *kmalloc(size_t size) {
 	//basic first-fit mm
+	if (size == 0) {
+		return NULL;
+	}
 	if (size & 7) {
 		size &= 7;
 		size += 8;
 	}
 	size_t totalSize = size + (sizeof(memArea_t) * 2);
+
+	acquireSpinlock(&heapLock);
 
 	memArea_t *newHeader = heapStart;
 	bool foundMem = false;
@@ -40,6 +47,7 @@ void *kmalloc(size_t size) {
 		}
 	}
 	if (!foundMem) {
+		releaseSpinlock(&heapLock);
 		return NULL;
 	}
 
@@ -58,6 +66,7 @@ void *kmalloc(size_t size) {
 	*newHeader |= 1;
 	*newFooter = *newHeader;
 
+	releaseSpinlock(&heapLock);
 	return (void*)(newHeader + 1);
 }
 
@@ -68,6 +77,8 @@ void kfree(void *addr) {
 			//already freed
 			return;
 		}
+
+		acquireSpinlock(&heapLock);
 
 		*header &= ~1;
 		memArea_t *footer;
@@ -91,5 +102,7 @@ void kfree(void *addr) {
 			*prevHeader += *header;
 			*footer = *prevHeader;
 		}
+
+		releaseSpinlock(&heapLock);
 	}
 }

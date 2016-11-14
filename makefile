@@ -1,6 +1,6 @@
 SHELL = /bin/sh
 
-export PWD = /home/luke/LN-DOS
+export PWD = /home/luke/ln-dos
 export TARGET = i686-elf
 
 WARNINGS = "-Wall" "-Wextra"

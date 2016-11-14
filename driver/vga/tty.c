@@ -82,6 +82,7 @@ char *execCommand(char *command) {
 									case 0:
 										//reset
 										currentattrib = 0x07;
+										break;
 									case 1:
 										currentattrib |= 0x08;
 										break;
@@ -103,7 +104,7 @@ char *execCommand(char *command) {
 						}
 					} while (*(command - 1) == ';');
 			}
-
+			hexprintln(currentattrib);
 			return commandLetter;
 	}
 	return command;

@@ -1,7 +1,7 @@
 
 OUTPUT = main.o
 SUBDIRS = irq mmu#timer pic
-OBJECTS = io.o
+OBJECTS = io.o spinlock.o
 
 
 OBJECTS += $(patsubst %, %/main.o, ${SUBDIRS})
