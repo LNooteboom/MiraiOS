@@ -3,6 +3,7 @@
 
 #include <global.h>
 #include "crtc.h"
+#include <print.h>
 
 uint16_t cursorX = 0;
 uint16_t cursorY = 0;

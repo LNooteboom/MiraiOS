@@ -66,9 +66,10 @@ void mapPage(virtPage_t vaddr, physPage_t paddr) {
 	//check if a page table exists with that address
 	if ((entryPD & PDE_PTE_PRESENT) == 0) {
 		//page table does not exist, so create one
-		newPageTable(entryPD & PDE_PTE_ADDRMASK);
+		newPageTable(vaddr);
 	}
 	PTE_t *entryPT = getPTE(vaddr);
+	paddr &= PDE_PTE_ADDRMASK;
 	*entryPT = paddr | PTEFLAGS;
 }
 

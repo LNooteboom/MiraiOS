@@ -7,6 +7,8 @@
 
 void *kmalloc(size_t size);
 
+void *vmalloc(size_t size);
+
 void kfree(void *mem);
 
 #endif

@@ -5,7 +5,9 @@
 #include <mm/paging.h>
 #include <spinlock.h>
 
-#define PAGEENTRIESINPAGEMASK (PAGESIZE / PTRSIZE) - 1
+#include <print.h>
+
+#define PAGEENTRIESINPAGEMASK (PAGESIZE / 4) - 1
 #define PAGESTACKBORDERMASK PAGESIZE - 1
 
 physPage_t *curPageStack = (physPage_t*)PAGESTACKSTART;
@@ -25,7 +27,7 @@ physPage_t allocPhysPage(void) {
 	if ((pageStackPtr & (PAGEENTRIESINPAGEMASK)) == PAGEENTRIESINPAGEMASK && !newPageStackDealloced) {
 		//stack space becomes allocated page
 		newPageStackDealloced = true;
-		virtPage_t vaddr = (pageStackPtr+1) * PTRSIZE + PAGESTACKSTART;
+		virtPage_t vaddr = (pageStackPtr+1) * sizeof(physPage_t) + PAGESTACKSTART;
 
 		releaseSpinlock(&physPageLock);
 		return getPhysPage(vaddr);
@@ -43,7 +45,7 @@ void deallocPhysPage(physPage_t page) {
 	if ((pageStackPtr & (PAGEENTRIESINPAGEMASK)) == PAGEENTRIESINPAGEMASK && !newPageStackAlloced) {
 		//deallocated page becomes more stack space
 		newPageStackAlloced = true;
-		virtPage_t vaddr = (pageStackPtr+1) * PTRSIZE + PAGESTACKSTART;
+		virtPage_t vaddr = (pageStackPtr+1) * sizeof(physPage_t) + PAGESTACKSTART;
 		mapPage(vaddr, page);
 	} else {
 		newPageStackAlloced = false;
