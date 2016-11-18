@@ -3,8 +3,9 @@
 #include <global.h>
 #include <mm/init.h>
 #include <spinlock.h>
+#include <print.h>
 
-#define VHEAPLIMIT 0xD0000000
+#define VHEAPLIMIT 0xF0000000
 #define PAGESIZE 4096
 
 typedef size_t memArea_t;
@@ -14,7 +15,7 @@ memArea_t *heapStart;
 spinlock_t heapLock = 0;
 
 memArea_t *vHeapStart = (void*)(0xD0000000);
-size_t vHeapSize = PAGESIZE - 8;
+size_t vHeapSize = PAGESIZE - 4;
 
 spinlock_t vHeapLock = 0;
 
@@ -26,8 +27,8 @@ void initHeap(void) {
 	allocPage((virtPage_t) vHeapStart);
 	memArea_t *footer = (void*)(vHeapStart) + vHeapSize - sizeof(memArea_t);
 	vHeapStart++;
-	*vHeapStart = vHeapSize;
-	*footer = vHeapSize;
+	*vHeapStart = vHeapSize - sizeof(memArea_t);
+	*footer = *vHeapStart;
 }
 
 static inline memArea_t *getFooterFromHeader(memArea_t *header) {
@@ -135,10 +136,9 @@ void *vmalloc(size_t size) {
 	
 	acquireSpinlock(&vHeapLock);
 	void *retVal = heapAlloc(size, vHeapStart, vHeapSize);
-	sprint("Passed\n");
 	if (!retVal) {
 		//allocate more heap space
-		virtPage_t newPage = (uintptr_t)(vHeapStart) + vHeapSize - sizeof(memArea_t);
+		virtPage_t newPage = (uintptr_t)(vHeapStart) + vHeapSize;
 		if (newPage >= VHEAPLIMIT) {
 			releaseSpinlock(&vHeapLock);
 			return NULL;
@@ -148,7 +148,7 @@ void *vmalloc(size_t size) {
 		//merge it with the heap
 		size_t newSize = vHeapSize + PAGESIZE;
 		memArea_t *oldFooter = (memArea_t*)(newPage - (sizeof(memArea_t) * 2));
-		memArea_t *newFooter = (memArea_t*)(newPage + PAGESIZE - sizeof(memArea_t));
+		memArea_t *newFooter = (memArea_t*)(newPage + PAGESIZE - (sizeof(memArea_t) * 2));
 		memArea_t *header;
 		if (*oldFooter & 1) {
 			header = (memArea_t*)(newPage - sizeof(memArea_t));
@@ -157,10 +157,9 @@ void *vmalloc(size_t size) {
 		} else {
 			//area is free, merge it
 			header = getHeaderFromFooter(oldFooter);
-			*header = PAGESIZE + sizeof(memArea_t);
+			*header += PAGESIZE + sizeof(memArea_t);
 			*newFooter = *header;
 		}
-
 		vHeapSize = newSize;
 		//try again
 		retVal = heapAlloc(size, vHeapStart, vHeapSize);
@@ -170,7 +169,13 @@ void *vmalloc(size_t size) {
 }
 
 void kfree(void *addr) {
-	acquireSpinlock(&heapLock);
-	heapFree(addr, heapStart, HEAPSIZE);
-	releaseSpinlock(&heapLock);
+	if (addr > (void*)(heapStart) && (uintptr_t)(addr) < ((uintptr_t)(heapStart) + HEAPSIZE)) {
+		acquireSpinlock(&heapLock);
+		heapFree(addr, heapStart, HEAPSIZE);
+		releaseSpinlock(&heapLock);
+	} else if (addr > (void*)(vHeapStart) && (uintptr_t)(addr) < ((uintptr_t)(vHeapStart) + vHeapSize)) {
+		acquireSpinlock(&vHeapLock);
+		heapFree(addr, vHeapStart, vHeapSize);
+		releaseSpinlock(&vHeapLock);
+	}
 }

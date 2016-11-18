@@ -6,7 +6,6 @@
 #include <param/main.h>
 
 #include <mm/heap.h>
-#include <mm/physpaging.h>
 
 void kmain(void) {
 	initInterrupts();
@@ -15,17 +14,13 @@ void kmain(void) {
 
 	initParam();
 	initMm();
-	//uint8_t *ptr = (uint8_t*) 0x80000000;
-	//uint8_t a = *ptr;
-	uintptr_t p = kmalloc(0x20);
-	hexprintln(p);
-	uintptr_t p2 = kmalloc(0x08);
-	hexprintln(p2);
-	kfree(p);
-	uintptr_t p3 = kmalloc(0x10);
-	hexprintln(p3);
 
-	uintptr_t vp = vmalloc(0x1800);
+	void *vp = vmalloc(0xff0);
+	hexprintln(vp);
+	void *vp2 = vmalloc(0x10);
+	hexprintln(vp2);
+	kfree(vp);
+	vp = vmalloc(0x20);
 	hexprintln(vp);
 
 	while (1) {};
