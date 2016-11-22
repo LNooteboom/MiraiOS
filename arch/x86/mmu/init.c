@@ -20,38 +20,39 @@ void pageInit(struct mmap *mmap, uint32_t mmapSize) {
 	while ((uintptr_t)currentEntry < (uintptr_t)mmap + mmapSize) {
 		if (currentEntry->type == ENTRYTYPE_FREE && (currentEntry->base + currentEntry->length) > bssEnd) {
 
-			physPage_t currentPage = currentEntry->base;
+			physPage_t base = currentEntry->base;
 			uint64_t size = currentEntry->length;
 
 			sprint("Found free memory: ");
-			hexprint(currentPage);
+			hexprint(base);
 			sprint(" - ");
-			hexprintln(currentPage + size);
+			hexprintln(base + size);
 
-			if (currentPage < bssEnd) {
-				size_t diff = bssEnd - currentPage;
+			if (base < bssEnd) {
+				size_t diff = bssEnd - base;
 				size -= diff;
-				currentPage = bssEnd;
+				base = bssEnd;
 			}
 
 			//insert
+			physPage_t currentPage = base + size - PAGESIZE;
 
 			if (firstPage && size >= 2*PAGESIZE) {
 				//alocate new page table
-				setInPageDir(PAGESTACKSTART, currentPage);
-				currentPage += PAGESIZE;
+				setInPageDir(PAGESTACKSTART - PAGESIZE, currentPage);
+				base -= PAGESIZE;
 
 				//map page
-				mapPage(PAGESTACKSTART, currentPage);
+				mapPage(PAGESTACKSTART - PAGESIZE, base);
 				currentPage += PAGESIZE;
-				size -= 2*PAGESIZE;
+				size -= 2 * PAGESIZE;
 
 				firstPage = false;
 			}
 
 			for (uint64_t i = 0; i < size; i += PAGESIZE) {
 				deallocPhysPage(currentPage);
-				currentPage += PAGESIZE;
+				currentPage -= PAGESIZE;
 			}
 		}
 

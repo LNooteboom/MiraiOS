@@ -6,8 +6,8 @@
 #define PAGESIZE 4096
 #define LARGEPAGESIZE PAGESIZE * 1024
 
-#define PAGESTACKSTART 0xFBC00000
-#define PAGESTACKLIMIT 0xFFC00000
+#define PAGESTACKSTART 0xFFC00000
+#define PAGESTACKLIMIT 0xFBC00000
 
 /*
 Allocates a 4kb page and returns its virtual address

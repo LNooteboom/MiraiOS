@@ -7,11 +7,9 @@
 
 #include <print.h>
 
-#define PAGEENTRIESINPAGEMASK (PAGESIZE / 4) - 1
-#define PAGESTACKBORDERMASK PAGESIZE - 1
+#define PAGEENTRIESINPAGEMASK 0x0ffc
 
-physPage_t *curPageStack = (physPage_t*)PAGESTACKSTART;
-uint32_t pageStackPtr = 0;
+physPage_t *pageStackPtr = (physPage_t*)(PAGESTACKSTART) - 1;
 bool newPageStackAlloced = false;
 bool newPageStackDealloced = false;
 
@@ -19,37 +17,37 @@ spinlock_t physPageLock = 0;
 
 
 physPage_t allocPhysPage(void) {
-	if (pageStackPtr == 0) {
+	if (pageStackPtr == (physPage_t*)(PAGESTACKSTART) - 1) {
 		//no more free memory :(
 		return NULL;
 	}
 	acquireSpinlock(&physPageLock);
-	if ((pageStackPtr & (PAGEENTRIESINPAGEMASK)) == PAGEENTRIESINPAGEMASK && !newPageStackDealloced) {
+	if ( !((uintptr_t)pageStackPtr & PAGEENTRIESINPAGEMASK) && !newPageStackDealloced) {
 		//stack space becomes allocated page
 		newPageStackDealloced = true;
-		virtPage_t vaddr = (pageStackPtr+1) * sizeof(physPage_t) + PAGESTACKSTART;
+		virtPage_t vaddr = (virtPage_t)(pageStackPtr) - PAGESIZE;
 
 		releaseSpinlock(&physPageLock);
 		return getPhysPage(vaddr);
 	}
 	newPageStackDealloced = false;
 
-	physPage_t retVal = curPageStack[pageStackPtr];
-	pageStackPtr--;
+	physPage_t retVal = *pageStackPtr++;
 	releaseSpinlock(&physPageLock);
 	return retVal;
 }
 
 void deallocPhysPage(physPage_t page) {
 	acquireSpinlock(&physPageLock);
-	if ((pageStackPtr & (PAGEENTRIESINPAGEMASK)) == PAGEENTRIESINPAGEMASK && !newPageStackAlloced) {
+	if ( !( (uintptr_t)pageStackPtr & PAGEENTRIESINPAGEMASK) && !newPageStackAlloced) {
 		//deallocated page becomes more stack space
 		newPageStackAlloced = true;
-		virtPage_t vaddr = (pageStackPtr+1) * sizeof(physPage_t) + PAGESTACKSTART;
+		virtPage_t vaddr = (virtPage_t)pageStackPtr - PAGESIZE;
 		mapPage(vaddr, page);
 	} else {
 		newPageStackAlloced = false;
-		curPageStack[++pageStackPtr] = page;
+		pageStackPtr--;
+		*pageStackPtr = page;
 	}
 	releaseSpinlock(&physPageLock);
 }
