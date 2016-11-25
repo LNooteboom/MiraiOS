@@ -39,20 +39,30 @@ void pageInit(struct mmap *mmap, uint32_t mmapSize) {
 
 			if (firstPage && size >= 2*PAGESIZE) {
 				//alocate new page table
-				setInPageDir(PAGESTACKSTART - PAGESIZE, currentPage);
-				base -= PAGESIZE;
+				setInPageDir(PAGESTACKSTART - PAGESIZE, base);
+				base += PAGESIZE;
 
 				//map page
 				mapPage(PAGESTACKSTART - PAGESIZE, base);
-				currentPage += PAGESIZE;
+				base += PAGESIZE;
+				
+				//map large page stack
+				mapPage(LARGEPAGESTACKSTART - PAGESIZE, base);
 				size -= 2 * PAGESIZE;
 
 				firstPage = false;
 			}
 
 			for (uint64_t i = 0; i < size; i += PAGESIZE) {
-				deallocPhysPage(currentPage);
-				currentPage -= PAGESIZE;
+				if ( !(currentPage & (LARGEPAGESIZE - 1)) && size >= PAGESIZE) {
+					//There is a better way to do this, but right now this is the simplest solution
+					deallocLargePhysPage(currentPage);
+					currentPage += LARGEPAGESIZE;
+					i += LARGEPAGESIZE - PAGESIZE;
+				} else {
+					deallocPhysPage(currentPage);
+					currentPage -= PAGESIZE;
+				}
 			}
 		}
 

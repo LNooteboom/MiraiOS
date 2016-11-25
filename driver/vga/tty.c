@@ -105,7 +105,6 @@ char *execCommand(char *command) {
 						}
 					} while (*(command - 1) == ';');
 			}
-			hexprintln(currentattrib);
 			return commandLetter;
 	}
 	return command;

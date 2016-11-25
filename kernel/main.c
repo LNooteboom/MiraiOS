@@ -15,7 +15,7 @@ void kmain(void) {
 	initParam();
 	initMm();
 
-	void *vp = vmalloc(0xff0);
+	void *vp = vmalloc(0x2000);
 	hexprintln(vp);
 	void *vp2 = vmalloc(0x10);
 	hexprintln(vp2);

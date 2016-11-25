@@ -169,7 +169,9 @@ void *vmalloc(size_t size) {
 }
 
 void kfree(void *addr) {
-	if (addr > (void*)(heapStart) && (uintptr_t)(addr) < ((uintptr_t)(heapStart) + HEAPSIZE)) {
+	if (addr == NULL) {
+		return;
+	} else if (addr > (void*)(heapStart) && (uintptr_t)(addr) < ((uintptr_t)(heapStart) + HEAPSIZE)) {
 		acquireSpinlock(&heapLock);
 		heapFree(addr, heapStart, HEAPSIZE);
 		releaseSpinlock(&heapLock);
