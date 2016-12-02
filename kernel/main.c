@@ -15,13 +15,15 @@ void kmain(void) {
 	initParam();
 	initMm();
 
-	void *vp = vmalloc(0x2000);
+	uintptr_t vp = vmalloc(0x2000);
 	hexprintln(vp);
-	void *vp2 = vmalloc(0x10);
+	uintptr_t vp2 = vmalloc(0x10);
 	hexprintln(vp2);
 	kfree(vp);
 	vp = vmalloc(0x20);
 	hexprintln(vp);
+
+	vp2 = vp / 0;
 
 	while (1) {};
 }

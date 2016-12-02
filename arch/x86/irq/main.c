@@ -6,9 +6,12 @@
 
 #define MINSWIVALUE 0x30
 
+bool irqEnabled = 0;
+
 void initInterrupts(void) {
 	initIDT();
 	initExceptions();
+	//irqEnabled = true;
 }
 
 void routeSoftwareInterrupt(void (*ISR)(void), interrupt_t interrupt) {

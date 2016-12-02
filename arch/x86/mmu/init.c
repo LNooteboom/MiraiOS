@@ -20,12 +20,14 @@ void pageInit(struct mmap *mmap, uint32_t mmapSize) {
 	while ((uintptr_t)currentEntry < (uintptr_t)mmap + mmapSize) {
 		if (currentEntry->type == ENTRYTYPE_FREE && (currentEntry->base + currentEntry->length) > bssEnd) {
 
-			physPage_t base = currentEntry->base;
+			uint64_t base = currentEntry->base;
 			uint64_t size = currentEntry->length;
 
 			sprint("Found free memory: ");
+			hexprint(base >> 32);
 			hexprint(base);
 			sprint(" - ");
+			hexprint((base + size) >> 32);
 			hexprintln(base + size);
 
 			if (base < bssEnd) {

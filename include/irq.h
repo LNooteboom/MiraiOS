@@ -5,6 +5,8 @@
 
 typedef uint8_t interrupt_t;
 
+extern bool irqEnabled;
+
 void initInterrupts(void);
 
 void routeSoftwareInterrupt(void (*ISR)(void), interrupt_t interrupt);
