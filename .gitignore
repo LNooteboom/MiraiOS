@@ -6,6 +6,6 @@ vmmount/
 *.img
 *.iso
 
-KERNEL
+miraiBoot
 BOOT
 

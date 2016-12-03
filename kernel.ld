@@ -4,7 +4,7 @@ OUTPUT_FORMAT(elf32-i386)
 INPUT
 (
 	/*init.o*/
-	arch/x86/main.o
+	arch/x86_64/main.o
 	driver/main.o
 	kernel/main.o
 	mm/main.o
@@ -13,7 +13,7 @@ INPUT
 STARTUP(init.o)
 ENTRY(__init)
 
-OUTPUT(KERNEL)
+OUTPUT(miraiBoot)
 
 SECTIONS {
 	. = 0xC0100000;

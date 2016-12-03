@@ -1,6 +1,6 @@
 SHELL = /bin/sh
 
-export PWD = /home/luke/ln-dos
+export PWD = /home/luke/mirai
 export TARGET = i686-elf
 
 WARNINGS = "-Wall" "-Wextra"
@@ -11,10 +11,10 @@ export NASM = nasm
 
 export LD = ${TARGET}-ld
 
-export ARCH = x86
+export ARCH = x86_64
 
 OUTPUT = vmmount/out.img
-KERNEL = KERNEL
+KERNEL = miraiBoot
 BOOT = BOOT
 IMAGE = out.img
 MODULES = arch/${ARCH} mm driver kernel param
@@ -50,5 +50,5 @@ ${IMAGE}: boot/bootsector.asm
 clean:
 	find . -name "*.o" -type f -delete
 	rm -f *.img
-	rm -f KERNEL
+	rm -f miraiBoot
 	rm -f BOOT
