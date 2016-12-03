@@ -1,7 +1,7 @@
 SHELL = /bin/sh
 
 export PWD = /home/luke/mirai
-export TARGET = i686-elf
+export TARGET = amd64-elf
 
 WARNINGS = "-Wall" "-Wextra"
 export CFLAG = ${WARNINGS}  "-I${PWD}/include/"
@@ -17,7 +17,7 @@ OUTPUT = vmmount/out.img
 KERNEL = miraiBoot
 BOOT = BOOT
 IMAGE = out.img
-MODULES = arch/${ARCH} mm driver kernel param
+MODULES = #arch/${ARCH} mm driver kernel param
 OBJ_INIT = init.o
 
 
