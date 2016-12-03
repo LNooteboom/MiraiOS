@@ -21,19 +21,18 @@ SECTIONS {
 	multiboot : {
 		init.o (multiboot);
 	}
-	.text : {
-		init.o (.text);
+	boottext : {
+		*.o (boottext);
 	}
-	.rodata : {
-		init.o (.rodata);
+	bootdata : {
+		*.o (bootdata);
 	}
-	.bss : {
-		init.o (.bss);
+	bootbss : {
+		*.o (bootbss);
 	}
 	. += 0xFFFFFFFF00000000;
 	.text : {
 		*.o (.text);
-		. = ALIGN(4096);
 	}
 	TEXT_END_ADDR = .;
 	.data : {

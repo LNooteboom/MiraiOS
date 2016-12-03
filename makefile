@@ -36,7 +36,7 @@ ${OBJ_INIT}: ${INITDIR}
 	cp ${INITDIR}/main.o $@
 
 ${KERNEL}: ${OBJECTS}
-	${LD} -T kernel.ld
+	${LD} -z max-page-size=0x1000 -T kernel.ld
 
 %/main.o:
 	$(MAKE) -C $(patsubst %/main.o,%,$@)

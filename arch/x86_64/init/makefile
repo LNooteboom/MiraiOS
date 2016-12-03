@@ -8,4 +8,4 @@ ${OUTPUT}: ${OBJECTS}
 	${LD} -r -o $@ $+
 
 %.o: %.asm
-	${NASM} -f elf64 -o $@ $<
+	${NASM} -g -f elf64 -o $@ $<
