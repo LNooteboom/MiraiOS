@@ -1,6 +1,6 @@
 BITS 32
 
-VMEM_OFFSET				equ 0xFFFFFFFF00000000
+VMEM_OFFSET				equ 0xFFFFFFFF80000000
 STACKSIZE				equ 0x4000
 
 MULTIBOOT_MAGIC			equ 0x1BADB002
@@ -17,6 +17,7 @@ global __init:function
 global vmemOffset:data
 global bootInfo:data
 
+;extern VMEM_OFFSET
 extern BSS_END_ADDR
 extern TEXT_END_ADDR
 extern init64
@@ -80,20 +81,18 @@ __init:
 	;mov [PML4T + (511 * 8)], ((PML4T) + PAGEFLAGS)
 	mov eax, [PML4TEntryToItself]
 	mov edx, [PML4TEntryToItself + 4]
-	mov [(PML4T - VMEM_OFFSET) + (511 * 8)], eax
-	mov [(PML4T - VMEM_OFFSET) + (511 * 8) + 4], edx
+	mov [(PML4T - VMEM_OFFSET) + (510 * 8)], eax
+	mov [(PML4T - VMEM_OFFSET) + (510 * 8) + 4], edx
 
 	;add entry pointing to kernel 
 	;mov [PML4T + (510 * 8)], ((PDPT) + PAGEFLAGS)
 	mov eax, [PML4TEntryToKernel]
 	mov edx, [PML4TEntryToKernel + 4]
-	mov [(PML4T - VMEM_OFFSET) + (510 * 8)], eax
-	mov [(PML4T - VMEM_OFFSET) + (510 * 8) + 4], edx
+	mov [(PML4T - VMEM_OFFSET) + (511 * 8)], eax
+	mov [(PML4T - VMEM_OFFSET) + (511 * 8) + 4], edx
 
 	;also add temporary entry at bottom to prevent page fault at switch
 	;mov [PML4T], ((PDPT) + PAGEFLAGS)
-	mov eax, [PML4TEntryTemp]
-	mov edx, [PML4TEntryTemp + 4]
 	mov [(PML4T - VMEM_OFFSET)], eax
 	mov [(PML4T - VMEM_OFFSET) + 4], edx
 
@@ -101,6 +100,10 @@ __init:
 	;mov [PDPT], ((PDT) + PAGEFLAGS)
 	mov eax, [PDPTEntry]
 	mov edx, [PDPTEntry + 4]
+	mov [(PDPT - VMEM_OFFSET) + (510 * 8)], eax
+	mov [(PDPT - VMEM_OFFSET) + (510 * 8) + 4], edx
+
+	;also add entry at bottom
 	mov [(PDPT - VMEM_OFFSET)], eax
 	mov [(PDPT - VMEM_OFFSET) + 4], edx
 
@@ -215,14 +218,9 @@ jumpVect:
 	dd (init64 - VMEM_OFFSET)
 	dw 0x18
 
-vmemOffset:
-	dq VMEM_OFFSET
-
 PML4TEntryToItself:
 	dq ((PML4T - VMEM_OFFSET) + PAGEFLAGS)
 PML4TEntryToKernel:
-	dq ((PDPT - VMEM_OFFSET) + PAGEFLAGS)
-PML4TEntryTemp:
 	dq ((PDPT - VMEM_OFFSET) + PAGEFLAGS)
 PDPTEntry:
 	dq ((PDT - VMEM_OFFSET) + PAGEFLAGS)

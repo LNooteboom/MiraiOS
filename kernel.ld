@@ -17,6 +17,7 @@ ENTRY(__init)
 OUTPUT(miraiBoot)
 
 SECTIONS {
+	VMEM_OFFSET = 0xFFFFFFFF80000000;
 	. = 0x100000;
 	multiboot : {
 		init.o (multiboot);
@@ -32,7 +33,8 @@ SECTIONS {
 		*.o (bootbss);
 	}
 	*/
-	. += 0xFFFFFFFF00000000;
+	/*. += 0xFFFFFFFF00000000;*/
+	. += VMEM_OFFSET;
 	.text : {
 		*.o (.text);
 	}
