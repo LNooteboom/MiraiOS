@@ -27,9 +27,11 @@ SECTIONS {
 	bootdata : {
 		*.o (bootdata);
 	}
+	/*
 	bootbss : {
 		*.o (bootbss);
 	}
+	*/
 	. += 0xFFFFFFFF00000000;
 	.text : {
 		*.o (.text);

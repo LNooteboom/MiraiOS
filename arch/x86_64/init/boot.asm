@@ -9,7 +9,7 @@ MULTIBOOT_CHECKSUM		equ -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
 MULTIBOOT_HEADER_PADDR	equ multiBootHeader
 
 PAGESIZE				equ 0x1000
-LARGE_PAGE_SIZE_2			equ 0x200000
+LARGE_PAGE_SIZE_2		equ 0x200000
 PAGEFLAGS				equ 0x03
 PDEFLAGS				equ 0x83
 
@@ -19,6 +19,7 @@ global bootInfo:data
 
 extern BSS_END_ADDR
 extern TEXT_END_ADDR
+extern init64
 
 SECTION multiboot
 multiBootHeader:
@@ -43,11 +44,11 @@ __init:
 		xor edx, edx
 	
 	.L0:
-	mov [bootInfo], ebx
+	mov [(bootInfo - VMEM_OFFSET)], ebx
 	mov ax, 0x10
 
 	;setup temporary 32 bit gdt
-	lgdt [gdtr32Phys]
+	lgdt [gdtrPhys]
 	
 	;load segment registers
 	mov ds, ax
@@ -57,8 +58,8 @@ __init:
 	mov gs, ax
 
 	;setup esp
-	mov esp, stackStart
-	mov ebp, stackStart
+	mov esp, (stackStart - VMEM_OFFSET)
+	mov ebp, (stackStart - VMEM_OFFSET)
 
 	jmp 0x08:(.cont)
 	
@@ -79,34 +80,34 @@ __init:
 	;mov [PML4T + (511 * 8)], ((PML4T) + PAGEFLAGS)
 	mov eax, [PML4TEntryToItself]
 	mov edx, [PML4TEntryToItself + 4]
-	mov [PML4T + (511 * 8)], eax
-	mov [PML4T + (511 * 8) + 4], edx
+	mov [(PML4T - VMEM_OFFSET) + (511 * 8)], eax
+	mov [(PML4T - VMEM_OFFSET) + (511 * 8) + 4], edx
 
 	;add entry pointing to kernel 
 	;mov [PML4T + (510 * 8)], ((PDPT) + PAGEFLAGS)
 	mov eax, [PML4TEntryToKernel]
 	mov edx, [PML4TEntryToKernel + 4]
-	mov [PML4T + (510 * 8)], eax
-	mov [PML4T + (510 * 8) + 4], edx
+	mov [(PML4T - VMEM_OFFSET) + (510 * 8)], eax
+	mov [(PML4T - VMEM_OFFSET) + (510 * 8) + 4], edx
 
 	;also add temporary entry at bottom to prevent page fault at switch
 	;mov [PML4T], ((PDPT) + PAGEFLAGS)
 	mov eax, [PML4TEntryTemp]
 	mov edx, [PML4TEntryTemp + 4]
-	mov [PML4T], eax
-	mov [PML4T + 4], edx
+	mov [(PML4T - VMEM_OFFSET)], eax
+	mov [(PML4T - VMEM_OFFSET) + 4], edx
 
 	;add entry to PDPT
 	;mov [PDPT], ((PDT) + PAGEFLAGS)
 	mov eax, [PDPTEntry]
 	mov edx, [PDPTEntry + 4]
-	mov [PDPT], eax
-	mov [PDPT + 4], edx
+	mov [(PDPT - VMEM_OFFSET)], eax
+	mov [(PDPT - VMEM_OFFSET) + 4], edx
 
 	;now fill PDT
 	mov eax, PDEFLAGS ;entry low dword
 	xor edx, edx ;entry high dword
-	mov edi, PDT
+	mov edi, (PDT - VMEM_OFFSET)
 	.L2:
 		cmp eax, (BSS_END_ADDR - VMEM_OFFSET + PAGEFLAGS)
 		jae .L3
@@ -131,7 +132,7 @@ __init:
 	mov cr4, eax
 
 	;add pointer in cr3 to pml4t
-	mov eax, PML4T
+	mov eax, (PML4T - VMEM_OFFSET)
 	mov cr3, eax
 
 
@@ -140,13 +141,13 @@ __init:
 	rdmsr
 	or eax, (1 << 8) ;set LME bit
 	wrmsr
-	;enable paging to activate longmde
+	;enable paging
 	mov eax, cr0
 	or eax, (1 << 31)
 	mov cr0, eax
 
-	mov eax, 0xDEADBEEF
-	hlt
+	;now jump to 64 bit (in another file)
+	jmp far [jumpVect]
 
 detectLongMode:
 	mov eax, 0x80000000
@@ -210,26 +211,34 @@ bootError:
 
 SECTION bootdata
 
+jumpVect:
+	dd (init64 - VMEM_OFFSET)
+	dw 0x18
+
 vmemOffset:
 	dq VMEM_OFFSET
 
 PML4TEntryToItself:
-	dq (PML4T + PAGEFLAGS)
+	dq ((PML4T - VMEM_OFFSET) + PAGEFLAGS)
 PML4TEntryToKernel:
-	dq (PDPT + PAGEFLAGS)
+	dq ((PDPT - VMEM_OFFSET) + PAGEFLAGS)
 PML4TEntryTemp:
-	dq (PDPT + PAGEFLAGS)
+	dq ((PDPT - VMEM_OFFSET) + PAGEFLAGS)
 PDPTEntry:
-	dq (PDT + PAGEFLAGS)
+	dq ((PDT - VMEM_OFFSET) + PAGEFLAGS)
 
-gdtr32Phys:
-	dw (gdt32End - gdt32)
-	dd gdt32
+gdtrPhys:
+	dw (gdtEnd - gdt)
+	dd gdt
 
-gdt32:
+gdtr:
+	dw (gdtEnd - gdt)
+	dq gdt + VMEM_OFFSET
+
+gdt:
 	;entry 0x00: dummy
 	dq 0
-	;entry 0x08: text
+	;entry 0x08: boottext
 	dw 0xFFFF	;limit	00:15
 	dw 0x0000	;base	00:15
 	db 0x00		;base	16:23
@@ -243,7 +252,28 @@ gdt32:
 	db 0x92		;Access byte: present, ring 0, readable
 	db 0xCF		;flags & limit 16:19: 4kb granularity, 32 bit
 	db 0x00		;base	24:31
-gdt32End:
+	;entry 0x18: 64 bit kernel text
+	dw 0xFFFF	;limit	00:15
+	dw 0x0000	;base	00:15
+	db 0x00		;base	16:23
+	db 0x98		;Access byte: present, ring 0
+	db 0x2F		;flags & limit 16:19: 64-bit
+	db 0x00		;base	24:31
+	;entry 0x20: 64 bit usermode text
+	dw 0xFFFF	;limit	00:15
+	dw 0x0000	;base	00:15
+	db 0x00		;base	16:23
+	db 0xF8		;Access byte: present, ring 3
+	db 0x2F		;flags & limit 16:19: 64-bit
+	db 0x00		;base	24:31
+	;entry 0x20: 32 bit usermode text
+	dw 0xFFFF	;limit	00:15
+	dw 0x0000	;base	00:15
+	db 0x00		;base	16:23
+	db 0xF8		;Access byte: present, ring 3
+	db 0x4F		;flags & limit 16:19: 32-bit
+	db 0x00		;base	24:31
+gdtEnd:
 
 noMultiBootMsg:
 	db 'Invalid bootloader detected, please boot this operating system from a multiboot compliant bootloader (like GRUB)', 0
@@ -254,7 +284,7 @@ noCPUIDMsg:
 noLongModeMsg:
 	db 'This operating system requires a 64 bit CPU.', 0
 
-SECTION bootbss align=4096 nobits
+SECTION .bss align=4096 nobits
 PML4T:
 	resb PAGESIZE
 PDPT:

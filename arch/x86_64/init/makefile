@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = boot.o
+OBJECTS = boot.o init.o
 
 all: ${OUTPUT}
 
@@ -8,4 +8,4 @@ ${OUTPUT}: ${OBJECTS}
 	${LD} -r -o $@ $+
 
 %.o: %.asm
-	${NASM} -g -f elf64 -o $@ $<
+	${NASM} -f elf64 -o $@ $<
