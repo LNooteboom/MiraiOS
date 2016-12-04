@@ -1,5 +1,18 @@
 BITS 32
 
+global __init:function
+global vmemOffset:data
+global bootInfo:data
+global stackEnd:data
+global PML4T:data
+global PDPT:data
+global gdtr:data
+
+;extern VMEM_OFFSET
+extern BSS_END_ADDR
+extern TEXT_END_ADDR
+extern init64
+
 VMEM_OFFSET				equ 0xFFFFFFFF80000000
 STACKSIZE				equ 0x4000
 
@@ -12,15 +25,6 @@ PAGESIZE				equ 0x1000
 LARGE_PAGE_SIZE_2		equ 0x200000
 PAGEFLAGS				equ 0x03
 PDEFLAGS				equ 0x83
-
-global __init:function
-global vmemOffset:data
-global bootInfo:data
-
-;extern VMEM_OFFSET
-extern BSS_END_ADDR
-extern TEXT_END_ADDR
-extern init64
 
 SECTION multiboot
 multiBootHeader:
@@ -36,7 +40,7 @@ multiBootHeader:
 SECTION boottext
 
 __init:
-	xchg bx, bx
+	;xchg bx, bx
 	cmp eax, 0x2BADB002
 	jne .noMultiBoot
 		mov edx, 1
@@ -59,8 +63,8 @@ __init:
 	mov gs, ax
 
 	;setup esp
-	mov esp, (stackStart - VMEM_OFFSET)
-	mov ebp, (stackStart - VMEM_OFFSET)
+	mov esp, (stackEnd - VMEM_OFFSET)
+	mov ebp, (stackEnd - VMEM_OFFSET)
 
 	jmp 0x08:(.cont)
 	
@@ -103,7 +107,7 @@ __init:
 	mov [(PDPT - VMEM_OFFSET) + (510 * 8)], eax
 	mov [(PDPT - VMEM_OFFSET) + (510 * 8) + 4], edx
 
-	;also add entry at bottom
+	;also add temporary entry at bottom
 	mov [(PDPT - VMEM_OFFSET)], eax
 	mov [(PDPT - VMEM_OFFSET) + 4], edx
 

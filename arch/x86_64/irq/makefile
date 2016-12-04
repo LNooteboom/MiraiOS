@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = idt.o mainc.o exception.o
+OBJECTS = idt.o mainc.o #exception.o
 
 all: ${OUTPUT}
 
@@ -14,4 +14,4 @@ mainc.o: main.c
 	${CC} ${CFLAG} -c -o $@ $<
 
 %.o: %.asm
-	${NASM} -f elf -o $@ $<
+	${NASM} ${NASMFLAG} -o $@ $<

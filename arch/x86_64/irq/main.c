@@ -10,7 +10,7 @@ bool irqEnabled = 0;
 
 void initInterrupts(void) {
 	initIDT();
-	initExceptions();
+	//initExceptions();
 	//irqEnabled = true;
 }
 

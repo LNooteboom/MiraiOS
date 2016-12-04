@@ -1,7 +1,7 @@
 
 OUTPUT = main.o
-SUBDIRS = irq mmu#timer pic
-OBJECTS = io.o spinlock.o
+SUBDIRS = irq #mmu#timer pic
+OBJECTS = #io.o spinlock.o
 
 
 OBJECTS += $(patsubst %, %/main.o, ${SUBDIRS})
@@ -15,7 +15,7 @@ ${OUTPUT}: ${OBJECTS}
 	${CC} ${CFLAG} -c -o $@ $<
 
 %.o: %.asm
-	${NASM} -f elf -o $@ $<
+	${NASM} ${NASMFLAG} -o $@ $<
 
 %/main.o: %/makefile
 	make -C $(patsubst %/main.o,%,$@)

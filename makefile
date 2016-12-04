@@ -4,10 +4,11 @@ export PWD = /home/luke/mirai
 export TARGET = amd64-elf
 
 WARNINGS = "-Wall" "-Wextra"
-export CFLAG = ${WARNINGS}  "-I${PWD}/include/"
+export CFLAG = ${WARNINGS}  "-I${PWD}/include/" "-mcmodel=kernel"
 export CC = ${TARGET}-gcc
 
 export NASM = nasm
+export NASMFLAG = "-f elf64"
 
 export LD = ${TARGET}-ld
 
@@ -17,7 +18,7 @@ OUTPUT = vmmount/out.img
 KERNEL = miraiBoot
 BOOT = BOOT
 IMAGE = out.img
-MODULES = #arch/${ARCH} mm driver kernel param
+MODULES = kernel arch/${ARCH} #mm driver param
 OBJ_INIT = init.o
 
 

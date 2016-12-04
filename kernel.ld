@@ -1,16 +1,18 @@
 
 OUTPUT_FORMAT(elf64-x86-64)
 
-/*
+
 INPUT
 (
-	arch/x86_64/main.o
+	/*
 	driver/main.o
-	kernel/main.o
 	mm/main.o
 	param/main.o
+	*/
+	arch/x86_64/main.o
+	kernel/main.o
 )
-*/
+
 STARTUP(init.o)
 ENTRY(__init)
 
