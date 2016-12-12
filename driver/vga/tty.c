@@ -5,8 +5,7 @@
 #include "crtc.h"
 #include <print.h>
 
-uint16_t cursorX = 0;
-uint16_t cursorY = 0;
+uint16_t cursor = 0;
 char currentattrib = 0x07; //white text on black background
 
 void vgaCPrint(char c) {
@@ -18,11 +17,8 @@ void vgaCPrint(char c) {
 	*video++ = c;
 	*video = currentattrib;
 
-	cursorX++;
-	if (cursorX >= (screenWidth / 2)) {
-		newline();
-	}
-	vgaSetCursor(cursorX, cursorY);
+	cursor++;
+	vgaSetCursor(cursor);
 }
 void vgaSPrint(char *text) {
 	while (*text) {
@@ -111,12 +107,8 @@ char *execCommand(char *command) {
 }
 
 void newline(void) {
-	cursorX = 0;
-	cursorY++;
-	if (cursorY >= screenHeight) {
-		vgaSetScroll(++scrollY);
-	}
-	vgaSetCursor(cursorX, cursorY);
+	cursor = (cursor + lineWidth) % lineWidth;
+	vgaSetCursor(cursor);
 }
 void backspace(void) {
 	volatile char *video = (volatile char*)((cursorY * screenWidth) + (cursorX * 2) + vram);

@@ -6,9 +6,11 @@
 //#include <param/main.h>
 
 //#include <mm/heap.h>
+#include <pio.h>
 
 void kmain(void) {
 	initInterrupts();
+	outb(0x21, 0xff);
 	//initVga();
 	//sprint("\e[0m\e[2JKernel initialising...\n");
 

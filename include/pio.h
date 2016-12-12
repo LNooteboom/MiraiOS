@@ -3,11 +3,14 @@
 
 #include <global.h>
 
-typedef uint16_t ioport_t;
+static inline uint8_t inb(uint16_t port) {
+	uint8_t data;
+	asm("in al, dx" : "=a" (data) : "d" (port));
+	return data;
+}
 
-
-uint8_t inb(ioport_t port);
-
-void outb(ioport_t port, uint8_t value);
+static inline void outb(uint16_t port, uint8_t data) {
+	asm("out dx, al" : : "a" (data), "d" (port));
+}
 
 #endif
