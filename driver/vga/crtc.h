@@ -5,18 +5,18 @@
 
 //volatile char *vram = (volatile char*)0xB8000;
 extern volatile char *vram;
-extern uint16_t scrollY;
-extern uint32_t screenWidth;
-extern uint32_t screenHeight;
+extern uint16_t scroll;
+extern uint8_t screenWidth;
+extern uint16_t screenHeight;
 
 void initVga(void);
 
-int vgaGetScreenWidth(void);
+uint8_t vgaGetScreenWidth(void);
 
-int vgaGetScreenHeight(void);
+uint16_t vgaGetScreenHeight(void);
 
-void vgaSetCursor(int cursorX, int cursorY);
+void vgaSetCursor(uint16_t cursor);
 
-void vgaSetScroll(int scrollY);
+void vgaSetStart(uint16_t addr);
 
 #endif
