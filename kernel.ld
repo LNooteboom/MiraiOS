@@ -5,10 +5,10 @@ OUTPUT_FORMAT(elf64-x86-64)
 INPUT
 (
 	/*
-	driver/main.o
 	mm/main.o
 	param/main.o
 	*/
+	driver/main.o
 	arch/x86_64/main.o
 	kernel/main.o
 )
