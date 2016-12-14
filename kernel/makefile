@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = mainc.o print.o
+OBJECTS = mainc.o print.o param.o
 
 all: ${OUTPUT}
 

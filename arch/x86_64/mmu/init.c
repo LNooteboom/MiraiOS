@@ -12,11 +12,10 @@
 #define LOWMEM_END 0x00100000
 #define ENTRYTYPE_FREE 1
 
-void pageInit(struct mmap *mmap, uint32_t mmapSize) {
-	uintptr_t bssEnd = ((uintptr_t) &BSS_END_ADDR) - 0xC0000000 + HEAPSIZE;
+void pageInit(struct mmap *mmap, size_t mmapSize) {
+	uintptr_t bssEnd = ((uintptr_t) &BSS_END_ADDR) - &VMEM_OFFSET + HEAPSIZE;
 	bool firstPage = true;
 	struct mmap *currentEntry = mmap;
-	//for (uint32_t entryNr = 0; entryNr < mmapSize; entryNr++) {
 	while ((uintptr_t)currentEntry < (uintptr_t)mmap + mmapSize) {
 		if (currentEntry->type == ENTRYTYPE_FREE && (currentEntry->base + currentEntry->length) > bssEnd) {
 
@@ -29,6 +28,7 @@ void pageInit(struct mmap *mmap, uint32_t mmapSize) {
 			sprint(" - ");
 			hexprint((base + size) >> 32);
 			hexprintln(base + size);
+			asm("xchg  bx, bx")
 
 			if (base < bssEnd) {
 				size_t diff = bssEnd - base;

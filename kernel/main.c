@@ -2,11 +2,8 @@
 #include <vga.h>
 #include <print.h>
 #include <irq.h>
-//#include <mm/init.h>
-//#include <param/main.h>
-
-//#include <mm/heap.h>
-#include <pio.h>
+#include <mm/init.h>
+#include <param/main.h>
 
 void kmain(void) {
 	initInterrupts();
@@ -14,7 +11,7 @@ void kmain(void) {
 	vgaInit();
 	sprint("\e[0m\e[2JKernel initialising...\n");
 
-	//initParam();
+	initParam();
 	//initMm();
 
 	while (1) {};
