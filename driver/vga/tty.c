@@ -5,17 +5,17 @@
 #include "crtc.h"
 #include <print.h>
 
+char currentAttrib = 0x07; //white text on black background
 uint16_t cursor = 0;
-char currentattrib = 0x07; //white text on black background
+uint16_t scroll = 0;
 
 void vgaCPrint(char c) {
 	if (c == '\n') {
 		newline();
 		return;
 	}
-	volatile char *video = (volatile char*)((cursorY * screenWidth) + (cursorX * 2) + vram);
-	*video++ = c;
-	*video = currentattrib;
+	vgaMem[cursor * 2] = c;
+	vgaMem[cursor * 2 + 1] = currentAttrib;
 
 	cursor++;
 	vgaSetCursor(cursor);
@@ -78,25 +78,25 @@ char *execCommand(char *command) {
 								switch (number1) {
 									case 0:
 										//reset
-										currentattrib = 0x07;
+										currentAttrib = 0x07;
 										break;
 									case 1:
-										currentattrib |= 0x08;
+										currentAttrib |= 0x08;
 										break;
 									case 2:
-										currentattrib &= 0x77;
+										currentAttrib &= 0x77;
 										break;
 								}
 								break;
 
 							case 3:
 								//foreground color
-								currentattrib = (currentattrib & 0xF8) | number1;
+								currentAttrib = (currentAttrib & 0xF8) | number1;
 								break;
 
 							case 4:
 								//background color
-								currentattrib = (currentattrib & 0x8F) | (number1 << 4);
+								currentAttrib = (currentAttrib & 0x8F) | (number1 << 4);
 								break;
 						}
 					} while (*(command - 1) == ';');
@@ -107,64 +107,22 @@ char *execCommand(char *command) {
 }
 
 void newline(void) {
-	cursor = (cursor + lineWidth) % lineWidth;
+	cursor = (cursor + screenWidth) % screenWidth;
 	vgaSetCursor(cursor);
 }
 void backspace(void) {
-	volatile char *video = (volatile char*)((cursorY * screenWidth) + (cursorX * 2) + vram);
-	video -= 2;
-	if (cursorX == 0) {
-		if (cursorY == 0) {
-			return; //cursor at start of the screen
-		}
-		cursorY--;
-		cursorX = (screenWidth / 2);
-		while (*video == 0) {
-			if (cursorX == 0) {
-				break;
-			}
-			cursorX--;
-			video -= 2;
-		}
-	} else {
-		*video = 0;
-		cursorX--;
-	}
-	vgaSetCursor(cursorX, cursorY);
+	vgaMem[cursor * 2 - 2] = 0;
+	vgaMem[cursor * 2 - 1] = currentAttrib;
+	cursor--;
+	cursorLeft();
 }
 void cursorLeft(void) {
-	volatile char *video = (volatile char*)((cursorY * screenWidth) + (cursorX * 2) + vram);
-	video -= 2;
-	while (*video == 0) {
-		if (cursorX == 0) {
-			break;
-		}
-		cursorX--;
-		video -= 2;
+	while (vgaMem[cursor * 2] == 0 && cursor) {
+		cursor--;
 	}
 }
 
 void setFullScreenColor(char attrib) {
-	currentattrib = attrib;
-	volatile char *video = vram + 1;
-	for (uint16_t y = 0; y < screenHeight; y++) {
-		for (uint16_t x = 0; x < screenWidth / 2; x++) {
-			//volatile char *video = (volatile char*)((y * screenWidth) + (x * 2) + vram + 1);
-			*video = attrib;
-			video += 2;
-		}
-	}
 }
 void clearScreen(void) {
-	volatile char *video = vram;
-	for (uint16_t y = 0; y < screenHeight; y++) {
-		for (uint16_t x = 0; x < screenWidth / 2; x++) {
-			//volatile char *video = (volatile char*)((y * screenWidth) + (x * 2) + vram);
-			*video++ = 0;
-			*video++ = currentattrib;
-		}
-	}
-	cursorX = 0;
-	cursorY = 0;
-	vgaSetCursor(cursorX, cursorY);
 }

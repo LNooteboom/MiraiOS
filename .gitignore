@@ -5,6 +5,8 @@ vmmount/
 *.o
 *.img
 *.iso
+*.ini
+*.bxrc
 
 miraiBoot
 BOOT

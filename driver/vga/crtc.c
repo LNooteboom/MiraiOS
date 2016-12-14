@@ -40,7 +40,7 @@ uint8_t screenWidth;
 uint16_t screenHeight;
 
 static void getCRTCPorts(void) {
-	uint8_t miscOutputReg = inb(REG_MISC_OUTPUT_READ)
+	uint8_t miscOutputReg = inb(REG_MISC_OUTPUT_READ);
 	if (miscOutputReg & 1) {
 		CRTCIndexPort = 0x3D4;
 		CRTCDataPort = 0x3D5;
@@ -74,6 +74,8 @@ static void getVramAddr(void) {
 			vgaMemSize = 0x8000;
 			break;
 	}
+
+	setGraphIndex(oldIndex);
 }
 
 static uint8_t getScreenWidth(void) {
@@ -114,8 +116,8 @@ static uint16_t getScreenHeight(void) {
 void vgaInit(void) {
 	getCRTCPorts();
 	getVramAddr();
-	screenWidth = vgaGetScreenWidth();
-	screenHeight = vgaGetScreenHeight();
+	screenWidth = getScreenWidth();
+	screenHeight = getScreenHeight();
 }
 
 void vgaSetCursor(uint16_t cursor) {

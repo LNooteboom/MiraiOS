@@ -1,6 +1,6 @@
 #include <global.h>
-//#include <vga.h>
-//#include <print.h>
+#include <vga.h>
+#include <print.h>
 #include <irq.h>
 //#include <mm/init.h>
 //#include <param/main.h>
@@ -10,9 +10,9 @@
 
 void kmain(void) {
 	initInterrupts();
-	outb(0x21, 0xff);
-	//initVga();
-	//sprint("\e[0m\e[2JKernel initialising...\n");
+	asm("xchg bx, bx");
+	vgaInit();
+	sprint("\e[0m\e[2JKernel initialising...\n");
 
 	//initParam();
 	//initMm();

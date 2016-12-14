@@ -11,4 +11,4 @@ ${OUTPUT}: ${OBJECTS}
 	${CC} ${CFLAG} -c -o $@ $<
 
 %.o: %.asm
-	${NASM} -f elf -o $@ $<
+	${NASM} ${NASMFLAG} -o $@ $<

@@ -3,6 +3,8 @@
 
 #include <global.h>
 
+typedef uint16_t ioport_t;
+
 static inline uint8_t inb(uint16_t port) {
 	uint8_t data;
 	asm("in al, dx" : "=a" (data) : "d" (port));

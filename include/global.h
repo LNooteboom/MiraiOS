@@ -21,4 +21,6 @@ typedef uint64_t size_t;
 
 typedef enum {false, true} bool;
 
+extern char VMEM_OFFSET;
+
 #endif
