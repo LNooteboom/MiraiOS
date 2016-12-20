@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = physpaging.o paging.o init.o heap.o
+OBJECTS = init.o #physpaging.o paging.o heap.o
 
 %.o: %.c
 	${CC} ${CFLAG} -c -o $@ $<

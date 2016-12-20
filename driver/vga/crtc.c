@@ -36,8 +36,8 @@ static ioport_t CRTCDataPort;
 volatile char *vgaMem;
 size_t vgaMemSize;
 
-uint8_t screenWidth;
-uint16_t screenHeight;
+uint8_t vgaScreenWidth;
+uint16_t vgaScreenHeight;
 
 static void getCRTCPorts(void) {
 	uint8_t miscOutputReg = inb(REG_MISC_OUTPUT_READ);
@@ -85,7 +85,7 @@ static uint8_t getScreenWidth(void) {
 	uint8_t offset = getCRTCData();
 
 	setCRTCIndex(oldIndex);
-	return offset;
+	return offset * 2;
 }
 
 static uint16_t getScreenHeight(void) {
@@ -116,8 +116,8 @@ static uint16_t getScreenHeight(void) {
 void vgaInit(void) {
 	getCRTCPorts();
 	getVramAddr();
-	screenWidth = getScreenWidth();
-	screenHeight = getScreenHeight();
+	vgaScreenWidth = getScreenWidth();
+	vgaScreenHeight = getScreenHeight();
 }
 
 void vgaSetCursor(uint16_t cursor) {

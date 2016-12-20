@@ -7,12 +7,11 @@
 
 void kmain(void) {
 	initInterrupts();
-	asm("xchg bx, bx");
 	vgaInit();
 	sprint("\e[0m\e[2JKernel initialising...\n");
 
-	initParam();
-	//initMm();
+	paramInit();
+	mmInit();
 
 	while (1) {};
 }

@@ -4,8 +4,8 @@
 #include <global.h>
 #include <mm/paging.h>
 
-typedef uint32_t PDE_t;
-typedef uint32_t PTE_t;
+typedef uint64_t PDE_t;
+typedef uint64_t PTE_t;
 
 
 /*

@@ -7,8 +7,8 @@
 //extern volatile char *vram;
 extern volatile char *vgaMem;
 extern size_t vgaMemSize;
-extern uint8_t screenWidth;
-extern uint16_t screenHeight;
+extern uint8_t vgaScreenWidth;
+extern uint16_t vgaScreenHeight;
 
 void initVga(void);
 

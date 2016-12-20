@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-SUBDIRS = irq mmu#timer pic
+SUBDIRS = irq mm#timer pic
 OBJECTS = spinlock.o
 
 

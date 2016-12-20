@@ -3,18 +3,17 @@
 #include "heap.h"
 
 #include <global.h>
-#include <param/mmap.h>
-#include <param/bootinfo.h>
+#include <param/main.h>
 #include <print.h>
 
-void initMm(void) {
+void mmInit(void) {
 	if (bootInfo->flags & (1 << 11)) {
-		pageInit((struct mmap*)(bootInfo->mmap), bootInfo->mmapSize);
+		pageInit((struct mmap*)(paramMmap), bootInfo->mmapSize);
 	} else {
 		sprint("\e[44mmmap is required but not present");
 		while(true);
 	}
 
-	initHeap();
+	//initHeap();
 }
 
