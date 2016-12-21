@@ -107,9 +107,10 @@ char *execCommand(char *command) {
 }
 
 void newline(void) {
-	//cursor = (cursor + vgaScreenWidth) % vgaScreenWidth;
-	uint8_t cursorY = cursor / vgaScreenWidth + 1;
-	cursor = cursorY * vgaScreenWidth;
+	//uint8_t cursorY = cursor / vgaScreenWidth + 1;
+	//cursor = cursorY * vgaScreenWidth;
+	cursor -= (cursor % vgaScreenWidth); //go to beginning of line (cr)
+	cursor += vgaScreenWidth; //go to next line (lf)
 	vgaSetCursor(cursor);
 }
 void backspace(void) {

@@ -3,11 +3,11 @@
 #include <global.h>
 #include <param/mmap.h>
 #include <mm/physpaging.h>
-#include <mm/pagemap.h>
+//#include <mm/pagemap.h>
 #include <mm/heap.h>
 #include <print.h>
 
-#include "map.h"
+//#include "map.h"
 
 #define LOWMEM_END 0x00100000
 #define ENTRYTYPE_FREE 1
