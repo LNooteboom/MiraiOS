@@ -3,19 +3,39 @@
 
 #include <mm/paging.h>
 
-/*
-This function maps the physical page paddr to virtual address vaddr
-*/
-void mapPage(uintptr_t vaddr, physPage_t paddr);
+#define NROF_PAGE_LEVELS	4
+
+#define PAGE_FLAG_WRITE		(1 << 0)
+#define PAGE_FLAG_USER		(1 << 1)
 
 /*
-This function removes an entry from the page table
+Finds the entry in the page table at a specified level and sets it to a specified value.
 */
-void unmapPage(uintptr_t vaddr);
+void mmSetPageEntry(uintptr_t addr, uint8_t level, pte_t entry);
 
 /*
-This function returns looks up a virtual page address and returns a physical page address
+Finds the entry in the page table at a specified level and sets it to a specfied value if there is no existing entry there.
 */
-physPage_t getPhysPage(uintptr_t vaddr);
+void mmSetPageEntryIfNotExists(uintptr_t addr, uint8_t level, pte_t entry);
+
+/*
+Finds the entry in the page table at a specified level and returns it.
+*/
+pte_t mmGetPageEntry(uintptr_t addr, uint8_t level);
+
+/*
+Maps a page with physical address paddr to the virtual address vaddr.
+*/
+void mmMapPage(uintptr_t vaddr, physPage_t paddr, uint8_t flags);
+
+/*
+Maps a large page with physical address paddr to the virtual address vaddr.
+*/
+void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, uint8_t flags);
+
+/*
+Unmaps a page.
+*/
+void mmUnmapPage(uintptr_t vaddr);
 
 #endif

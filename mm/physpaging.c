@@ -4,10 +4,10 @@
 #include <mm/pagemap.h>
 #include <mm/paging.h>
 #include <spinlock.h>
-
 #include <print.h>
 
-#define PAGEENTRIESINPAGEMASK 0x0ffc
+#define PAGE_SIZE				4096
+#define LARGE_PAGE_SIZE 		(PAGESIZE * 1024)
 
 physPage_t *pageStackPtr = (physPage_t*)(PAGESTACKSTART);
 bool newPageStackAlloced = false;

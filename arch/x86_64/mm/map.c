@@ -7,18 +7,12 @@
 #include <print.h>
 
 #define PAGE_BIT_WIDTH		9	//The number of bits a page level covers
-
 #define PE_MASK			0xFFFFFFFFFFFFFFF8
-
-#define NROF_PAGE_LEVELS
 
 #define MMU_FLAG_PRESENT 	(1 << 0)
 #define MMU_FLAG_WRITE 		(1 << 1)
 #define MMU_FLAG_USER 		(1 << 2)
 #define MMU_FLAG_SIZE		(1 << 7)
-
-#define PAGE_FLAG_WRITE		(1 << 0)
-#define PAGE_FLAG_USER		(1 << 1)
 
 static const pageTableLength = PAGESIZE / sizeof(pte_t);
 
@@ -30,28 +24,26 @@ static const uintptr_t pageLevelBase[NROF_PAGE_LEVELS] = {
 }
 
 /*
-This function finds the entry in the page table at a specified level and sets it to a specified value
-The right address which uses the recursive slot in the PML4T is calculated first, and then the value at that
-address is returned.
-----
-addr: The address to get the page table entry for
-level: The level of the page table
-entry: The entry to be set in the page table
+Finds the entry in the page table at a specified level and sets it to a specified value.
 */
 void mmSetPageEntry(uintptr_t addr, uint8_t level, pte_t entry) {
 	addr = (addr >> (PAGE_BIT_WIDTH * level) & PE_MASK | pageLevelBase[level];
 	pte_t *entryPtr = (pte_t*)addr;
 	*entryPtr = entry;
 }
+
 /*
-This function finds the entry in the page table at a specified level and returns it.
-The right address which uses the recursive slot in the PML4T is calculated first, and then the value at that
-address is returned.
-----
-addr: The address to get the page table entry for
-level: The level of the page table
-----
-returns the entry in the page table
+Finds the entry in the page table at a specified level and sets it to a specfied value if there is no existing entry there.
+*/
+uint8_t mmSetPageEntryIfNotExists(uintptr_t addr, uint8_t level, pte_t entry) {
+	addr = (addr >> (PAGE_BIT_WIDTH * level) & PE_MASK | pageLevelBase[level];
+	pte_t *entryPtr = (pte_t*)addr;
+	if (!(*entryPtr & MMU_FLAG_PRESENT)) {
+		*entryPtr = entry;
+	}
+}
+/*
+Finds the entry in the page table at a specified level and returns it.
 */
 pte_t *mmGetPageEntry(uintptr_t addr, uint8_t level) {
 	addr = (addr >> (PAGE_BIT_WIDTH * level) & PE_MASK | pageLevelBase[level];
@@ -60,13 +52,7 @@ pte_t *mmGetPageEntry(uintptr_t addr, uint8_t level) {
 }
 
 /*
-This function maps a page with physical address paddr to the virtual address vaddr.
-Whether the higher page levels exists is checked first, if they don't exist, they get automatically allocated and initialized.
-Then the paddr and the flags are set in the lowest page table at the entry specified by vaddr
-----
-vaddr: The virtual page to map the pysical address to
-paddr: The pysical page to be mapped
-flags: The flags for the mmu which specify whether the page is read-only etc.
+Maps a page with physical address paddr to the virtual address vaddr.
 */
 void mmMapPage(uintptr_t vaddr, physPage_t paddr, uint8_t flags) {
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 1; i--) {
@@ -82,13 +68,7 @@ void mmMapPage(uintptr_t vaddr, physPage_t paddr, uint8_t flags) {
 	return;
 }
 /*
-This function maps a large page with physical address paddr to the virtual address vaddr.
-Whether the higher page levels exists is checked first, if they don't exist, they get automatically allocated and initialized.
-Then the paddr and the flags are set in the second lowest page table at the entry specified by vaddr
-----
-vaddr: The virtual page to map the pysical address to
-paddr: The pysical page to be mapped
-flags: The flags for the mmu which specify whether the page is read-only etc.
+Maps a large page with physical address paddr to the virtual address vaddr.
 */
 void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, uint8_t flags) {
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 2; i--) {
@@ -105,10 +85,7 @@ void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, uint8_t flags) {
 }
 
 /*
-This function unmaps a page.
-The lowest page table entry that exists is cleared to 0
-----
-vaddr: The page to be unmapped
+Unmaps a page.
 */
 void mmUnmapPage(uintptr_t vaddr) {
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 0; i--) {

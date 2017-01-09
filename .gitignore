@@ -1,6 +1,7 @@
 
 build/
 vmmount/
+.*/
 
 *.o
 *.img
@@ -11,4 +12,3 @@ vmmount/
 miraiBoot
 BOOT
 qbuild.sh
-

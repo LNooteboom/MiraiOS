@@ -3,7 +3,7 @@
 #include <global.h>
 #include <param/mmap.h>
 #include <mm/physpaging.h>
-//#include <mm/pagemap.h>
+#include <mm/pagemap.h>
 #include <mm/heap.h>
 #include <print.h>
 
@@ -28,9 +28,8 @@ void pageInit(struct mmap *mmap, size_t mmapSize) {
 			sprint(" - ");
 			hexprint((base + size) >> 32);
 			hexprintln(base + size);
-			asm("xchg  bx, bx");
-			/*
-
+			
+			//Ignore static allocated memory
 			if (base < bssEnd) {
 				size_t diff = bssEnd - base;
 				size -= diff;
@@ -38,33 +37,38 @@ void pageInit(struct mmap *mmap, size_t mmapSize) {
 			}
 
 			//insert
-			physPage_t currentPage = base + size - PAGESIZE;
+			physPage_t currentPage = base + size - PAGE_SIZE;
 
-			if (firstPage && size >= 2*PAGESIZE) {
-				//alocate new page table
-				setInPageDir(PAGESTACKSTART - PAGESIZE, base);
-				base += PAGESIZE;
-
-				//map page
-				mapPage(PAGESTACKSTART - PAGESIZE, base);
-				base += PAGESIZE;
+			if (firstPage && size >= NROF_PAGE_LEVELS * 2 * PAGE_SIZE) {
+				//map page stack
+				for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 0; i++) {
+					
+					pte_t entry = base + PAGE_FLAG_WRITE;
+					mmSetPageEntryIfNotExists(PAGE_STACK_START, i, entry);
+					base += PAGE_SIZE;
+					size -= PAGE_SIZE;
+				}
 				
 				//map large page stack
-				mapPage(LARGEPAGESTACKSTART - PAGESIZE, base);
-				size -= 2 * PAGESIZE;
+				for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 0; i++) {
+					pte_t entry = base + PAGE_FLAG_WRITE;
+					mmSetPageEntryIfNotExists(LARGE_PAGE_STACK_START - PAGE_SIZE, i, entry);
+					base += PAGE_SIZE;
+					size -= PAGE_SIZE;
+				}
 
 				firstPage = false;
 			}
-
-			for (uint64_t i = 0; i < size; i += PAGESIZE) {
-				if ( !(currentPage & (LARGEPAGESIZE - 1)) && size >= PAGESIZE) {
+			/*
+			for (uint64_t i = 0; i < size; i += PAGE_SIZE) {
+				if ( !(currentPage & (LARGEPAGE_SIZE - 1)) && size >= PAGE_SIZE) {
 					//There is a better way to do this, but right now this is the simplest solution
 					deallocLargePhysPage(currentPage);
-					currentPage += LARGEPAGESIZE;
-					i += LARGEPAGESIZE - PAGESIZE;
+					currentPage += LARGEPAGE_SIZE;
+					i += LARGEPAGE_SIZE - PAGE_SIZE;
 				} else {
 					deallocPhysPage(currentPage);
-					currentPage -= PAGESIZE;
+					currentPage -= PAGE_SIZE;
 				}
 			}
 			*/
