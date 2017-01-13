@@ -146,10 +146,3 @@ physPage_t allocLargePhysPage(void) {
 void deallocLargePhysPage(physPage_t page) {
 	pushPage(&largePages, page);
 }
-
-void pageTest(void) {
-	hexprint(largePages.stack->prevStack >> 32);
-	hexprintln(largePages.stack->prevStack);
-	hexprint(smallPages.stack->prevStack >> 32);
-	hexprintln(smallPages.stack->prevStack);
-}

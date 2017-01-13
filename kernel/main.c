@@ -12,8 +12,7 @@ void kmain(void) {
 
 	paramInit();
 	mmInit();
-
-	pageTest();
+	
 	while (1) {};
 }
 
