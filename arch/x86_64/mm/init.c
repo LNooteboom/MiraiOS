@@ -7,17 +7,23 @@
 #include <mm/heap.h>
 #include <print.h>
 
-//#include "map.h"
+#include "map.h"
 
 #define LOWMEM_END 0x00100000
 #define ENTRYTYPE_FREE 1
 
-void pageInit(struct mmap *mmap, size_t mmapSize) {
-	uintptr_t bssEnd = ((uintptr_t) &BSS_END_ADDR) - (uintptr_t)&VMEM_OFFSET + HEAPSIZE;
-	bool firstPage = true;
+#define PAGE_SIZE 4096
+#define LARGEPAGE_SIZE 0x200000
+
+#define NROF_PAGE_STACKS 4
+
+void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
+	uintptr_t physBssEnd = ((uintptr_t) &BSS_END_ADDR) - (uintptr_t)&VMEM_OFFSET + HEAPSIZE;
 	struct mmap *currentEntry = mmap;
+	bool firstPage = true;
+
 	while ((uintptr_t)currentEntry < (uintptr_t)mmap + mmapSize) {
-		if (currentEntry->type == ENTRYTYPE_FREE && (currentEntry->base + currentEntry->length) > bssEnd) {
+		if (currentEntry->type == ENTRYTYPE_FREE && (currentEntry->base + currentEntry->length) > physBssEnd) {
 
 			uint64_t base = currentEntry->base;
 			uint64_t size = currentEntry->length;
@@ -30,36 +36,43 @@ void pageInit(struct mmap *mmap, size_t mmapSize) {
 			hexprintln(base + size);
 			
 			//Ignore static allocated memory
-			if (base < bssEnd) {
-				size_t diff = bssEnd - base;
+			if (base < physBssEnd) {
+				size_t diff = physBssEnd - base;
 				size -= diff;
-				base = bssEnd;
+				base = physBssEnd;
+			}
+			//align base
+			if (base & (PAGE_SIZE - 1)) {
+				base &= ~(PAGE_SIZE - 1);
+				base += PAGE_SIZE;
 			}
 
-			//insert
-			physPage_t currentPage = base + size - PAGE_SIZE;
-
-			if (firstPage && size >= NROF_PAGE_LEVELS * 2 * PAGE_SIZE) {
-				//map page stack
-				for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 0; i++) {
-					
-					pte_t entry = base + PAGE_FLAG_WRITE;
-					mmSetPageEntryIfNotExists(PAGE_STACK_START, i, entry);
-					base += PAGE_SIZE;
-					size -= PAGE_SIZE;
-				}
-				
-				//map large page stack
-				for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 0; i++) {
-					pte_t entry = base + PAGE_FLAG_WRITE;
-					mmSetPageEntryIfNotExists(LARGE_PAGE_STACK_START - PAGE_SIZE, i, entry);
-					base += PAGE_SIZE;
-					size -= PAGE_SIZE;
+			//allocate room for page stacks
+			if (firstPage && size >= (NROF_PAGE_STACKS + 1) * PAGE_SIZE) {
+				uintptr_t start = &BSS_END_ADDR;
+				if (start & (LARGEPAGE_SIZE - 1)) {
+					start &= ~(LARGEPAGE_SIZE - 1);
+					start += LARGEPAGE_SIZE;
 				}
 
+				//set new page table
+				size -= (NROF_PAGE_STACKS + 1) * PAGE_SIZE;
+				hexprintln(start);
+				hexprintln(base);
+				mmSetPageEntry(start, 1, base | MMU_FLAG_PRESENT | MMU_FLAG_WRITE);
+				sprint("mapped!\n");
+				base += PAGE_SIZE;
+
+				for (uintptr_t i = 0; i < NROF_PAGE_STACKS * PAGE_SIZE; i += PAGE_SIZE) {
+					mmSetPageEntry(i + start, 0, base | MMU_FLAG_PRESENT | MMU_FLAG_WRITE);
+					base += PAGE_SIZE;
+				}
+
+				mmInitPhysPaging(start);
 				firstPage = false;
 			}
-			/*
+			
+			uintptr_t currentPage = base;
 			for (uint64_t i = 0; i < size; i += PAGE_SIZE) {
 				if ( !(currentPage & (LARGEPAGE_SIZE - 1)) && size >= PAGE_SIZE) {
 					//There is a better way to do this, but right now this is the simplest solution
@@ -68,10 +81,10 @@ void pageInit(struct mmap *mmap, size_t mmapSize) {
 					i += LARGEPAGE_SIZE - PAGE_SIZE;
 				} else {
 					deallocPhysPage(currentPage);
-					currentPage -= PAGE_SIZE;
+					currentPage += PAGE_SIZE;
 				}
 			}
-			*/
+			
 		}
 
 		currentEntry = (struct mmap*)((void*)(currentEntry) + currentEntry->entrySize + sizeof(uint32_t));

@@ -9,11 +9,10 @@ acquireSpinlock: ;(spinlock_t *lock) returns void
 	xor eax, eax
 	mov cl, 1
 
+	cli
 	.spin:
-		cli
 		lock cmpxchg [rdi], cl
 		jz .end
-		sti
 		pause
 		jmp .spin
 
@@ -27,5 +26,6 @@ releaseSpinlock: ;(spinlock_t *lock) returns void
 		sti
 
 	.cont:
+	nop
 	ret
 

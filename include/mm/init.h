@@ -18,6 +18,6 @@ void mmInit(void);
 /*
 This function pushes all the pages in *mmap on the internal page stack
 */
-void pageInit(struct mmap *mmap, size_t mmapSize);
+void mmInitPaging(struct mmap *mmap, size_t mmapSize);
 
 #endif

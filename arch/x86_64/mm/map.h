@@ -4,30 +4,26 @@
 #include <global.h>
 #include <mm/paging.h>
 
+#define MMU_FLAG_PRESENT 	(1 << 0)
+#define MMU_FLAG_WRITE 		(1 << 1)
+#define MMU_FLAG_USER 		(1 << 2)
+#define MMU_FLAG_SIZE		(1 << 7)
+
 typedef uint64_t pte_t;
 
+/*
+Finds the entry in the page table at a specified level and sets it to a specified value.
+*/
+void mmSetPageEntry(uintptr_t addr, uint8_t level, pte_t entry);
 
 /*
-This function creates a new PDE.
-index: On what part of the address space to map the new pt
-pt: The physical location of the page table
+Finds the entry in the page table at a specified level and sets it to a specfied value if there is no existing entry there.
 */
-void setInPageDir(uintptr_t index, physPage_t pt);
+void mmSetPageEntryIfNotExists(uintptr_t addr, uint8_t level, pte_t entry);
 
 /*
-This function creates a new page table and initialises it to 0.
-vaddr: the part of the address space you want to map the pt to
+Finds the entry in the page table at a specified level and returns it.
 */
-void newPageTable(uintptr_t vaddr);
-
-/*
-This function returns a pointer to a PDE with its matching vaddr
-*/
-PDE_t *getPDE(uintptr_t vaddr);
-
-/*
-This function returns a pointer to a PTE with its matching vaddr
-*/
-PTE_t *getPTE(uintptr_t vaddr);
+pte_t *mmGetEntry(uintptr_t addr, uint8_t level);
 
 #endif

@@ -40,7 +40,7 @@ multiBootHeader:
 SECTION boottext
 
 __init:
-	;xchg bx, bx
+	xchg bx, bx
 	cmp eax, 0x2BADB002
 	jne .noMultiBoot
 		mov edx, 1
