@@ -4,6 +4,7 @@
 #include <global.h>
 #include "crtc.h"
 #include <print.h>
+#include <mm/memset.h>
 
 char currentAttrib = 0x07; //white text on black background
 uint16_t cursor = 0;
@@ -128,4 +129,5 @@ void cursorLeft(void) {
 void setFullScreenColor(char attrib) {
 }
 void clearScreen(void) {
+	memset(vgaMem + scroll, 0, vgaScreenWidth * vgaScreenHeight * 2);
 }

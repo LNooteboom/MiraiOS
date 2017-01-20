@@ -1,10 +1,9 @@
 SHELL = /bin/sh
 
-export PWD = /home/luke/mirai
 export TARGET = x86_64-elf
 
 WARNINGS = "-Wall" "-Wextra"
-export CFLAG = ${WARNINGS} "-g"  "-I${PWD}/include/" "-mcmodel=kernel" "-mno-red-zone" "-masm=intel"
+export CFLAG = ${WARNINGS} "-g"  "-I$(PWD)/include/" "-mcmodel=kernel" "-mno-red-zone" "-masm=intel" "-ffreestanding"
 export CC = ${TARGET}-gcc
 
 export NASM = nasm

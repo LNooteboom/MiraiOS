@@ -1,6 +1,6 @@
 #ifndef EXCEPTIONS_H
 #define EXCEPTIONS_H
 
-void initExceptions(void);
+//void initExceptions(void);
 
 #endif

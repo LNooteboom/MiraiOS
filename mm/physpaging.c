@@ -5,9 +5,10 @@
 #include <mm/paging.h>
 #include <spinlock.h>
 #include <print.h>
+#include <mm/memset.h>
 
 #define PAGE_SIZE				4096
-#define LARGE_PAGE_SIZE 		(PAGE_SIZE * 1024)
+#define LARGE_PAGE_SIZE 		(PAGE_SIZE * 512)
 
 #define PAGE_STACK_LENGTH		(PAGE_SIZE / 8 - 1)
 
@@ -24,10 +25,13 @@ struct pageStackInfo {
 	spinlock_t lock;
 };
 
-struct pageStackInfo smallPages;
-struct pageStackInfo largePages;
-struct pageStackInfo smallCleanPages;
-struct pageStackInfo largeCleanPages;
+static struct pageStackInfo smallPages;
+static struct pageStackInfo largePages;
+static struct pageStackInfo smallCleanPages;
+static struct pageStackInfo largeCleanPages;
+
+static uintptr_t freeBufferSmall;
+static uintptr_t freeBufferLarge;
 
 //struct pageStack firstStack[4] __attribute__((aligned(PAGE_SIZE)));
 
@@ -88,7 +92,13 @@ static uint8_t splitLargePage(struct pageStackInfo *largePages, struct pageStack
 	return 0;
 }
 
-void mmInitPhysPaging(uintptr_t firstStack) {
+
+
+
+void mmInitPhysPaging(uintptr_t firstStack, uintptr_t freeMemBufferSmall, uintptr_t freeMemBufferLarge) {
+	freeBufferSmall = freeMemBufferSmall;
+	freeBufferLarge = freeMemBufferLarge;
+
 	struct pageStack *stack = (struct pageStack*)(firstStack);
 	smallPages.stack = &stack[0];
 	smallPages.sp = -1;
@@ -116,7 +126,7 @@ physPage_t allocPhysPage(void) {
 					page = popPage(&smallCleanPages);
 				}
 			} else {
-				page = popPage(&smallPages);
+				page = popPage(&smallPages); //Possible race condition here, if all small pages are popped after a large one is split
 			}
 		}
 	}
@@ -126,9 +136,47 @@ physPage_t allocPhysPage(void) {
 
 physPage_t allocCleanPhysPage(void) {
 	physPage_t page = popPage(&smallCleanPages);
-	//if (!page) {
-	//	page = popPage(&smallPages);
-	//}
+	if (!page) {
+		page = popPage(&smallPages);
+		if (!page) {
+			if (splitLargePage(&largeCleanPages, &smallCleanPages)) {
+				if (splitLargePage(&largePages, &smallPages)) {
+					return NULL;
+				} else {
+					page = popPage(&smallPages);
+					mmMapPage(freeBufferSmall, page, PAGE_FLAG_WRITE);
+					memset((void*)freeBufferSmall, 0, PAGE_SIZE);
+				}
+			} else {
+				page = popPage(&smallCleanPages);
+			}
+		} else {
+			mmMapPage(freeBufferSmall, page, PAGE_FLAG_WRITE);
+			memset((void*)freeBufferSmall, 0, PAGE_SIZE);
+		}
+	}
+	return page;
+}
+
+physPage_t allocLargePhysPage(void) {
+	physPage_t page = popPage(&largePages);
+	if (!page) {
+		page = popPage(&largeCleanPages);
+	}
+	return page;
+}
+
+physPage_t allocLargeCleanPhysPage(void) {
+	uintptr_t page = popPage(&largeCleanPages);
+	if (!page) {
+		page = popPage(&largePages);
+		if (!page) {
+			return NULL;
+		} else {
+			mmMapLargePage(freeBufferLarge, page, PAGE_FLAG_WRITE);
+			memset((void*)freeBufferLarge, 0, LARGE_PAGE_SIZE);
+		}
+	}
 	return page;
 }
 
@@ -136,12 +184,6 @@ physPage_t allocCleanPhysPage(void) {
 void deallocPhysPage(physPage_t page) {
 	pushPage(&smallPages, page);
 }
-
-
-physPage_t allocLargePhysPage(void) {
-	return popPage(&largePages);
-}
-
 
 void deallocLargePhysPage(physPage_t page) {
 	pushPage(&largePages, page);

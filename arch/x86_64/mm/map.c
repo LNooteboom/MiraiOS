@@ -20,7 +20,7 @@ static const uintptr_t pageLevelBase[NROF_PAGE_LEVELS] = {
 };
 
 static void invalidateTLB(uintptr_t page) {
-	asm("invlpg [%0]": "=r"(page));
+	asm("invlpg [%0]": :"r"(page));
 }
 
 /*

@@ -5,6 +5,9 @@
 #include <mm/init.h>
 #include <param/main.h>
 
+#include <mm/physpaging.h>
+#include <mm/paging.h>
+
 void kmain(void) {
 	initInterrupts();
 	vgaInit();
@@ -12,6 +15,13 @@ void kmain(void) {
 
 	paramInit();
 	mmInit();
+
+	for (uint16_t i = 0; i < 4096; i++) {
+		physPage_t page = allocCleanPhysPage();
+		if (i % 256 == 0) {
+			hexprintln(page);
+		}
+	}
 	
 	while (1) {};
 }

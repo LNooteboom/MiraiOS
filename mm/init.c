@@ -7,10 +7,11 @@
 #include <print.h>
 
 void mmInit(void) {
-	if (bootInfo->flags & (1 << 11)) {
+	if (bootInfo->flags & (1 << 6)) {
 		mmInitPaging((struct mmap*)(paramMmap), bootInfo->mmapSize);
 	} else {
-		sprint("\e[44mmmap is required but not present");
+		sprint("\e[44mmmap is required but not present\n\e[0m");
+		hexprintln(bootInfo->flags);
 		while(true);
 	}
 
