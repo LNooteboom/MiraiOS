@@ -19,7 +19,7 @@ static const uintptr_t pageLevelBase[NROF_PAGE_LEVELS] = {
 	0xFFFFFF7FBFDFE000	//PML4T
 };
 
-static void invalidateTLB(uintptr_t page) {
+static inline void invalidateTLB(uintptr_t page) {
 	asm("invlpg [%0]": :"r"(page));
 }
 
@@ -31,6 +31,7 @@ void mmSetPageEntry(uintptr_t addr, uint8_t level, pte_t entry) {
 	addr = (addr >> (PAGE_BIT_WIDTH * (level + 1)) & PE_MASK) | pageLevelBase[level];
 	pte_t *entryPtr = (pte_t*)addr;
 	*entryPtr = entry;
+	invalidateTLB(addr);
 }
 
 /*
@@ -42,6 +43,7 @@ void mmSetPageEntryIfNotExists(uintptr_t addr, uint8_t level, pte_t entry) {
 	pte_t *entryPtr = (pte_t*)addr;
 	if (!(*entryPtr & MMU_FLAG_PRESENT)) {
 		*entryPtr = entry;
+		invalidateTLB(addr);
 	}
 }
 /*

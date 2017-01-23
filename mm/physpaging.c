@@ -101,15 +101,19 @@ void mmInitPhysPaging(uintptr_t firstStack, uintptr_t freeMemBufferSmall, uintpt
 
 	struct pageStack *stack = (struct pageStack*)(firstStack);
 	smallPages.stack = &stack[0];
+	smallPages.stack->prevStack = NULL;
 	smallPages.sp = -1;
 	
 	largePages.stack = &stack[1];
+	largePages.stack->prevStack = NULL;
 	largePages.sp = -1;
 
 	smallCleanPages.stack = &stack[2];
+	smallCleanPages.stack->prevStack = NULL;
 	smallCleanPages.sp = -1;
 
 	largeCleanPages.stack = &stack[3];
+	largeCleanPages.stack->prevStack = NULL;
 	largeCleanPages.sp = -1;
 }
 

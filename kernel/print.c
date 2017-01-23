@@ -11,7 +11,7 @@ void sprint(char *text) {
 }
 
 void hexprint(uint32_t value) {
-	for (int i = 7; i >= 0; i--) {
+	for (int8_t i = 7; i >= 0; i--) {
 		char currentnibble = (value >> (i * 4)) & 0x0F;
 		if (currentnibble < 10) {
 			//0-9
@@ -22,8 +22,26 @@ void hexprint(uint32_t value) {
 		cprint(currentnibble);
 	}
 }
+
 void hexprintln(uint32_t value) {
 	hexprint(value);
+	cprint('\n');
+}
+
+void hexprint64(uint64_t value) {
+	for (int8_t i = 15; i >= 0; i--) {
+		char currentnibble = (value >> (i * 4)) & 0x0F;
+		if (currentnibble < 10) {
+			//0-9
+			currentnibble += '0';
+		} else {
+			currentnibble += 'A' - 10;
+		}
+		cprint(currentnibble);
+	}
+}
+void hexprintln64(uint64_t value) {
+	hexprint64(value);
 	cprint('\n');
 }
 
