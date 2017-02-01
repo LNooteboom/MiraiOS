@@ -17,6 +17,7 @@ typedef physPage_t stackEntry_t;
 struct pageStack {
 	physPage_t prevStack;
 	stackEntry_t pages[PAGE_STACK_LENGTH];
+
 };
 
 struct pageStackInfo {
@@ -31,10 +32,11 @@ static struct pageStackInfo smallCleanPages;
 static struct pageStackInfo largeCleanPages;
 
 static uintptr_t freeBufferSmall;
+static spinlock_t freeBufferSmallLock;
 static uintptr_t freeBufferLarge;
+static spinlock_t freeBufferLargeLock;
 
 //struct pageStack firstStack[4] __attribute__((aligned(PAGE_SIZE)));
-
 
 static stackEntry_t popPage(struct pageStackInfo *pages) {
 	stackEntry_t newPage = NULL;
@@ -46,13 +48,16 @@ static stackEntry_t popPage(struct pageStackInfo *pages) {
 	} else if (pages->sp == -1) {
 		//nothing is on the stack, use old stack space	
 		newPage = mmGetPageEntry((uintptr_t)pages->stack);
-		pages->sp--;
-	} else if (pages->stack->prevStack) {
-		//set new page stack
-		mmMapPage((uintptr_t)pages->stack, pages->stack->prevStack, PAGE_FLAG_WRITE);
-		//get new page
-		newPage = pages->stack->pages[PAGE_STACK_LENGTH - 1];
-		pages->sp = PAGE_STACK_LENGTH - 2;
+		if (pages->stack->prevStack) {
+			//set new page stack
+			mmMapPage((uintptr_t)pages->stack, pages->stack->prevStack, PAGE_FLAG_WRITE);
+			pages->sp = PAGE_STACK_LENGTH - 1;
+		} else {
+			pages->sp = -2;
+		}
+		newPage |= 1;
+	} else {
+		pages->sp = -2;
 	}
 	releaseSpinlock(&(pages->lock));
 	return newPage;
@@ -66,8 +71,11 @@ static void pushPage(struct pageStackInfo *pages, stackEntry_t newPage) {
 		pages->stack->pages[pages->sp] = newPage;
 	} else {
 		//new page becomes more stack space
-		physPage_t oldStack = mmGetPageEntry((uintptr_t)pages->stack);
-		mmMapPage((uintptr_t)pages->stack, newPage, PAGE_FLAG_WRITE);\
+		physPage_t oldStack = NULL;
+		if (pages->sp != -2) {
+			oldStack = mmGetPageEntry((uintptr_t)pages->stack);
+		}
+		mmMapPage((uintptr_t)pages->stack, newPage, PAGE_FLAG_WRITE);
 		pages->stack->prevStack = oldStack;
 		pages->sp = -1;
 	}
@@ -77,44 +85,42 @@ static void pushPage(struct pageStackInfo *pages, stackEntry_t newPage) {
 
 /*
 Divides a large page into smaller pages
-returns 0 if successful
+returns the first small page and pushes the rest on the page stack
+returns the first page != NULL if successful
 */
-static uint8_t splitLargePage(struct pageStackInfo *largePages, struct pageStackInfo *smallPages) {
+static physPage_t splitLargePage(struct pageStackInfo *largePages, struct pageStackInfo *smallPages) {
 	physPage_t largePage = popPage(largePages);
 	if (!largePage) {
-		return 1;
+		return NULL;
 	}
-	for (uint16_t i = 0; i < (LARGE_PAGE_SIZE / PAGE_SIZE); i++) {
-		deallocPhysPage(largePage);
-		pushPage(smallPages, largePage);
-		largePage += PAGE_SIZE;
+	for (physPage_t i = PAGE_SIZE; i < (LARGE_PAGE_SIZE); i += PAGE_SIZE) {
+		pushPage(smallPages, largePage + i);
 	}
-	return 0;
+	return largePage;
 }
 
-
-
+static void cleanSmallPage(physPage_t page) {
+	acquireSpinlock(&freeBufferSmallLock);
+	mmMapPage(freeBufferSmall, page, PAGE_FLAG_WRITE);
+	memset((void*)freeBufferSmall, 0, PAGE_SIZE);
+	releaseSpinlock(&freeBufferSmallLock);
+}
 
 void mmInitPhysPaging(uintptr_t firstStack, uintptr_t freeMemBufferSmall, uintptr_t freeMemBufferLarge) {
 	freeBufferSmall = freeMemBufferSmall;
 	freeBufferLarge = freeMemBufferLarge;
 
-	struct pageStack *stack = (struct pageStack*)(firstStack);
-	smallPages.stack = &stack[0];
-	smallPages.stack->prevStack = NULL;
-	smallPages.sp = -1;
+	smallPages.stack = (struct pageStack*)(firstStack);
+	smallPages.sp = -2;
 	
-	largePages.stack = &stack[1];
-	largePages.stack->prevStack = NULL;
-	largePages.sp = -1;
+	largePages.stack = (struct pageStack*)(firstStack + PAGE_SIZE);
+	largePages.sp = -2;
 
-	smallCleanPages.stack = &stack[2];
-	smallCleanPages.stack->prevStack = NULL;
-	smallCleanPages.sp = -1;
+	smallCleanPages.stack = (struct pageStack*)(firstStack + PAGE_SIZE * 2);
+	smallCleanPages.sp = -2;
 
-	largeCleanPages.stack = &stack[3];
-	largeCleanPages.stack->prevStack = NULL;
-	largeCleanPages.sp = -1;
+	largeCleanPages.stack = (struct pageStack*)(firstStack + PAGE_SIZE * 3);
+	largeCleanPages.sp = -2;
 }
 
 
@@ -123,14 +129,10 @@ physPage_t allocPhysPage(void) {
 	if (!page) {
 		page = popPage(&smallCleanPages);
 		if (!page) {
-			if (splitLargePage(&largePages, &smallPages)) {
-				if (splitLargePage(&largeCleanPages, &smallCleanPages)) {
-					return NULL; //No more free memory
-				} else {
-					page = popPage(&smallCleanPages);
-				}
-			} else {
-				page = popPage(&smallPages); //Possible race condition here, if all small pages are popped after a large one is split
+			page = splitLargePage(&largePages, &smallPages);
+			if (!page) {
+				page = splitLargePage(&largeCleanPages, &smallCleanPages);
+				//page will be NULL if no more memory is available
 			}
 		}
 	}
@@ -143,21 +145,21 @@ physPage_t allocCleanPhysPage(void) {
 	if (!page) {
 		page = popPage(&smallPages);
 		if (!page) {
-			if (splitLargePage(&largeCleanPages, &smallCleanPages)) {
-				if (splitLargePage(&largePages, &smallPages)) {
+			page = splitLargePage(&largeCleanPages, &smallCleanPages);
+			if (!page) {
+				page = splitLargePage(&largePages, &smallPages);
+				if (!page) {
 					return NULL;
 				} else {
-					page = popPage(&smallPages);
-					mmMapPage(freeBufferSmall, page, PAGE_FLAG_WRITE);
-					memset((void*)freeBufferSmall, 0, PAGE_SIZE);
+					cleanSmallPage(page);
 				}
-			} else {
-				page = popPage(&smallCleanPages);
 			}
 		} else {
-			mmMapPage(freeBufferSmall, page, PAGE_FLAG_WRITE);
-			memset((void*)freeBufferSmall, 0, PAGE_SIZE);
+			cleanSmallPage(page);
 		}
+	} else if (page & 1) {
+		page &= ~1;
+		cleanSmallPage(page);
 	}
 	return page;
 }
@@ -177,8 +179,10 @@ physPage_t allocLargeCleanPhysPage(void) {
 		if (!page) {
 			return NULL;
 		} else {
+			acquireSpinlock(&freeBufferLargeLock);
 			mmMapLargePage(freeBufferLarge, page, PAGE_FLAG_WRITE);
 			memset((void*)freeBufferLarge, 0, LARGE_PAGE_SIZE);
+			releaseSpinlock(&freeBufferLargeLock);
 		}
 	}
 	return page;

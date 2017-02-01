@@ -21,7 +21,6 @@ initIDT:
 routeInterrupt:
 	;(void (*ISR)(void), interrupt_t interrupt, uint8_t flags) returns void
 	;flags bit 0 = interrupt clear, trap when set
-	xchg bx, bx
 	mov eax, (0x18 << 16)
 	shl rsi, 4
 	mov ecx, edi

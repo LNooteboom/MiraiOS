@@ -47,7 +47,7 @@ void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
 				base += PAGE_SIZE;
 			}
 
-			//allocate room for page stacks
+			//allocate room in virtual address space for page stacks
 			if (firstPage && size >= (NROF_PAGE_STACKS + 1) * PAGE_SIZE) {
 				uintptr_t start = (uintptr_t)&BSS_END_ADDR;
 				if (start & (PAGE_SIZE - 1)) { //align it with small pages
@@ -68,10 +68,10 @@ void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
 				mmSetPageEntry(start, 1, base | MMU_FLAG_PRESENT | MMU_FLAG_WRITE);
 				base += PAGE_SIZE;
 
-				for (uintptr_t i = 0; i < NROF_PAGE_STACKS * PAGE_SIZE; i += PAGE_SIZE) {
-					mmSetPageEntry(i + start, 0, base | MMU_FLAG_PRESENT | MMU_FLAG_WRITE);
-					base += PAGE_SIZE;
-				}
+				//for (uintptr_t i = 0; i < NROF_PAGE_STACKS * PAGE_SIZE; i += PAGE_SIZE) {
+				//	mmSetPageEntry(i + start, 0, base | MMU_FLAG_PRESENT | MMU_FLAG_WRITE);
+				//	base += PAGE_SIZE;
+				//}
 
 				mmInitPhysPaging(start, freeBufferSmall, freeBufferLarge);
 				firstPage = false;

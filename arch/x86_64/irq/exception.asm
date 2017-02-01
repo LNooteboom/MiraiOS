@@ -185,8 +185,6 @@ excPF:
         mov rdi, PFID
         call sprint
     .L4:
-    mov rdi, [testcount]
-    call hexprintln
 
     jmp $
 	iret
