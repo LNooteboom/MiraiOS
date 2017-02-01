@@ -5,9 +5,6 @@
 
 #define NROF_PAGE_LEVELS	4
 
-#define PAGE_FLAG_WRITE		(1 << 0)
-#define PAGE_FLAG_USER		(1 << 1)
-
 /*
 Maps a page with physical address paddr to the virtual address vaddr.
 */
