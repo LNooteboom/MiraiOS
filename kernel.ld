@@ -27,12 +27,6 @@ SECTIONS {
 	bootdata : {
 		*.o (bootdata);
 	}
-	/*
-	bootbss : {
-		*.o (bootbss);
-	}
-	*/
-	/*. += 0xFFFFFFFF00000000;*/
 	. += VMEM_OFFSET;
 	.text : {
 		*.o (.text);
@@ -44,6 +38,7 @@ SECTIONS {
 	.rodata : {
 		*.o (.rodata);
 	}
+	DATA_END_ADDR = .;
 	.bss : {
 		*.o (.bss);
 		. = ALIGN(4096);

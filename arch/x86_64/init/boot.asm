@@ -10,6 +10,7 @@ global gdtr:data
 
 ;extern VMEM_OFFSET
 extern BSS_END_ADDR
+extern DATA_END_ADDR
 extern TEXT_END_ADDR
 extern init64
 
@@ -33,7 +34,8 @@ multiBootHeader:
 	.checksum:		dd MULTIBOOT_CHECKSUM
 	.headerAddr:	dd MULTIBOOT_HEADER_PADDR
 	.loadAddr:		dd MULTIBOOT_HEADER_PADDR
-	.loadEndAddr:	dd 0 ;Load all
+	;.loadEndAddr:	dd 0 ;Load all
+	.loadEndAddr:	dd (DATA_END_ADDR - VMEM_OFFSET)
 	.bssEnd:		dd (BSS_END_ADDR - VMEM_OFFSET)
 	.entryAddr:		dd __init
 

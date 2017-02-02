@@ -9,13 +9,18 @@ typedef uintptr_t physPage_t;
 #define PAGE_FLAG_USER		(1 << 1)
 
 /*
+This function allocates a clean page at a specified address (must be 4kb aligned)
+*/
+bool allocCleanPage(uintptr_t addr, uint8_t flags);
+
+/*
 This function allocates a page at a specified address (must be 4kb aligned)
 */
-uint8_t allocPage(uintptr_t addr);
+bool allocPage(uintptr_t addr, uint8_t flags);
 
 /*
 This function deallocates a page
 */
-uint8_t deallocPage(uintptr_t addr);
+bool deallocPage(uintptr_t addr);
 
 #endif

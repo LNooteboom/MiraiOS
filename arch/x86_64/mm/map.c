@@ -11,6 +11,8 @@
 
 #define PAGE_MASK		0x0000FFFFFFFFF000
 
+extern bool testEnabled;
+
 
 static const uintptr_t pageLevelBase[NROF_PAGE_LEVELS] = {
 	0xFFFFFF0000000000,	//PT
@@ -76,8 +78,21 @@ physPage_t mmGetPageEntry(uintptr_t vaddr) {
 Maps a page with physical address paddr to the virtual address vaddr.
 */
 void mmMapPage(uintptr_t vaddr, physPage_t paddr, uint8_t flags) {
+	if (testEnabled) {
+		sprint("vaddr: ");
+		hexprintln64(vaddr);
+		sprint("paddr: ");
+		hexprintln64(paddr);
+	}
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 1; i--) {
 		pte_t *entry = mmGetEntry(vaddr, i);
+		if (testEnabled) {
+			hexprint(i);
+			sprint(": ");
+			hexprint64(entry);
+			cprint('=');
+			hexprintln64(*entry);
+		}
 		if ( !(*entry & MMU_FLAG_PRESENT)) {
 			//Page entry higher does not exist
 			physPage_t page = allocCleanPhysPage();

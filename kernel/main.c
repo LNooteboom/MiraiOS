@@ -7,6 +7,7 @@
 
 #include <mm/physpaging.h>
 #include <mm/paging.h>
+#include <mm/heap.h>
 
 bool testEnabled = false;
 
@@ -17,14 +18,16 @@ void kmain(void) {
 
 	paramInit();
 	mmInit();
-
-	for (uint16_t i = 0; i < 4096; i++) {
-		physPage_t page = allocCleanPhysPage();
-		if (i % 256 == 0) {
-			hexprintln64(page);
-			//cprint('-');
-		}
-	}
+	testEnabled = true;
+	asm("xchg bx, bx");
+	initHeap();
 	
+	char *test = vmalloc(32);
+	hexprintln64(test);
+	char *test2 = vmalloc(32);
+	hexprintln64(test2);
+	kfree(test);
+	char *test3 = vmalloc(16);
+	hexprintln64(test3);
 }
 

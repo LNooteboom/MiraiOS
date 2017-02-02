@@ -18,7 +18,7 @@
 #define NROF_PAGE_STACKS 4
 
 void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
-	uintptr_t physBssEnd = ((uintptr_t) &BSS_END_ADDR) - (uintptr_t)&VMEM_OFFSET + HEAPSIZE;
+	uintptr_t physBssEnd = ((uintptr_t) &BSS_END_ADDR) - (uintptr_t)&VMEM_OFFSET;
 	struct mmap *currentEntry = mmap;
 	bool firstPage = true;
 
@@ -50,18 +50,14 @@ void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
 			//allocate room in virtual address space for page stacks
 			if (firstPage && size >= (NROF_PAGE_STACKS + 1) * PAGE_SIZE) {
 				uintptr_t start = (uintptr_t)&BSS_END_ADDR;
-				if (start & (PAGE_SIZE - 1)) { //align it with small pages
-					start &= ~(PAGE_SIZE - 1);
-					start += PAGE_SIZE;
-				}
-				uintptr_t freeBufferSmall = start;
-				start += PAGE_SIZE;
 				if (start & (LARGEPAGE_SIZE - 1)) { //align it with large pages
 					start &= ~(LARGEPAGE_SIZE - 1);
 					start += LARGEPAGE_SIZE;
 				}
 				uintptr_t freeBufferLarge = start;
 				start += LARGEPAGE_SIZE;
+				uintptr_t freeBufferSmall = start;
+				start += PAGE_SIZE;
 
 				//set new page table
 				size -= (NROF_PAGE_STACKS + 1) * PAGE_SIZE;

@@ -157,37 +157,36 @@ excPF:
     ;print error code
     mov rdi, errorCode
     call sprint
-    mov rdi, [rsp+16]
+    mov edi, [rsp]
     call hexprintln
 
-    test [rsp+16], byte 0x01
+    test [rsp], byte 0x01
     jz .L0
         mov rdi, PFPresent
         call sprint
     .L0:
-    test [rsp+16], byte 0x02
+    test [rsp], byte 0x02
     jz .L1
         mov rdi, PFRW
         call sprint
     .L1:
-    test [rsp+16], byte 0x04
+    test [rsp], byte 0x04
     jz .L2
         mov rdi, PFUS
         call sprint
     .L2:
-    test [rsp+16], byte 0x08
+    test [rsp], byte 0x08
     jz .L3
         mov rdi, PFRSV
         call sprint
     .L3:
-    test [rsp+16], byte 0x10
+    test [rsp], byte 0x10
     jz .L4
         mov rdi, PFID
         call sprint
     .L4:
 
     jmp $
-	iret
 
 excMF:
 	mov rdi, MFmsg
