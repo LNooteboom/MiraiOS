@@ -4,7 +4,7 @@
 #include <mm/physpaging.h>
 #include <mm/pagemap.h>
 
-bool allocCleanPage(uintptr_t addr, uint8_t flags) {
+bool allocCleanPage(uintptr_t addr, uint16_t flags) {
 	physPage_t page = allocCleanPhysPage();
 	if (page != NULL) {
 		mmMapPage(addr, page, flags);
@@ -13,7 +13,7 @@ bool allocCleanPage(uintptr_t addr, uint8_t flags) {
 	return false;
 }
 
-bool allocPage(uintptr_t addr, uint8_t flags) {
+bool allocPage(uintptr_t addr, uint16_t flags) {
 	physPage_t page = allocPhysPage();
 	if (page != NULL) {
 		mmMapPage(addr, page, flags);

@@ -1,5 +1,4 @@
 BITS 64
-DEFAULT REL
 
 NROF_DEFINED_EXCS: equ 21
 
@@ -10,6 +9,8 @@ extern hexprintln64
 extern hexprintln
 extern routeInterrupt
 extern testcount
+
+extern excPF
 
 global initExceptions:function
 
@@ -89,7 +90,7 @@ excDB:
     pop rdi
 
 excNMI:
-	iret
+	iretq
 
 excBP:
 	mov rdi, BPmsg
@@ -137,57 +138,6 @@ excGP:
 	mov rdi, GPmsg
 	jmp exceptionBaseWithErrorCode
 
-excPF:
-    ;print error message
-    mov rdi, PFmsg
-    call sprint
-
-    ;print return addr
-    mov rdi, addressText ;"At: "
-    call sprint
-    mov rdi, [rsp+8]
-    call hexprintln64
-
-    ;print "attempted to access"
-    mov rdi, PFAddr
-    call sprint
-    mov rdi, cr2
-    call hexprintln64
-
-    ;print error code
-    mov rdi, errorCode
-    call sprint
-    mov edi, [rsp]
-    call hexprintln
-
-    test [rsp], byte 0x01
-    jz .L0
-        mov rdi, PFPresent
-        call sprint
-    .L0:
-    test [rsp], byte 0x02
-    jz .L1
-        mov rdi, PFRW
-        call sprint
-    .L1:
-    test [rsp], byte 0x04
-    jz .L2
-        mov rdi, PFUS
-        call sprint
-    .L2:
-    test [rsp], byte 0x08
-    jz .L3
-        mov rdi, PFRSV
-        call sprint
-    .L3:
-    test [rsp], byte 0x10
-    jz .L4
-        mov rdi, PFID
-        call sprint
-    .L4:
-
-    jmp $
-
 excMF:
 	mov rdi, MFmsg
 	jmp exceptionBase
@@ -209,20 +159,13 @@ excVE:
 	jmp exceptionBase
 
 undefinedInterrupt:
-    iret
+    iretq
 
 
 SECTION .rodata
 
 addressText:    db 'At: ', 0
-PFAddr:         db 'Attempted to access ', 0
 errorCode:      db 'Error code: ', 0
-
-PFPresent:      db 'Page not present', endl
-PFRW:           db 'Write to read-only page', endl
-PFUS:           db 'Priviledge too low', endl
-PFRSV:          db '1 found in reserved field', endl
-PFID:           db 'Caused by instruction fetch', endl
 
 
 excList:
@@ -261,7 +204,6 @@ TSmsg:	db 'Invalid TSS', endl
 NPmsg:	db 'Segment not present', endl
 SSmsg:	db 'Stack fault', endl
 GPmsg:	db 'General protection fault', endl
-PFmsg:	db 'Page fault', endl
 MFmsg:	db 'Coprocessor error', endl
 ACmsg:	db 'Alignment check', endl
 MCmsg:	db 'Machine check', endl

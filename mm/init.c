@@ -15,6 +15,6 @@ void mmInit(void) {
 		while(true);
 	}
 
-	//initHeap();
+	initHeap();
 }
 

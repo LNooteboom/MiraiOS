@@ -18,9 +18,6 @@ void kmain(void) {
 
 	paramInit();
 	mmInit();
-	testEnabled = true;
-	asm("xchg bx, bx");
-	initHeap();
 	
 	char *test = vmalloc(32);
 	hexprintln64(test);

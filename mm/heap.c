@@ -2,6 +2,8 @@
 
 #include <global.h>
 #include <mm/init.h>
+#include <mm/paging.h>
+#include <mm/pagemap.h>
 #include <spinlock.h>
 #include <print.h>
 
@@ -10,10 +12,6 @@
 
 typedef size_t memArea_t;
 
-//memArea_t *heapStart;
-
-//spinlock_t heapLock = 0;
-
 memArea_t *vHeapStart = (void*)(0xffffffffc0000000);
 size_t vHeapSize = PAGESIZE - 4;
 
@@ -21,7 +19,7 @@ spinlock_t vHeapLock = 0;
 
 void initHeap(void) {
 	
-	allocPage((uintptr_t) vHeapStart, PAGE_FLAG_WRITE);
+	mmReservePage((uintptr_t) vHeapStart, PAGE_FLAG_WRITE);
 	memArea_t *footer = (void*)(vHeapStart) + vHeapSize - sizeof(memArea_t);
 	vHeapStart++;
 	*vHeapStart = vHeapSize - sizeof(memArea_t);

@@ -61,7 +61,7 @@ void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
 
 				//set new page table
 				size -= (NROF_PAGE_STACKS + 1) * PAGE_SIZE;
-				mmSetPageEntry(start, 1, base | MMU_FLAG_PRESENT | MMU_FLAG_WRITE);
+				mmSetPageEntry(start, 1, base | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE);
 				base += PAGE_SIZE;
 
 				//for (uintptr_t i = 0; i < NROF_PAGE_STACKS * PAGE_SIZE; i += PAGE_SIZE) {

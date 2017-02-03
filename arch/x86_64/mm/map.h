@@ -4,11 +4,6 @@
 #include <global.h>
 #include <mm/paging.h>
 
-#define MMU_FLAG_PRESENT 	(1 << 0)
-#define MMU_FLAG_WRITE 		(1 << 1)
-#define MMU_FLAG_USER 		(1 << 2)
-#define MMU_FLAG_SIZE		(1 << 7)
-
 typedef uint64_t pte_t;
 
 /*

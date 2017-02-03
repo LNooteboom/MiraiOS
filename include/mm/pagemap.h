@@ -8,12 +8,12 @@
 /*
 Maps a page with physical address paddr to the virtual address vaddr.
 */
-void mmMapPage(uintptr_t vaddr, physPage_t paddr, uint8_t flags);
+void mmMapPage(uintptr_t vaddr, physPage_t paddr, uint16_t flags);
 
 /*
 Maps a large page with physical address paddr to the virtual address vaddr.
 */
-void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, uint8_t flags);
+void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, uint16_t flags);
 
 /*
 Unmaps a page.
