@@ -75,7 +75,7 @@ physPage_t mmGetPageEntry(uintptr_t vaddr) {
 /*
 Maps a page with physical address paddr to the virtual address vaddr.
 */
-void mmMapPage(uintptr_t vaddr, physPage_t paddr, uint16_t flags) {
+void mmMapPage(uintptr_t vaddr, physPage_t paddr, physPageFlags_t flags) {
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 1; i--) {
 		pte_t *entry = mmGetEntry(vaddr, i);
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {
@@ -92,7 +92,7 @@ void mmMapPage(uintptr_t vaddr, physPage_t paddr, uint16_t flags) {
 /*
 Maps a large page with physical address paddr to the virtual address vaddr.
 */
-void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, uint16_t flags) {
+void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, physPageFlags_t flags) {
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 2; i--) {
 		pte_t *entry = mmGetEntry(vaddr, i);
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {
@@ -107,7 +107,7 @@ void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, uint16_t flags) {
 	return;
 }
 
-void mmReservePage(uintptr_t vaddr, uint16_t flags) {
+void mmReservePage(uintptr_t vaddr, physPageFlags_t flags) {
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 1; i--) {
 		pte_t *entry = mmGetEntry(vaddr, i);
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {

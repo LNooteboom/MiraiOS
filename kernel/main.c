@@ -18,13 +18,5 @@ void kmain(void) {
 
 	paramInit();
 	mmInit();
-	
-	char *test = vmalloc(32);
-	hexprintln64(test);
-	char *test2 = vmalloc(32);
-	hexprintln64(test2);
-	kfree(test);
-	char *test3 = vmalloc(16);
-	hexprintln64(test3);
 }
 

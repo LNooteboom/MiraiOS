@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = init.o map.o pagefault.o
+OBJECTS = init.o map.o pagefault.o virtpaging.o
 
 all: ${OUTPUT}
 

@@ -7,9 +7,6 @@
 #include <print.h>
 #include <mm/memset.h>
 
-#define PAGE_SIZE				4096
-#define LARGE_PAGE_SIZE 		(PAGE_SIZE * 512)
-
 #define PAGE_STACK_LENGTH		(PAGE_SIZE / 8 - 1)
 
 typedef physPage_t stackEntry_t;
@@ -17,7 +14,6 @@ typedef physPage_t stackEntry_t;
 struct pageStack {
 	physPage_t prevStack;
 	stackEntry_t pages[PAGE_STACK_LENGTH];
-
 };
 
 struct pageStackInfo {

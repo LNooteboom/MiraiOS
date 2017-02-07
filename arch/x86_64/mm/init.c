@@ -12,9 +12,6 @@
 #define LOWMEM_END 0x00100000
 #define ENTRYTYPE_FREE 1
 
-#define PAGE_SIZE 4096
-#define LARGEPAGE_SIZE 0x200000
-
 #define NROF_PAGE_STACKS 4
 
 void mmInitPaging(struct mmap *mmap, size_t mmapSize) {

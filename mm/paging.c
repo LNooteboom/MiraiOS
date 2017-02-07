@@ -3,8 +3,13 @@
 #include <global.h>
 #include <mm/physpaging.h>
 #include <mm/pagemap.h>
+#include <spinlock.h>
 
-bool allocCleanPage(uintptr_t addr, uint16_t flags) {
+#define KERNEL_OFFSET 0xFFFFFFFF80100000
+
+spinlock_t kernelVMemLock;
+
+bool allocCleanPage(uintptr_t addr, physPageFlags_t flags) {
 	physPage_t page = allocCleanPhysPage();
 	if (page != NULL) {
 		mmMapPage(addr, page, flags);
@@ -13,7 +18,7 @@ bool allocCleanPage(uintptr_t addr, uint16_t flags) {
 	return false;
 }
 
-bool allocPage(uintptr_t addr, uint16_t flags) {
+bool allocPage(uintptr_t addr, physPageFlags_t flags) {
 	physPage_t page = allocPhysPage();
 	if (page != NULL) {
 		mmMapPage(addr, page, flags);

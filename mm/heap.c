@@ -13,7 +13,7 @@
 typedef size_t memArea_t;
 
 memArea_t *vHeapStart = (void*)(0xffffffffc0000000);
-size_t vHeapSize = PAGESIZE - 4;
+size_t vHeapSize = PAGESIZE - 8;
 
 spinlock_t vHeapLock = 0;
 
