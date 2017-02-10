@@ -35,18 +35,6 @@ void mmSetPageEntry(uintptr_t addr, uint8_t level, pte_t entry) {
 }
 
 /*
-Finds the entry in the page table at a specified level and sets it to a specfied value if there is no existing entry there.
-*/
-void mmSetPageEntryIfNotExists(uintptr_t addr, uint8_t level, pte_t entry) {
-	addr &= 0x0000FFFFFFFFFFFF;
-	addr = (addr >> (PAGE_BIT_WIDTH * (level + 1)) & PE_MASK) | pageLevelBase[level];
-	pte_t *entryPtr = (pte_t*)addr;
-	if (!(*entryPtr & PAGE_FLAG_PRESENT)) {
-		*entryPtr = entry;
-		invalidateTLB(addr);
-	}
-}
-/*
 Finds the entry in the page table at a specified level and returns it.
 */
 pte_t *mmGetEntry(uintptr_t addr, uint8_t level) {
@@ -72,6 +60,7 @@ physPage_t mmGetPageEntry(uintptr_t vaddr) {
 	return NULL;
 }
 
+
 /*
 Maps a page with physical address paddr to the virtual address vaddr.
 */
@@ -89,6 +78,7 @@ void mmMapPage(uintptr_t vaddr, physPage_t paddr, physPageFlags_t flags) {
 	invalidateTLB(vaddr);
 	return;
 }
+
 /*
 Maps a large page with physical address paddr to the virtual address vaddr.
 */
@@ -107,7 +97,7 @@ void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, physPageFlags_t flags) {
 	return;
 }
 
-void mmReservePage(uintptr_t vaddr, physPageFlags_t flags) {
+void mmSetPageFlags(uintptr_t vaddr, physPageFlags_t flags) {
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 1; i--) {
 		pte_t *entry = mmGetEntry(vaddr, i);
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {
@@ -116,7 +106,7 @@ void mmReservePage(uintptr_t vaddr, physPageFlags_t flags) {
 			*entry = page | PAGE_FLAG_PRESENT | flags;
 		}
 	}
-	pte_t entry = flags | PAGE_FLAG_INUSE;
+	pte_t entry = flags;
 	pte_t oldEntry = *mmGetEntry(vaddr, 0);
 	mmSetPageEntry(vaddr, 0, entry);
 	if (oldEntry & PAGE_FLAG_PRESENT) {
@@ -128,16 +118,5 @@ void mmReservePage(uintptr_t vaddr, physPageFlags_t flags) {
 Unmaps a page.
 */
 void mmUnmapPage(uintptr_t vaddr) {
-	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 0; i--) {
-		pte_t *entry = mmGetEntry(vaddr, i);
-		if ( !(*entry & PAGE_FLAG_PRESENT)) {
-			//Page entry higher does not exist
-			invalidateTLB(vaddr);
-			return;
-		} else if (i == 0 || *entry & PAGE_FLAG_SIZE) {
-			*entry = 0;
-			invalidateTLB(vaddr);
-			return;
-		}
-	}
+	mmSetPageFlags(vaddr, 0);
 }

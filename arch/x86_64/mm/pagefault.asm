@@ -19,6 +19,7 @@ SECTION .text
 
 excPF:
     push rbp
+    pushfq
     mov rbp, rsp
     sub rsp, 0x60
     mov [rbp-0x08], rax
@@ -98,6 +99,7 @@ excPF:
         mov rbx, [rbp-0x50]
         mov r12, [rbp-0x58]
         mov rsp, rbp
+        popfq
         pop rbp
         add rsp, 8 ;jump over error code
         iretq

@@ -3,8 +3,6 @@
 
 #include <mm/paging.h>
 
-#define NROF_PAGE_LEVELS	4
-
 /*
 Maps a page with physical address paddr to the virtual address vaddr.
 */
@@ -28,6 +26,6 @@ physPage_t mmGetPageEntry(uintptr_t vaddr);
 /*
 Reserves a physical page in memory
 */
-void mmReservePage(uintptr_t vaddr, physPageFlags_t flags);
+void mmSetPageFlags(uintptr_t vaddr, physPageFlags_t flags);
 
 #endif

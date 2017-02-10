@@ -19,7 +19,7 @@ spinlock_t vHeapLock = 0;
 
 void initHeap(void) {
 	
-	mmReservePage((uintptr_t) vHeapStart, PAGE_FLAG_WRITE);
+	allocPageAt((uintptr_t) vHeapStart, 1, PAGE_FLAG_INUSE | PAGE_FLAG_WRITE);
 	memArea_t *footer = (void*)(vHeapStart) + vHeapSize - sizeof(memArea_t);
 	vHeapStart++;
 	*vHeapStart = vHeapSize - sizeof(memArea_t);
@@ -122,7 +122,7 @@ void *vmalloc(size_t size) {
 			releaseSpinlock(&vHeapLock);
 			return NULL;
 		}
-		allocPage(newPage, PAGE_FLAG_WRITE);
+		allocPageAt(newPage, 1, PAGE_FLAG_INUSE | PAGE_FLAG_WRITE);
 
 		//merge it with the heap
 		size_t newSize = vHeapSize + PAGESIZE;

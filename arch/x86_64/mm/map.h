@@ -4,6 +4,8 @@
 #include <global.h>
 #include <mm/paging.h>
 
+#define NROF_PAGE_LEVELS	4
+
 typedef uint64_t pte_t;
 
 /*
