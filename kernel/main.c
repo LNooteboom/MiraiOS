@@ -18,5 +18,6 @@ void kmain(void) {
 
 	paramInit();
 	mmInit();
+	sprint("Test");
 }
 

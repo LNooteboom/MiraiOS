@@ -47,7 +47,7 @@ static uintptr_t checkMemRange(uintptr_t vaddr, uint16_t nrofPages) {
 	}
 }
 
-void *allocKPages(uint16_t nrofPages, physPageFlags_t flags) {
+void *allocKPages(uint16_t nrofPages, pageFlags_t flags) {
 	uintptr_t vaddr = (uintptr_t)&BSS_END_ADDR & ~(LARGEPAGE_SIZE - 1);
 	vaddr += LARGEPAGE_SIZE;
 	bool foundPages = false;
@@ -75,7 +75,7 @@ void *allocKPages(uint16_t nrofPages, physPageFlags_t flags) {
 	}
 }
 
-void allocPageAt(uintptr_t addr, uint16_t nrofPages, physPageFlags_t flags) {
+void allocPageAt(uintptr_t addr, uint16_t nrofPages, pageFlags_t flags) {
 	flags |= PAGE_FLAG_ALLOCED;
 	for (uint16_t i = 0; i < nrofPages; i++) {
 		mmSetPageFlags(addr + (i * PAGE_SIZE), flags);

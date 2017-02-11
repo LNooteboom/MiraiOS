@@ -8,6 +8,8 @@
 
 typedef uint64_t pte_t;
 
+extern bool nxEnabled;
+
 /*
 Finds the entry in the page table at a specified level and sets it to a specified value.
 */

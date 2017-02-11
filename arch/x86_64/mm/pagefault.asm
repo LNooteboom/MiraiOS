@@ -46,6 +46,10 @@ excPF:
             ;rax contains pointer to pte
             mov r12, rax
             mov rax, [rax]
+			push rax
+			mov rdi, rax
+			call hexprintln64
+			pop rax
             test al, 0x01 ;present flag
             jnz .L2
                 test ax, (1 << 9) ;inuse flag
@@ -78,11 +82,16 @@ excPF:
                 or al, 1 ;set present bit
                 and [r12], rdx  ;clear address field
                 or [r12], rax ;OR it with new address + present bit
+				mov rdi, rax
+				call hexprintln64
                 jmp .L8
             .L2:
             sub bl, 1
             jns .L1
             ;page already alloced
+			mov rdi, [rbp+16]
+			call hexprintln64
+			jmp $
         .L8:
         xor rdi, rdi
         mov cr2, rdi

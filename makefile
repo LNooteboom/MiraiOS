@@ -3,8 +3,10 @@ SHELL = /bin/sh
 export TARGET = x86_64-elf
 
 WARNINGS = "-Wall" "-Wextra"
-export CFLAG = ${WARNINGS} "-g"  "-I$(PWD)/include/" "-mcmodel=kernel" "-mno-red-zone" "-masm=intel" "-ffreestanding"
-export CC = ${TARGET}-gcc
+NOSTDSTUFF = "-ffreestanding" "-nostdlib" "-nostartfiles" "-fno-pie"
+export CFLAG = ${WARNINGS} ${NOSTDSTUFF} "-g" "-I$(PWD)/include/" "-mcmodel=kernel" "-mno-red-zone" "-masm=intel"
+#export CC = ${TARGET}-gcc
+export CC = gcc
 
 export NASM = nasm
 export NASMFLAG = "-f elf64"

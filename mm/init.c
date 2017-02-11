@@ -11,7 +11,6 @@ void mmInit(void) {
 		mmInitPaging((struct mmap*)(paramMmap), bootInfo->mmapSize);
 	} else {
 		sprint("\e[44mmmap is required but not present\n\e[0m");
-		hexprintln(bootInfo->flags);
 		while(true);
 	}
 

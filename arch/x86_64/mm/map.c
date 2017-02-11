@@ -11,7 +11,6 @@
 
 #define PAGE_MASK		0x0000FFFFFFFFF000
 
-
 static const uintptr_t pageLevelBase[NROF_PAGE_LEVELS] = {
 	0xFFFFFF0000000000,	//PT
 	0xFFFFFF7F80000000,	//PDT
@@ -64,7 +63,12 @@ physPage_t mmGetPageEntry(uintptr_t vaddr) {
 /*
 Maps a page with physical address paddr to the virtual address vaddr.
 */
-void mmMapPage(uintptr_t vaddr, physPage_t paddr, physPageFlags_t flags) {
+void mmMapPage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
+	if (nxEnabled) {
+		flags ^= PAGE_FLAG_EXEC; //flip exec bit to get NX bit
+	} else {
+		flags &= ~PAGE_FLAG_EXEC;
+	}
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 1; i--) {
 		pte_t *entry = mmGetEntry(vaddr, i);
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {
@@ -82,7 +86,12 @@ void mmMapPage(uintptr_t vaddr, physPage_t paddr, physPageFlags_t flags) {
 /*
 Maps a large page with physical address paddr to the virtual address vaddr.
 */
-void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, physPageFlags_t flags) {
+void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
+	if (nxEnabled) {
+		flags ^= PAGE_FLAG_EXEC; //flip exec bit to get NX bit
+	} else {
+		flags &= ~PAGE_FLAG_EXEC;
+	}
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 2; i--) {
 		pte_t *entry = mmGetEntry(vaddr, i);
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {
@@ -97,7 +106,12 @@ void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, physPageFlags_t flags) {
 	return;
 }
 
-void mmSetPageFlags(uintptr_t vaddr, physPageFlags_t flags) {
+void mmSetPageFlags(uintptr_t vaddr, pageFlags_t flags) {
+	if (nxEnabled) {
+		flags ^= PAGE_FLAG_EXEC; //flip exec bit to get NX bit
+	} else {
+		flags &= ~PAGE_FLAG_EXEC;
+	}
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 1; i--) {
 		pte_t *entry = mmGetEntry(vaddr, i);
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {

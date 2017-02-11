@@ -11,4 +11,7 @@ vmmount/
 
 miraiBoot
 BOOT
-qbuild.sh
+
+GPATH
+GRTAGS
+GTAGS

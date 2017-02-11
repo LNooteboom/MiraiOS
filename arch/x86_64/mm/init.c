@@ -9,12 +9,32 @@
 
 #include "map.h"
 
-#define LOWMEM_END 0x00100000
+//#define LOWMEM_END 0x00100000
 #define ENTRYTYPE_FREE 1
 
 #define NROF_PAGE_STACKS 4
 
+static bool checkMmap(struct mmap *mmap, size_t mmapSize) {
+	struct mmap *currentEntry = mmap;
+	uintptr_t oldEntryEnd = 0;
+	while ((uintptr_t)currentEntry < (uintptr_t)mmap + mmapSize) {
+		if (currentEntry->base < oldEntryEnd) { //if unordered or overlapped
+			return false;
+		}
+		oldEntryEnd = currentEntry->base + currentEntry->length;
+		currentEntry = (struct mmap*)((void*)(currentEntry) + currentEntry->entrySize + sizeof(uint32_t));
+	}
+	return true;
+}
+
 void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
+	if (!checkMmap(mmap, mmapSize)) {
+		sprint("Mmap is corrupted");
+		while(true) {
+			asm("hlt");
+		}
+	}
+
 	uintptr_t physBssEnd = ((uintptr_t) &BSS_END_ADDR) - (uintptr_t)&VMEM_OFFSET;
 	struct mmap *currentEntry = mmap;
 	bool firstPage = true;

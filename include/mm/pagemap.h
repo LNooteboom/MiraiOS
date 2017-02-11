@@ -6,12 +6,12 @@
 /*
 Maps a page with physical address paddr to the virtual address vaddr.
 */
-void mmMapPage(uintptr_t vaddr, physPage_t paddr, physPageFlags_t flags);
+void mmMapPage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags);
 
 /*
 Maps a large page with physical address paddr to the virtual address vaddr.
 */
-void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, physPageFlags_t flags);
+void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags);
 
 /*
 Unmaps a page.
@@ -26,6 +26,6 @@ physPage_t mmGetPageEntry(uintptr_t vaddr);
 /*
 Reserves a physical page in memory
 */
-void mmSetPageFlags(uintptr_t vaddr, physPageFlags_t flags);
+void mmSetPageFlags(uintptr_t vaddr, pageFlags_t flags);
 
 #endif

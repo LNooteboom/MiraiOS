@@ -7,6 +7,7 @@ global stackEnd:data
 global PML4T:data
 global PDPT:data
 global gdtr:data
+global nxEnabled:data
 
 ;extern VMEM_OFFSET
 extern BSS_END_ADDR
@@ -82,6 +83,13 @@ __init:
 	call detectLongMode
 
 	;long mode is detected, now we can setup paging
+	;detect nx bit
+	mov eax, 0x80000001
+	cpuid
+	test edx, (1 << 20) ;test nx bit in cpuid
+	je .noNX
+		mov [nxEnabled - VMEM_OFFSET], byte 1
+	.noNX:
 	;setup pml4t
 	;add last entry pointing to itself
 	;mov [PML4T + (511 * 8)], ((PML4T) + PAGEFLAGS)
@@ -123,6 +131,8 @@ __init:
 
 		cmp eax, (TEXT_END_ADDR - VMEM_OFFSET + PAGEFLAGS)
 		jb .L4
+			cmp [nxEnabled - VMEM_OFFSET], byte 0
+			je .L4
 			or edx, 0x80000000 ;set NX bit
 		.L4:
 		mov [edi], eax
@@ -149,6 +159,10 @@ __init:
 	mov ecx, 0xC0000080 ;EFER register
 	rdmsr
 	or eax, (1 << 8) ;set LME bit
+	cmp [nxEnabled - VMEM_OFFSET], byte 0
+	je .noNX2
+		or eax, (1 << 11) ;set NX bit
+	.noNX2:
 	wrmsr
 	;enable paging
 	mov eax, cr0
@@ -287,6 +301,10 @@ noCPUIDMsg:
 
 noLongModeMsg:
 	db 'This operating system requires a 64 bit CPU.', 0
+
+SECTION .data
+
+nxEnabled: db 0
 
 SECTION .bss align=4096 nobits
 PML4T:
