@@ -21,7 +21,7 @@ excPF:
     push rbp
     pushfq
     mov rbp, rsp
-    sub rsp, 0x60
+    sub rsp, 0x58
     mov [rbp-0x08], rax
     mov [rbp-0x10], rcx
     mov [rbp-0x18], rdx
@@ -46,10 +46,6 @@ excPF:
             ;rax contains pointer to pte
             mov r12, rax
             mov rax, [rax]
-			push rax
-			mov rdi, rax
-			call hexprintln64
-			pop rax
             test al, 0x01 ;present flag
             jnz .L2
                 test ax, (1 << 9) ;inuse flag
@@ -113,7 +109,7 @@ excPF:
         add rsp, 8 ;jump over error code
         iretq
     .L0:
-
+	mov rsp, rbp
     ;print error message
     mov rdi, PFmsg
     call sprint

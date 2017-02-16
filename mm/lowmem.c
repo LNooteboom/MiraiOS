@@ -1,30 +1,53 @@
 #include <global.h>
 
 #include <mm/paging.h>
-#include <mm/heap.h>
+#include <mm/memset.h>
 #include <spinlock.h>
+#include <atomic.h>
 
-#define LOWMEM_SIZE
+#define BITS_PER_SEG	16
 
-static uint16_t *bitmap;
+static uint16_t bitmap[LOWMEM_SIZE / PAGE_SIZE / BITS_PER_SEG];
 
-static spinlock_t bitmapLock;
-
-static uintptr_t lowMemStart;
-static uintptr_t lowMemEnd;
-
-void mmLowInit(uintptr_t _lowMemStart, uintptr_t _lowMemEnd) {
-	uintptr_t bitStart = _lowMemStart & ~(LOWMEM_SEPERATOR - 1);
-	uintptr_t bitEnd;
-	if (_lowMemEnd & (LOWMEM_SEPERATOR - 1)) {
-		bitEnd = (_lowMemEnd & (LOWMEM_SEPERATOR - 1)) + LOWMEM_SEPERATOR;
-	} else {
-		bitEnd = _lowMemEnd;
+physPage_t allocLowPhysPages(uint8_t nrofPages) {
+	if (nrofPages > BITS_PER_SEG) {
+		return NULL;
 	}
-	bitmapLength = (bitEnd - bitStart) / LOWMEM_SEPERATOR;
-	bitmap = vmalloc(bitmapLength * sizeof(uint16_t));
-	uint8_t nrofBitsStart = (_lowMemStart - bitStart) / PAGE_SIZE;
-	bitmap[0] = ~0 >> (16 - nrofBitsStart); //if nrofBitsStart == 3 then result = 0b00000111
-	uint8_t nrofBitsEnd = (bitEnd - _lowMemEnd);
-	bitmap[bitmapLength - 1] = ~0 << (16 - nrofBitsEnd); //if nrofBitsEnd == 3 then result = 0b11100000
+	uint16_t bitmask = (1 << nrofPages) - 1;
+	physPage_t ret = NULL;
+	for (uint16_t curSeg = 0; curSeg < (LOWMEM_SIZE / PAGE_SIZE / BITS_PER_SEG); curSeg++) {
+		uint16_t val = atomicXchg16(&(bitmap[curSeg]), 0);
+		hexprintln(val);
+		for (uint8_t i = 0; i <= BITS_PER_SEG - nrofPages; i++) {
+			hexprintln(1 << i);
+			if ((val & bitmask) == bitmask) {
+				ret = (curSeg * BITS_PER_SEG) + i;
+				bitmap[curSeg] = val | (bitmask << i);
+				return ret;
+			}
+			val >>= 1;
+		}
+	}
+	return NULL;
+}
+
+void deallocLowPhysPages(physPage_t page, uint16_t nrofPages) {
+	uint16_t seg = page / BITS_PER_SEG;
+	uint8_t bit = page % BITS_PER_SEG;
+	uint16_t i = 0;
+	while (i < nrofPages) {
+		if (bit == 0 && nrofPages >= BITS_PER_SEG) {
+			bitmap[seg] = 0;
+			i += BITS_PER_SEG;
+		} else {
+			//bitmap[seg] &= ~(1 << bit);
+			atomicAnd16(&(bitmap[seg]), ~(1 << bit));
+			i++;
+			bit++;
+			if (bit == BITS_PER_SEG) {
+				bit = 0;
+				seg++;
+			}
+		}
+	}
 }

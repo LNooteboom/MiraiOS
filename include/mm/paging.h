@@ -6,7 +6,7 @@
 typedef uintptr_t physPage_t;
 typedef uint64_t pageFlags_t;
 
-#define PAGE_SIZE 4096
+#define PAGE_SIZE			4096
 #define LARGEPAGE_SIZE		(PAGE_SIZE * 512)
 
 #define PAGE_FLAG_WRITE		(1 << 1)	//page is writeable

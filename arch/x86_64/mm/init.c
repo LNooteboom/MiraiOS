@@ -35,15 +35,22 @@ void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
 		}
 	}
 
-	uintptr_t physBssEnd = ((uintptr_t) &BSS_END_ADDR) - (uintptr_t)&VMEM_OFFSET;
+	uintptr_t physBssEnd = (uintptr_t)&BSS_END_ADDR - (uintptr_t)&VMEM_OFFSET;
+	uintptr_t physKernelStart = (uintptr_t)&KERNEL_START_ADDR - (uintptr_t)&VMEM_OFFSET;
 	struct mmap *currentEntry = mmap;
 	bool firstPage = true;
 
 	while ((uintptr_t)currentEntry < (uintptr_t)mmap + mmapSize) {
-		if (currentEntry->type == ENTRYTYPE_FREE && (currentEntry->base + currentEntry->length) > physBssEnd) {
+		if (currentEntry->type == ENTRYTYPE_FREE) {
 
 			uint64_t base = currentEntry->base;
 			uint64_t size = currentEntry->length;
+
+			//align base
+			if (base & (PAGE_SIZE - 1)) {
+				base &= ~(PAGE_SIZE - 1);
+				base += PAGE_SIZE;
+			}
 
 			sprint("Found free memory: ");
 			hexprint(base >> 32);
@@ -51,17 +58,29 @@ void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
 			sprint(" - ");
 			hexprint((base + size) >> 32);
 			hexprintln(base + size);
+
+			int64_t lowMemSize;
+			if (base + size < physKernelStart) {
+				lowMemSize = size;
+			} else {
+				lowMemSize = physKernelStart - base;
+			}
+			if (lowMemSize > 0) {
+				sprint("Alloc lowmem: ")
+				hexprint(base);
+				sprint(" - ");
+				hexprint(base + lowMemSize);
+				deallocLowPhysPages(base, lowMemSize / PAGE_SIZE);
+				base += lowMemSize;
+			}
+
+			if (base + size >= )
 			
 			//Ignore static allocated memory
 			if (base < physBssEnd) {
 				size_t diff = physBssEnd - base;
 				size -= diff;
 				base = physBssEnd;
-			}
-			//align base
-			if (base & (PAGE_SIZE - 1)) {
-				base &= ~(PAGE_SIZE - 1);
-				base += PAGE_SIZE;
 			}
 
 			//allocate room in virtual address space for page stacks
@@ -80,11 +99,6 @@ void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
 				size -= (NROF_PAGE_STACKS + 1) * PAGE_SIZE;
 				mmSetPageEntry(start, 1, base | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE);
 				base += PAGE_SIZE;
-
-				//for (uintptr_t i = 0; i < NROF_PAGE_STACKS * PAGE_SIZE; i += PAGE_SIZE) {
-				//	mmSetPageEntry(i + start, 0, base | MMU_FLAG_PRESENT | MMU_FLAG_WRITE);
-				//	base += PAGE_SIZE;
-				//}
 
 				mmInitPhysPaging(start, freeBufferSmall, freeBufferLarge);
 				firstPage = false;

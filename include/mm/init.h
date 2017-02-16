@@ -9,6 +9,8 @@ This 'variable' is a linker symbol and has no value, it will give a page fault u
 */
 extern char BSS_END_ADDR;
 
+extern char KERNEL_START_ADDR;
+
 
 /*
 This function initialises the memory manager and must be called upon boot
