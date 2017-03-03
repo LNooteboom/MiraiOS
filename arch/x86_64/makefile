@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-SUBDIRS = irq mm#timer pic
+SUBDIRS = irq mm acpi
 OBJECTS = spinlock.o
 
 

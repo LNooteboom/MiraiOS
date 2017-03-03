@@ -4,11 +4,7 @@
 #include <irq.h>
 #include <mm/init.h>
 #include <param/main.h>
-
-#include <mm/physpaging.h>
-#include <mm/paging.h>
-#include <mm/heap.h>
-#include <mm/lowmem.h>
+#include <acpi.h>
 
 void kmain(void) {
 	initInterrupts();
@@ -16,6 +12,8 @@ void kmain(void) {
 	sprint("\e[0m\e[2JKernel initialising...\n");
 	paramInit();
 	mmInit();
+
+	acpiInit();
 	
 	sprint("Init complete.\n");
 }
