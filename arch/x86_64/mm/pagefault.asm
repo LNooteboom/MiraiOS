@@ -78,8 +78,6 @@ excPF:
                 or al, 1 ;set present bit
                 and [r12], rdx  ;clear address field
                 or [r12], rax ;OR it with new address + present bit
-				mov rdi, rax
-				call hexprintln64
                 jmp .L8
             .L2:
             sub bl, 1

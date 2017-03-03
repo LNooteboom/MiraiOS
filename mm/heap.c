@@ -12,13 +12,12 @@
 
 typedef size_t memArea_t;
 
-memArea_t *vHeapStart = (void*)(0xffffffffc0000000);
+memArea_t *vHeapStart = (void*)(0xFFFFFFFFC0000000);
 size_t vHeapSize = PAGESIZE - 8;
 
 spinlock_t vHeapLock = 0;
 
 void initHeap(void) {
-	
 	allocPageAt((uintptr_t) vHeapStart, 1, PAGE_FLAG_INUSE | PAGE_FLAG_WRITE);
 	memArea_t *footer = (void*)(vHeapStart) + vHeapSize - sizeof(memArea_t);
 	vHeapStart++;

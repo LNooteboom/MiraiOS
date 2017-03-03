@@ -81,7 +81,6 @@ __init:
 	call detectCPUID
 
 	call detectLongMode
-
 	;long mode is detected, now we can setup paging
 	;detect nx bit
 	mov eax, 0x80000001
@@ -141,8 +140,8 @@ __init:
 
 		add eax, LARGE_PAGE_SIZE_2
 
-		dec ecx
-		jnz .L2
+		;dec ecx
+		jmp .L2
 	.L3:
 
 	;now enable pae
@@ -153,7 +152,6 @@ __init:
 	;add pointer in cr3 to pml4t
 	mov eax, (PML4T - VMEM_OFFSET)
 	mov cr3, eax
-
 
 	;now enable longmode
 	mov ecx, 0xC0000080 ;EFER register
@@ -168,7 +166,7 @@ __init:
 	mov eax, cr0
 	or eax, (1 << 31)
 	mov cr0, eax
-
+	
 	;now jump to 64 bit (in another file)
 	jmp far [jumpVect]
 

@@ -17,7 +17,7 @@ OUTPUT(miraiBoot)
 
 SECTIONS {
 	VMEM_OFFSET = 0xFFFFFFFF80000000;
-	. = 0x100000;
+	. = 0x1000000;
 	KERNEL_START_ADDR = . + VMEM_OFFSET;
 	multiboot : {
 		init.o (multiboot);
