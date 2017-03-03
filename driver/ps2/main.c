@@ -1,6 +1,6 @@
 #include "main.h"
 
-#include <global.h>
+#include <stdint.h>
 #include <pio.h>
 
 #define PS2COMMAND_READCONFIG 0x20

@@ -1,7 +1,7 @@
 #include <vga.h>
 #include "tty.h"
 
-#include <global.h>
+#include <stdint.h>
 #include "crtc.h"
 #include <print.h>
 #include <mm/memset.h>

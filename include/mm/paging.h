@@ -1,7 +1,7 @@
 #ifndef INCLUDE_PAGING_H
 #define INCLUDE_PAGING_H
 
-#include <global.h>
+#include <stdint.h>
 
 typedef uintptr_t physPage_t;
 typedef uint64_t pageFlags_t;
@@ -18,6 +18,8 @@ typedef uint64_t pageFlags_t;
 #define PAGE_FLAG_PRESENT 	(1 << 0)
 #define PAGE_FLAG_SIZE		(1 << 7)
 #define PAGE_FLAG_ALLOCED	(1 << 11)
+
+extern char VMEM_OFFSET;
 
 /*
 Allocates a set of contiguous virtual pages in kernel memory

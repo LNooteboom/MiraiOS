@@ -2,7 +2,8 @@
 
 #include "heap.h"
 
-#include <global.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <param/main.h>
 #include <print.h>
 

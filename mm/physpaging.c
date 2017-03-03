@@ -1,6 +1,7 @@
 #include <mm/physpaging.h>
 
-#include <global.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <mm/pagemap.h>
 #include <mm/paging.h>
 #include <spinlock.h>
@@ -35,7 +36,7 @@ static spinlock_t freeBufferLargeLock;
 //struct pageStack firstStack[4] __attribute__((aligned(PAGE_SIZE)));
 
 static stackEntry_t popPage(struct pageStackInfo *pages) {
-	stackEntry_t newPage = NULL;
+	stackEntry_t newPage = 0;
 	acquireSpinlock(&(pages->lock));
 	if (pages->sp >= 0 && pages->sp < PAGE_STACK_LENGTH - 1) {
 		//pop a page off the stack
@@ -67,7 +68,7 @@ static void pushPage(struct pageStackInfo *pages, stackEntry_t newPage) {
 		pages->stack->pages[pages->sp] = newPage;
 	} else {
 		//new page becomes more stack space
-		physPage_t oldStack = NULL;
+		physPage_t oldStack = 0;
 		if (pages->sp != -2) {
 			oldStack = mmGetPageEntry((uintptr_t)pages->stack);
 		}
@@ -82,12 +83,12 @@ static void pushPage(struct pageStackInfo *pages, stackEntry_t newPage) {
 /*
 Divides a large page into smaller pages
 returns the first small page and pushes the rest on the page stack
-returns the first page != NULL if successful
+returns the first page != 0 if successful
 */
 static physPage_t splitLargePage(struct pageStackInfo *largePages, struct pageStackInfo *smallPages) {
 	physPage_t largePage = popPage(largePages);
 	if (!largePage) {
-		return NULL;
+		return 0;
 	}
 	for (physPage_t i = PAGE_SIZE; i < (LARGE_PAGE_SIZE); i += PAGE_SIZE) {
 		pushPage(smallPages, largePage + i);
@@ -128,7 +129,7 @@ physPage_t allocPhysPage(void) {
 			page = splitLargePage(&largePages, &smallPages);
 			if (!page) {
 				page = splitLargePage(&largeCleanPages, &smallCleanPages);
-				//page will be NULL if no more memory is available
+				//page will be 0 if no more memory is available
 			}
 		}
 	}
@@ -145,7 +146,7 @@ physPage_t allocCleanPhysPage(void) {
 			if (!page) {
 				page = splitLargePage(&largePages, &smallPages);
 				if (!page) {
-					return NULL;
+					return 0;
 				} else {
 					cleanSmallPage(page);
 				}
@@ -173,7 +174,7 @@ physPage_t allocLargeCleanPhysPage(void) {
 	if (!page) {
 		page = popPage(&largePages);
 		if (!page) {
-			return NULL;
+			return 0;
 		} else {
 			acquireSpinlock(&freeBufferLargeLock);
 			mmMapLargePage(freeBufferLarge, page, PAGE_FLAG_WRITE);

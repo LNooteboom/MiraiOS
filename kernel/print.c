@@ -1,6 +1,6 @@
 #include <print.h>
 
-#include <global.h>
+#include <stdint.h>
 #include <vga.h>
 
 void cprint(char c) {

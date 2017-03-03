@@ -1,7 +1,8 @@
 #include "map.h"
 #include <mm/pagemap.h>
 
-#include <global.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <mm/paging.h>
 #include <mm/physpaging.h>
 #include <print.h>
@@ -51,12 +52,12 @@ physPage_t mmGetPageEntry(uintptr_t vaddr) {
 		pte_t *entry = mmGetEntry(vaddr, i);
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {
 			//Page entry higher does not exist
-			return NULL;
+			return 0;
 		} else if (i == 0 || *entry & PAGE_FLAG_SIZE) {
 			return (physPage_t)(*entry & PAGE_MASK);
 		}
 	}
-	return NULL;
+	return 0;
 }
 
 

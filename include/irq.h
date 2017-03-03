@@ -1,7 +1,8 @@
 #ifndef INCLUDE_IRQ_H
 #define INCLUDE_IRQ_H
 
-#include <global.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 typedef uint8_t interrupt_t;
 

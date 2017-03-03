@@ -1,6 +1,8 @@
 #include "crtc.h"
 
-#include <global.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <mm/paging.h>
 #include <pio.h>
 
 #define REG_MISC_OUTPUT_READ	0x3CC

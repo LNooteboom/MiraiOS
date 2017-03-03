@@ -1,7 +1,7 @@
 #ifndef INCLUDE_PHYSPAGING_H
 #define INCLUDE_PHYSPAGING_H
 
-#include <global.h>
+#include <stdint.h>
 #include <mm/paging.h>
 
 #define PAGE_SIZE				4096

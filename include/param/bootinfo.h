@@ -1,7 +1,7 @@
 #ifndef INCLUDE_PARAM_H
 #define INCLUDE_PARAM_H
 
-#include <global.h>
+#include <stdint.h>
 
 struct multiBootInfo {
 	uint32_t flags;

@@ -1,6 +1,6 @@
 #include <mm/lowmem.h>
 
-#include <global.h>
+#include <stdint.h>
 #include <mm/paging.h>
 #include <mm/memset.h>
 #include <spinlock.h>
@@ -13,10 +13,10 @@ static uint16_t bitmap[LOWMEM_SIZE / PAGE_SIZE / BITS_PER_SEG];
 
 physPage_t allocLowPhysPages(uint8_t nrofPages) {
 	if (nrofPages > BITS_PER_SEG) {
-		return NULL;
+		return 0;
 	}
 	uint16_t bitmask = (1 << nrofPages) - 1;
-	physPage_t ret = NULL;
+	physPage_t ret = 0;
 	for (uint16_t curSeg = 0; curSeg < (LOWMEM_SIZE / PAGE_SIZE / BITS_PER_SEG); curSeg++) {
 		uint16_t val = atomicXchg16(&(bitmap[curSeg]), 0);
 		//hexprintln(val);
@@ -30,7 +30,7 @@ physPage_t allocLowPhysPages(uint8_t nrofPages) {
 		}
 		bitmap[curSeg] = val;
 	}
-	return NULL;
+	return 0;
 }
 
 void deallocLowPhysPages(physPage_t startPage, uint16_t nrofPages) {

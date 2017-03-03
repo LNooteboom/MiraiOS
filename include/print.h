@@ -1,7 +1,7 @@
 #ifndef INCLUDE_PRINT_H
 #define INCLUDE_PRINT_H
 
-#include <global.h>
+#include <stdint.h>
 
 /*
 Prints a character to the output console

@@ -1,6 +1,7 @@
 #include <mm/heap.h>
 
-#include <global.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <mm/init.h>
 #include <mm/paging.h>
 #include <mm/pagemap.h>

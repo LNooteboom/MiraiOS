@@ -1,7 +1,7 @@
 #ifndef INCLUDE_PARAM_MAIN_H
 #define INCLUDE_PARAM_MAIN_H
 
-#include <global.h>
+#include <stdint.h>
 #include "bootinfo.h"
 #include "mmap.h"
 

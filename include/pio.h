@@ -1,7 +1,7 @@
 #ifndef INCLUDE_PIO_H
 #define INCLUDE_PIO_H
 
-#include <global.h>
+#include <stdint.h>
 
 typedef uint16_t ioport_t;
 

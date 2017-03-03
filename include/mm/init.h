@@ -1,7 +1,8 @@
 #ifndef INCLUDE_MM_INIT_H
 #define INCLUDE_MM_INIT_H
 
-#include <global.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <param/mmap.h>
 
 /*

@@ -1,6 +1,6 @@
 #include <mm/paging.h>
 
-#include <global.h>
+#include <stdint.h>
 #include <mm/init.h> //for BSS_END_ADDR
 #include <mm/pagemap.h>
 #include <spinlock.h>
@@ -43,7 +43,7 @@ static uintptr_t checkMemRange(uintptr_t vaddr, uint16_t nrofPages) {
 		}
 		return vaddr;
 	} else {
-		return NULL;
+		return 0;
 	}
 }
 

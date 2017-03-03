@@ -1,6 +1,6 @@
 #include <param/main.h>
 
-#include <global.h>
+#include <stdint.h>
 #include <param/bootinfo.h>
 #include <param/mmap.h>
 

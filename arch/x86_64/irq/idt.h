@@ -1,7 +1,7 @@
 #ifndef IRQ_IDT_H
 #define IRQ_IDT_H
 
-#include <global.h>
+#include <stdint.h>
 #include <irq.h>
 
 void initIDT(void);

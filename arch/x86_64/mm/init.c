@@ -1,6 +1,8 @@
 #include <mm/init.h>
 
-#include <global.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <param/mmap.h>
 #include <mm/physpaging.h>
 #include <mm/pagemap.h>

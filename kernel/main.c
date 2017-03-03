@@ -1,4 +1,4 @@
-#include <global.h>
+#include <stdint.h>
 #include <vga.h>
 #include <print.h>
 #include <irq.h>
@@ -9,8 +9,6 @@
 #include <mm/paging.h>
 #include <mm/heap.h>
 #include <mm/lowmem.h>
-
-bool testEnabled = false;
 
 void kmain(void) {
 	initInterrupts();

@@ -1,7 +1,8 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include <global.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <mm/paging.h>
 
 #define NROF_PAGE_LEVELS	4

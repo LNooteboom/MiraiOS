@@ -1,7 +1,7 @@
 #ifndef INCLUDE_LOWMEM_H
 #define INCLUDE_LOWMEM_H
 
-#include <global.h>
+#include <stdint.h>
 #include <mm/paging.h>
 
 #define LOWMEM_SIZE			0x01000000

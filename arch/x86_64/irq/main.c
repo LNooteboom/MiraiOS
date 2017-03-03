@@ -1,6 +1,6 @@
 #include <irq.h>
 
-#include <global.h>
+#include <stdint.h>
 #include "idt.h"
 #include "exception.h"
 

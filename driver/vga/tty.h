@@ -1,7 +1,7 @@
 #ifndef TTY_H
 #define TTY_H
 
-#include <global.h>
+#include <stdint.h>
 
 char *execCommand(char *command);
 

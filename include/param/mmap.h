@@ -1,7 +1,7 @@
 #ifndef INCLUDE_PARAM_MMAP_H
 #define INCLUDE_PARAM_MMAP_H
 
-#include <global.h>
+#include <stdint.h>
 #include <mm/paging.h> //for physPage_t
 
 struct mmap {
