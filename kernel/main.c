@@ -18,12 +18,7 @@ void kmain(void) {
 	sprint("\e[0m\e[2JKernel initialising...\n");
 	paramInit();
 	mmInit();
-	asm("xchg bx, bx");
-	hexprintln64(allocLowPhysPages(1));
-	hexprintln64(allocLowPhysPages(16));
-	hexprintln64(allocLowPhysPages(1));
-	hexprintln64(allocLowPhysPages(1));
-	hexprintln64(allocLowPhysPages(1));
-	while(true);
+	
+	sprint("Init complete.\n");
 }
 

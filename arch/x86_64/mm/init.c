@@ -97,10 +97,6 @@ void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
 					lowSize = size;
 					size = 0;
 				}
-				sprint("Lowmem: ");
-				hexprint64(base);
-				sprint(" - ");
-				hexprintln64(base + lowSize);
 				deallocLowPhysPages(base, lowSize / PAGE_SIZE);
 				base += lowSize;
 				//size -= lowSize;
