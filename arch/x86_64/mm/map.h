@@ -6,6 +6,7 @@
 #include <mm/paging.h>
 
 #define NROF_PAGE_LEVELS	4
+#define PAGE_MASK			0x0000FFFFFFFFF000
 
 typedef uint64_t pte_t;
 

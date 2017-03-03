@@ -2,13 +2,15 @@
 #define RSDT_H
 
 #include <stdint.h>
+#include <stdbool.h>
+#include "header.h"
 
 struct RSDP {
 	char sig[8];
 	uint8_t checksum;
 	char OEMID[6];
 	uint8_t revision;
-	uint32_t RsdtAddr;
+	uint32_t rsdtAddr;
 
 	uint32_t tableLen;
 	uint64_t xsdtAddr;
@@ -16,6 +18,6 @@ struct RSDP {
 	uint8_t reserved[3];
 } __attribute__ ((packed));
 
-uintptr_t acpiFindXsdt(void);
+void acpiGetRsdt(struct acpiHeader **rsdt, bool *isXsdt);
 
 #endif

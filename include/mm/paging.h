@@ -2,6 +2,7 @@
 #define INCLUDE_PAGING_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 typedef uintptr_t physPage_t;
 typedef uint64_t pageFlags_t;
@@ -26,11 +27,21 @@ extern char VMEM_OFFSET;
 /*
 Allocates a set of contiguous virtual pages in kernel memory
 */
-void *allocKPages(uint16_t nrofPages, pageFlags_t flags);
+void *allocKPages(size_t size, pageFlags_t flags);
 
 /*
 Allocates a set of contiguous virtual pages at a specified address
 */
-void allocPageAt(uintptr_t addr, uint16_t nrofPages, pageFlags_t flags);
+void allocPageAt(void *addr, size_t size, pageFlags_t flags);
+
+/*
+Maps mmio at address paddr to an allocated vaddr and returns it
+*/
+void *ioremap(uintptr_t paddr, size_t size);
+
+/*
+Unmaps mmio mapped by ioremap
+*/
+void iounmap(void *addr, size_t size);
 
 #endif

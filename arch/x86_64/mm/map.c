@@ -10,8 +10,6 @@
 #define PAGE_BIT_WIDTH		9	//The number of bits a page level covers
 #define PE_MASK			0xFFFFFFFFFFFFFFF8
 
-#define PAGE_MASK		0x0000FFFFFFFFF000
-
 static const uintptr_t pageLevelBase[NROF_PAGE_LEVELS] = {
 	0xFFFFFF0000000000,	//PT
 	0xFFFFFF7F80000000,	//PDT

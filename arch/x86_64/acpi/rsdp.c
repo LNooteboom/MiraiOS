@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <mm/paging.h>
 #include <acpi.h>
+#include "header.h"
 
 #define RSDPTR_BOUNDARY 16
 
@@ -24,7 +25,6 @@ static bool verifyChecksum(void *struc, size_t size) {
 static struct RSDP *findRsdp(void) {
 	uint64_t *pSig = (uint64_t*)RSDP_SIG;
 	uint64_t sig = *pSig;
-	struct RSDP *ret;
 	uint64_t *searchBase;
 	bool found = false;
 	if (*EBDASeg) {
@@ -59,14 +59,21 @@ static struct RSDP *findRsdp(void) {
 	hexprintln64((uint64_t)searchBase);
 	
 	if (verifyChecksum(searchBase, sizeof(struct RSDP))) {
-		ACPI_LOG("RSDP checksum valid\n");
+		ACPI_LOG("RSDP checksum valid");
 	} else {
-		ACPI_WARN("WARN: RSDP checksum invalid\n");
+		ACPI_WARN("WARN: RSDP checksum invalid");
 	}
 	return (struct RSDP*)searchBase;
 }
 
-uintptr_t acpiFindXsdt(void) {
-	struct RSDP *pRsdp = findRsdp();
-	return 0;
+void acpiGetRsdt(struct acpiHeader **rsdt, bool *isXsdt) {
+	struct RSDP *rsdp = findRsdp();
+	*isXsdt = (rsdp->revision >= 2);
+
+	//get table size
+	struct acpiHeader *tempHeader = ioremap(rsdp->rsdtAddr, sizeof(struct acpiHeader));
+	size_t tableSize = tempHeader->length;
+	iounmap(tempHeader, sizeof(struct acpiHeader));
+
+	*rsdt = ioremap(rsdp->rsdtAddr, tableSize);
 }
