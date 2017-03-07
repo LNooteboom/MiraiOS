@@ -132,6 +132,6 @@ void iounmap(void *addr, size_t size) {
 		nrofPages++;
 	}
 	for (unsigned int i = 0; i < nrofPages; i++) {
-		mmUnmapPage(((uintptr_t)addr - addrDiff) + (i * PAGE_SIZE));
+		mmUnmapPage((uintptr_t)addr + (i * PAGE_SIZE));
 	}
 }

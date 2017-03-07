@@ -55,6 +55,8 @@ __init:
 	mov [(bootInfo - VMEM_OFFSET)], ebx
 	mov ax, 0x10
 
+	cld
+
 	;setup temporary 32 bit gdt
 	lgdt [gdtrPhys]
 	

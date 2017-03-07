@@ -1,12 +1,83 @@
 #include <acpi.h>
+#include "acpi.h"
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <mm/memset.h>
+#include <mm/paging.h>
 #include "rsdp.h"
+#include "madt.h"
+#include "header.h"
 
 bool isXsdt;
 struct acpiHeader *rsdtHeader;
+uint64_t *xsdtContents = NULL; //if isXsdt == true
+uint32_t *rsdtContents = NULL; //if isXsdt == false
+uint32_t rsdtLength;
+
+bool acpiVerifyChecksum(void *struc, size_t size) {
+	char *cstruc = (char*)struc;
+	char result = 0;
+	for (uintptr_t i = 0; i < size; i++) {
+		result += cstruc[i];
+	}
+	return !((bool)result);
+}
+
+static uint64_t getRsdtEntryPaddr(unsigned int index) {
+	if (index >= rsdtLength) {
+		return 0;
+	}
+	if (isXsdt) {
+		return xsdtContents[index];
+	} else {
+		return rsdtContents[index];
+	}
+}
+
+static void getRsdtEntry(unsigned int index, char *name, size_t *len, uint64_t *paddr) {
+	uint64_t paddr2 = getRsdtEntryPaddr(index);
+	*paddr = paddr2;
+	if (!paddr2) {
+		return;
+	}
+	struct acpiHeader *header = ioremap(paddr2, sizeof(struct acpiHeader));
+	memcpy(name, header->sig, ACPI_SIG_LEN);
+	*len = header->length;
+	iounmap(header, sizeof(struct acpiHeader));
+}
 
 void acpiInit(void) {
 	acpiGetRsdt(&rsdtHeader, &isXsdt);
+	if (!acpiVerifyChecksum(rsdtHeader, rsdtHeader->length)) {
+		ACPI_WARN("WARN: RSDT checksum invalid!")
+	}
+	if (isXsdt) {
+		xsdtContents = (uint64_t*)((uintptr_t)rsdtHeader + sizeof(struct acpiHeader));
+		rsdtLength = (rsdtHeader->length - sizeof(struct acpiHeader)) / 8;
+	} else {
+		rsdtContents = (uint32_t*)((uintptr_t)rsdtHeader + sizeof(struct acpiHeader));
+		rsdtLength = (rsdtHeader->length - sizeof(struct acpiHeader)) / 4;
+	}
+	char buf[ACPI_SIG_LEN + 2];
+	//buf[ACPI_SIG_LEN] = '\n';
+	buf[ACPI_SIG_LEN + 1] = 0;
+	bool foundFadt = false;
+	bool foundMadt = false;
+	for (unsigned int i = 0; i < rsdtLength; i++) {
+		hexprint(i);
+		sprint("=");
+		size_t entryLen;
+		uint64_t paddr;
+		getRsdtEntry(i, buf, &entryLen, &paddr);
+		if (!paddr) {
+			continue; //skip NULL entry
+		}
+		sprint(buf);
+		hexprintln(paddr);
+		if (!foundMadt && memcmp(buf, madtSig, ACPI_SIG_LEN)) {
+			acpiMadtInit(paddr, entryLen);
+			foundMadt = true;
+		}
+	}
 }

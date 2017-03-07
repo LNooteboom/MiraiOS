@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = acpi.o rsdp.o
+OBJECTS = acpi.o rsdp.o madt.o
 
 all: ${OUTPUT}
 

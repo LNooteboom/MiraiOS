@@ -6,6 +6,7 @@
 #include <mm/paging.h>
 #include <acpi.h>
 #include "header.h"
+#include "acpi.h"
 
 #define RSDPTR_BOUNDARY 16
 
@@ -13,18 +14,9 @@ const char RSDP_SIG[8] = "RSD PTR ";
 
 static uint16_t *EBDASeg = (uint16_t*)(0x40E + (uintptr_t)&VMEM_OFFSET);
 
-static bool verifyChecksum(void *struc, size_t size) {
-	char *cstruc = (char*)struc;
-	char result = 0;
-	for (uintptr_t i = 0; i < size; i++) {
-		result += cstruc[i];
-	}
-	return !((bool)result);
-}
-
 static struct RSDP *findRsdp(void) {
 	uint64_t *pSig = (uint64_t*)RSDP_SIG;
-	uint64_t sig = *pSig;
+	uint64_t sig = *pSig; //encode signature to integer for fast comparison
 	uint64_t *searchBase;
 	bool found = false;
 	if (*EBDASeg) {
@@ -58,7 +50,7 @@ static struct RSDP *findRsdp(void) {
 	ACPI_LOG("Found RSDP at: ");
 	hexprintln64((uint64_t)searchBase);
 	
-	if (verifyChecksum(searchBase, sizeof(struct RSDP))) {
+	if (acpiVerifyChecksum(searchBase, sizeof(struct RSDP))) {
 		ACPI_LOG("RSDP checksum valid");
 	} else {
 		ACPI_WARN("WARN: RSDP checksum invalid");

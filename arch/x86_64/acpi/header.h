@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 
+#define ACPI_SIG_LEN 4
+
 struct acpiHeader {
-	char sig[4];
+	char sig[ACPI_SIG_LEN];
 	uint32_t length;
 	uint8_t revision;
 	uint8_t checksum;
