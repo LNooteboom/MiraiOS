@@ -65,16 +65,12 @@ void acpiInit(void) {
 	bool foundFadt = false;
 	bool foundMadt = false;
 	for (unsigned int i = 0; i < rsdtLength; i++) {
-		hexprint(i);
-		sprint("=");
 		size_t entryLen;
 		uint64_t paddr;
 		getRsdtEntry(i, buf, &entryLen, &paddr);
 		if (!paddr) {
 			continue; //skip NULL entry
 		}
-		sprint(buf);
-		hexprintln(paddr);
 		if (!foundMadt && memcmp(buf, madtSig, ACPI_SIG_LEN)) {
 			acpiMadtInit(paddr, entryLen);
 			foundMadt = true;
