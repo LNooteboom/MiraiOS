@@ -1,6 +1,8 @@
-SUBDIRS = i8253
+SUBDIRS = ""
 OUTPUT = main.o
-OBJECTS = $(patsubst %, %/main.o, ${SUBDIRS})
+
+OBJECTS = i8253.o
+OBJECTS += $(patsubst %, %/main.o, ${SUBDIRS})
 
 all: ${OUTPUT}
 
@@ -9,3 +11,6 @@ ${OUTPUT}: ${OBJECTS}
 
 %/main.o: %/makefile
 	$(MAKE) -C $(patsubst %/main.o,%,$@)
+
+%.o: %.c
+	${CC} ${CFLAG} -c -o $@ $<

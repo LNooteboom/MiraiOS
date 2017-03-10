@@ -4,7 +4,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define IRQ_HANDLER __attribute__((interrupt))
+
 typedef uint8_t interrupt_t;
+
+typedef uint64_t interruptFrame_t;
 
 extern bool irqEnabled;
 

@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = idt.o mainc.o exception.o
+OBJECTS = idt.o mainc.o exception.o hwirq.o
 
 all: ${OUTPUT}
 

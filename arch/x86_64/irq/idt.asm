@@ -1,7 +1,3 @@
-BITS 64
-
-DEFAULT REL
-
 global initIDT:function
 global routeInterrupt:function
 global unrouteInterrupt:function
