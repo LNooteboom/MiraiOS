@@ -24,10 +24,20 @@ struct LAPIC {
 	uint32_t flags;
 } __attribute__ ((packed));
 struct IOAPIC {
+	struct recordHeader header;
 	uint8_t id;
 	uint8_t reserved;
 	uint32_t addr;
-	uint32_t globalSystemIRQBase;
+	uint32_t GSIIRQBase;
+} __attribute__ ((packed));
+
+#define IRQBUS_ISA	0
+struct irqSourceOvrr {
+	struct recordHeader header;
+	uint8_t bus;
+	uint8_t irqSource;
+	uint32_t GSI;
+	uint16_t flags;
 } __attribute__ ((packed));
 
 char madtSig[4] = "APIC";
@@ -60,7 +70,15 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		} else if (recHeader->entryType == 1) {
 			struct IOAPIC *rec = (struct IOAPIC*)recHeader;
 			ACPI_LOG("Found IO APIC ID: ");
-			hexprintln(rec->id);
+			hexprintln(rec->addr);
+		} else if (recHeader->entryType == 2) {
+			struct irqSourceOvrr *rec = (struct IOAPIC*)recHeader;
+			if (rec->bus == IRQBUS_ISA) {
+				ACPI_LOG("Found ISA->APIC IRQ source override: ");
+				hexprint(rec->irqSource);
+				sprint(", ");
+				hexprintln(rec->GSI);
+			}
 		}
 		i += recHeader->len;
 	}

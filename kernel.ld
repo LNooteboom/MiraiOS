@@ -5,7 +5,7 @@ OUTPUT_FORMAT(elf64-x86-64)
 INPUT
 (
 	mm/main.o
-	driver/main.o
+	drivers/main.o
 	arch/x86_64/main.o
 	kernel/main.o
 )

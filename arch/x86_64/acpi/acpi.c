@@ -59,10 +59,8 @@ void acpiInit(void) {
 		rsdtContents = (uint32_t*)((uintptr_t)rsdtHeader + sizeof(struct acpiHeader));
 		rsdtLength = (rsdtHeader->length - sizeof(struct acpiHeader)) / 4;
 	}
-	char buf[ACPI_SIG_LEN + 2];
-	//buf[ACPI_SIG_LEN] = '\n';
-	buf[ACPI_SIG_LEN + 1] = 0;
-	bool foundFadt = false;
+	char buf[ACPI_SIG_LEN + 1];
+	buf[ACPI_SIG_LEN] = 0;
 	bool foundMadt = false;
 	for (unsigned int i = 0; i < rsdtLength; i++) {
 		size_t entryLen;
