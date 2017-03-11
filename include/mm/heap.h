@@ -3,8 +3,10 @@
 
 #include <stddef.h>
 
-void *vmalloc(size_t size);
+void *kmalloc(size_t size);
 
 void kfree(void *mem);
+
+void *krealloc(void *addr, size_t newSize);
 
 #endif

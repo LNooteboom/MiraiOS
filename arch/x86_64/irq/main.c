@@ -1,12 +1,22 @@
 #include <irq.h>
 
 #include <stdint.h>
+#include <mm/heap.h>
 #include "idt.h"
 #include "exception.h"
 
-#define MINSWIVALUE 0x30
+#define ISA_LIST_INC	4
+
+struct isaOverride {
+	uint16_t source;
+	uint16_t flags;
+	uint32_t GSI;
+};
 
 bool irqEnabled = 0;
+
+static unsigned int isaListLen = 0;
+static struct isaOverride *isaOverrides = NULL;
 
 void initInterrupts(void) {
 	initIDT();
@@ -14,10 +24,19 @@ void initInterrupts(void) {
 	//irqEnabled = true;
 }
 
-void routeSoftwareInterrupt(void (*ISR)(void), interrupt_t interrupt) {
-	if (interrupt >= MINSWIVALUE) {
-		routeInterrupt(ISR, interrupt, 0x01);
-	} else {
-		//printk("Software interrupt is not valid, ignoring...");
+int addISAOverride(uint32_t dst, uint16_t src, uint16_t flags) {
+	if (isaListLen % ISA_LIST_INC == 0) {
+		//alloc more room
+		struct isaOverride *oldOverrides = isaOverrides;
+		isaOverrides = krealloc(isaOverrides, (isaListLen + ISA_LIST_INC) * sizeof(struct isaOverride));
+		if (isaOverrides == NULL) {
+			isaOverrides = oldOverrides;
+			return -1;
+		}
 	}
+	isaOverrides[isaListLen].source = src;
+	isaOverrides[isaListLen].flags = flags;
+	isaOverrides[isaListLen].GSI = dst;
+	isaListLen++;
+	return 0;
 }

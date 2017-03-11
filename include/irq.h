@@ -14,9 +14,9 @@ extern bool irqEnabled;
 
 void initInterrupts(void);
 
-void routeSoftwareInterrupt(void (*ISR)(void), interrupt_t interrupt);
+int addISAOverride(uint32_t dst, uint16_t src, uint16_t flags);
 
-void routeInterrupt(void (*ISR)(void), interrupt_t interrupt, uint8_t flags);
+void routeInterrupt(void (*ISR)(interruptFrame_t *frame), interrupt_t interrupt, uint8_t flags);
 
 void unrouteInterrupt(interrupt_t interrupt);
 

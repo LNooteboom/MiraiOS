@@ -6,6 +6,7 @@
 #include <mm/paging.h>
 #include <print.h>
 #include <pio.h>
+#include <irq.h>
 
 struct madtHeader {
 	struct acpiHeader acpi;
@@ -70,14 +71,11 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		} else if (recHeader->entryType == 1) {
 			struct IOAPIC *rec = (struct IOAPIC*)recHeader;
 			ACPI_LOG("Found IO APIC ID: ");
-			hexprintln(rec->addr);
+			hexprintln(rec->id);
 		} else if (recHeader->entryType == 2) {
-			struct irqSourceOvrr *rec = (struct IOAPIC*)recHeader;
+			struct irqSourceOvrr *rec = (struct irqSourceOvrr*)recHeader;
 			if (rec->bus == IRQBUS_ISA) {
-				ACPI_LOG("Found ISA->APIC IRQ source override: ");
-				hexprint(rec->irqSource);
-				sprint(", ");
-				hexprintln(rec->GSI);
+				addISAOverride(rec->GSI, rec->irqSource, rec->flags);
 			}
 		}
 		i += recHeader->len;

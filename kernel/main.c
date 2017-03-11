@@ -4,6 +4,7 @@
 #include <irq.h>
 #include <mm/init.h>
 #include <param/main.h>
+#include <mm/heap.h>
 #include <acpi.h>
 
 void kmain(void) {
