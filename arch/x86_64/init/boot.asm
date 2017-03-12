@@ -71,7 +71,7 @@ __init:
 	mov esp, (stackEnd - VMEM_OFFSET)
 	mov ebp, (stackEnd - VMEM_OFFSET)
 
-	jmp 0x08:(.cont)
+	jmp 0x18:(.cont)
 	
 	.cont:
 	or edx, edx
@@ -236,7 +236,7 @@ SECTION bootdata
 
 jumpVect:
 	dd (init64 - VMEM_OFFSET)
-	dw 0x18
+	dw 0x08
 
 PML4TEntryToItself:
 	dq ((PML4T - VMEM_OFFSET) + PAGEFLAGS)
@@ -256,12 +256,12 @@ gdtr:
 gdt:
 	;entry 0x00: dummy
 	dq 0
-	;entry 0x08: boottext
+	;entry 0x08: 64 bit kernel text
 	dw 0xFFFF	;limit	00:15
 	dw 0x0000	;base	00:15
 	db 0x00		;base	16:23
-	db 0x9A		;Access byte: present, ring 0, executable, readable
-	db 0xCF		;flags & limit 16:19: 4kb granularity, 32 bit
+	db 0x98		;Access byte: present, ring 0
+	db 0x2F		;flags & limit 16:19: 64-bit
 	db 0x00		;base	24:31
 	;entry 0x10: data
 	dw 0xFFFF	;limit	00:15
@@ -270,26 +270,12 @@ gdt:
 	db 0x92		;Access byte: present, ring 0, readable
 	db 0xCF		;flags & limit 16:19: 4kb granularity, 32 bit
 	db 0x00		;base	24:31
-	;entry 0x18: 64 bit kernel text
+	;entry 0x18: boottext
 	dw 0xFFFF	;limit	00:15
 	dw 0x0000	;base	00:15
 	db 0x00		;base	16:23
-	db 0x98		;Access byte: present, ring 0
-	db 0x2F		;flags & limit 16:19: 64-bit
-	db 0x00		;base	24:31
-	;entry 0x20: 64 bit usermode text
-	dw 0xFFFF	;limit	00:15
-	dw 0x0000	;base	00:15
-	db 0x00		;base	16:23
-	db 0xF8		;Access byte: present, ring 3
-	db 0x2F		;flags & limit 16:19: 64-bit
-	db 0x00		;base	24:31
-	;entry 0x20: 32 bit usermode text
-	dw 0xFFFF	;limit	00:15
-	dw 0x0000	;base	00:15
-	db 0x00		;base	16:23
-	db 0xF8		;Access byte: present, ring 3
-	db 0x4F		;flags & limit 16:19: 32-bit
+	db 0x9A		;Access byte: present, ring 0, executable, readable
+	db 0xCF		;flags & limit 16:19: 4kb granularity, 32 bit
 	db 0x00		;base	24:31
 gdtEnd:
 

@@ -1,5 +1,5 @@
 OUTPUT = main.o
-OBJECTS = lapicc.o lapic.o
+OBJECTS = lapicc.o lapic.o ioapic.o
 
 all: ${OUTPUT}
 

@@ -10,6 +10,9 @@
 #include <pio.h>
 #include <irq.h>
 #include <apic.h>
+#include <ioapic.h>
+
+#define ioWait() outb(0x80, 0)
 
 #define APIC_BUFFER_SIZE	256
 
@@ -59,8 +62,26 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 
 	if (madtHdr->flags & 1) {
 		//disable legacy PICs
+		outb(0x20, 0x11);
+		ioWait();
+		outb(0xa0, 0x11);
+		ioWait();
+		outb(0x21, 16);
+		ioWait();
+		outb(0xa1, 24);
+		ioWait();
+		outb(0x21, 4);
+		ioWait();
+		outb(0xa1, 2);
+		ioWait();
+		outb(0x21, 0x01);
+		ioWait();
+		outb(0xa1, 0x01);
+		ioWait();
+
 		outb(0xa1, 0xff);
 		outb(0x21, 0xff);
+		//outb(0x20, 0x20);
 		ACPI_LOG("Legacy PICs disabled.");
 	}
 
@@ -81,6 +102,18 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 			struct IOAPIC *rec = (struct IOAPIC*)recHeader;
 			ACPI_LOG("Found IO APIC ID: ");
 			hexprintln(rec->id);
+			struct ioApicInfo *oldInfos = ioApicInfos;
+			ioApicInfos = krealloc(ioApicInfos, (nrofIOApics + 1) * sizeof(struct ioApicInfo));
+			if (ioApicInfos) {
+				ioApicInfos[nrofIOApics].id = rec->id;
+				ioApicInfos[nrofIOApics].paddr = rec->addr;
+				ioApicInfos[nrofIOApics].gsiBase = rec->GSIIRQBase;
+				ioApicInfos[nrofIOApics].lock = 0;
+				nrofIOApics++;
+			} else {
+				sprint("No memory available for IO apic info\n");
+				ioApicInfos = oldInfos;
+			}
 		} else if (recHeader->entryType == 2) {
 			struct irqSourceOvrr *rec = (struct irqSourceOvrr*)recHeader;
 			if (rec->bus == IRQBUS_ISA) {
@@ -89,7 +122,6 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		}
 		i += recHeader->len;
 	}
-
 	cpuInfos = kmalloc(nrofCPUs * sizeof(struct cpuInfo));
 	if (!cpuInfos) {
 		sprint("No memory available for cpuInfo!");

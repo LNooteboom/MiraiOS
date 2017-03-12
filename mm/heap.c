@@ -111,11 +111,10 @@ void *kmalloc(size_t size) {
 	if (size == 0) {
 		return NULL;
 	}
-	if (size & 15) {
-		size &= 15;
-		size += 16;
+	if (size % HEAP_ALIGN) {
+		size -= size % HEAP_ALIGN;
+		size += HEAP_ALIGN;
 	}
-	
 	acquireSpinlock(&heapLock);
 	void *retVal = heapAlloc(size, heapStart, heapSize);
 	if (!retVal) {

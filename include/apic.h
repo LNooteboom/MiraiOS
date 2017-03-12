@@ -7,11 +7,13 @@
 #define NROF_GDT_ENTRIES 9
 
 //gdt selector bits
-#define GDT_CONFORMING	(1 << 10)
-#define GDT_DPL_SHIFT	13
-#define GDT_PRESENT		(1 << 15)
-#define GDT_LONG		(1 << 21)
-#define GDT_OP_SIZE		(1 << 22)
+#define GDT_CONFORMING	(1UL << 42)
+#define GDT_DPL_SHIFT	45
+#define GDT_PRESENT		(1UL << 47)
+#define GDT_LONG		(1UL << 53)
+#define GDT_OP_SIZE		(1UL << 54)
+#define GDT_DATA		(1UL << 44)
+#define GDT_CODE		((1UL << 43) | (1UL << 44))
 
 typedef uint64_t gdtEntry_t;
 

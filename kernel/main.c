@@ -4,9 +4,10 @@
 #include <irq.h>
 #include <mm/init.h>
 #include <param/main.h>
-#include <mm/heap.h>
 #include <acpi.h>
 #include <apic.h>
+#include <ioapic.h>
+#include <timer.h>
 
 void kmain(void) {
 	initInterrupts();
@@ -17,7 +18,10 @@ void kmain(void) {
 
 	acpiInit();
 	lapicInit();
+	ioApicInit();
+	jiffyInit();
 	
 	sprint("Init complete.\n");
+	while(1);
 }
 

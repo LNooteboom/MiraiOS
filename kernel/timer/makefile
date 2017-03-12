@@ -1,11 +1,11 @@
-OUTPUT = main.o
 
-OBJECTS = i8253.o
+OUTPUT = main.o
+OBJECTS := jiffy.o
 
 all: ${OUTPUT}
 
 ${OUTPUT}: ${OBJECTS}
-	${LD} -r -o $@ ${OBJECTS}
+	${LD} -r -o $@ $+
 
 %.o: %.c
 	${CC} ${CFLAG} -c -o $@ $<

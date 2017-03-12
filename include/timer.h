@@ -2,10 +2,12 @@
 #define INCLUDE_TIMER_H
 
 #include <stdint.h>
+#include <irq.h>
+#include <stdbool.h>
 
 struct jiffyTimer {
 	//Sets timer frequency
-	int (*setFreq)(uint32_t);
+	void (*setFreq)(uint32_t);
 	//turns the timer on/off
 	void (*setState)(bool);
 
@@ -14,5 +16,9 @@ struct jiffyTimer {
 	interrupt_t irq;
 	uint8_t priority;
 };
+
+int jiffyInit(void);
+
+void jiffyFini(void);
 
 #endif

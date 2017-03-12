@@ -142,6 +142,7 @@ excSS:
 	jmp exceptionBaseWithErrorCode
 
 excGP:
+	xchg bx, bx
 	mov rdi, GPmsg
 	jmp exceptionBaseWithErrorCode
 
