@@ -5,6 +5,7 @@
 #include "acpi.h"
 #include <mm/paging.h>
 #include <mm/heap.h>
+#include <mm/memset.h>
 #include <print.h>
 #include <pio.h>
 #include <irq.h>
@@ -90,8 +91,12 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 	}
 
 	cpuInfos = kmalloc(nrofCPUs * sizeof(struct cpuInfo));
+	if (!cpuInfos) {
+		sprint("No memory available for cpuInfo!");
+		while(1);
+	}
+	memset(cpuInfos, 0, nrofCPUs * sizeof(struct cpuInfo));
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
 		cpuInfos[i].apicID = apicIDs[i];
-		cpuInfos[i].lock = 0;
 	}
 }

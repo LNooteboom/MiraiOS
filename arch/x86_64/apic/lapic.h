@@ -6,4 +6,6 @@
 
 void lapicEnable(uintptr_t *baseAddr);
 
+bool setTSCAUX(uint32_t value);
+
 #endif
