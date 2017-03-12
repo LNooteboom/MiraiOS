@@ -4,9 +4,13 @@
 #include <stddef.h>
 #include "acpi.h"
 #include <mm/paging.h>
+#include <mm/heap.h>
 #include <print.h>
 #include <pio.h>
 #include <irq.h>
+#include <apic.h>
+
+#define APIC_BUFFER_SIZE	256
 
 struct madtHeader {
 	struct acpiHeader acpi;
@@ -61,6 +65,7 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 
 	madtContents = (char*)((uintptr_t)madtHdr + sizeof(struct madtHeader));
 	size_t contentLen = madtLen - sizeof(struct madtHeader);
+	uint8_t apicIDs[APIC_BUFFER_SIZE];
 	unsigned int i = 0;
 	while (i < contentLen) {
 		struct recordHeader *recHeader = (struct recordHeader*)(&(madtContents[i]));
@@ -68,6 +73,9 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 			struct LAPIC *rec = (struct LAPIC*)recHeader;
 			ACPI_LOG("Found local APIC ID: ");
 			hexprintln(rec->apicID);
+			if (nrofCPUs < APIC_BUFFER_SIZE) {
+				apicIDs[nrofCPUs++] = rec->apicID;
+			}
 		} else if (recHeader->entryType == 1) {
 			struct IOAPIC *rec = (struct IOAPIC*)recHeader;
 			ACPI_LOG("Found IO APIC ID: ");
@@ -79,5 +87,11 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 			}
 		}
 		i += recHeader->len;
+	}
+
+	cpuInfos = kmalloc(nrofCPUs * sizeof(struct cpuInfo));
+	for (unsigned int i = 0; i < nrofCPUs; i++) {
+		cpuInfos[i].apicID = apicIDs[i];
+		cpuInfos[i].lock = 0;
 	}
 }

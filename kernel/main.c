@@ -6,6 +6,7 @@
 #include <param/main.h>
 #include <mm/heap.h>
 #include <acpi.h>
+#include <apic.h>
 
 void kmain(void) {
 	initInterrupts();
@@ -15,6 +16,7 @@ void kmain(void) {
 	mmInit();
 
 	acpiInit();
+	lapicInit();
 	
 	sprint("Init complete.\n");
 }
