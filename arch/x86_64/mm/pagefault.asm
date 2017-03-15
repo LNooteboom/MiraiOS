@@ -5,6 +5,7 @@ global excPF:function
 extern sprint
 extern hexprintln
 extern hexprintln64
+extern cprint
 
 extern mmGetEntry
 extern allocPhysPage
@@ -35,7 +36,7 @@ excPF:
     mov [rbp-0x58], r12
 
     ;test if caused by not present page
-    mov eax, [rbp+8]
+    mov eax, [rbp+16]
     test eax, 1
     jnz .L0
         mov bl, NROF_PAGE_LEVELS - 1
@@ -83,8 +84,8 @@ excPF:
             sub bl, 1
             jns .L1
             ;page already alloced
-			mov rdi, [rbp+16]
-			call hexprintln64
+			mov rdi, weirdPF
+			call sprint
 			jmp $
         .L8:
         xor rdi, rdi
@@ -107,6 +108,7 @@ excPF:
         add rsp, 8 ;jump over error code
         iretq
     .L0:
+	add rbp, 16
 	mov rsp, rbp
     ;print error message
     mov rdi, PFmsg
@@ -149,6 +151,11 @@ excPF:
     jz .L12
         mov rdi, PFRSV
         call sprint
+		mov rdi, cr2
+		mov rsi, 0
+		call mmGetEntry
+		mov rdi, [rax]
+		call hexprintln64
     .L12:
     test [rsp], byte 0x10
     jz .L13
@@ -171,3 +178,5 @@ PFRSV:          db '1 found in reserved field', endl
 PFID:           db 'Caused by instruction fetch', endl
 
 invAllocMsg:    db 'Invalid page alloc', endl
+
+weirdPF:		db 'Weird Page fault occurred!', endl

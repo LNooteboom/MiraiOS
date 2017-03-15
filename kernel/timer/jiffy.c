@@ -5,11 +5,12 @@
 #include <stddef.h>
 #include <mm/heap.h>
 #include <print.h>
+#include <drivers/timer/i8253.h>
 
 uint64_t jiffyCount;
 struct jiffyTimer *jiffyTimer;
 
-__attribute__((interrupt)) void jiffyIrq(interruptFrame_t *frame) {
+void jiffyIrq(interruptFrame_t *frame) {
 	jiffyCount++;
 	hexprintln(jiffyCount);
 	hexprintln(0xDEADBEEF);

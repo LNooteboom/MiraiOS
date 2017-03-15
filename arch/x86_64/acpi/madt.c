@@ -57,7 +57,7 @@ char *madtContents;
 void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 	madtHdr = ioremap(madtPaddr, madtLen);
 	if (!acpiVerifyChecksum(madtHdr, madtLen)) {
-		ACPI_WARN("WARN: MADT checksum invalid!");
+		ACPI_WARN("WARN: MADT checksum invalid!\n");
 	}
 
 	if (madtHdr->flags & 1) {
@@ -82,7 +82,7 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		outb(0xa1, 0xff);
 		outb(0x21, 0xff);
 		//outb(0x20, 0x20);
-		ACPI_LOG("Legacy PICs disabled.");
+		ACPI_LOG("Legacy PICs disabled.\n");
 	}
 
 	madtContents = (char*)((uintptr_t)madtHdr + sizeof(struct madtHeader));
@@ -111,7 +111,7 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 				ioApicInfos[nrofIOApics].lock = 0;
 				nrofIOApics++;
 			} else {
-				sprint("No memory available for IO apic info\n");
+				ACPI_LOG("No memory available for IO apic info\n");
 				ioApicInfos = oldInfos;
 			}
 		} else if (recHeader->entryType == 2) {
@@ -124,7 +124,7 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 	}
 	cpuInfos = kmalloc(nrofCPUs * sizeof(struct cpuInfo));
 	if (!cpuInfos) {
-		sprint("No memory available for cpuInfo!");
+		sprint("No memory available for cpuInfo!\n");
 		while(1);
 	}
 	memset(cpuInfos, 0, nrofCPUs * sizeof(struct cpuInfo));

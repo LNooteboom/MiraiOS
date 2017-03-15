@@ -50,7 +50,7 @@ static void getRsdtEntry(unsigned int index, char *name, size_t *len, uint64_t *
 void acpiInit(void) {
 	acpiGetRsdt(&rsdtHeader, &isXsdt);
 	if (!acpiVerifyChecksum(rsdtHeader, rsdtHeader->length)) {
-		ACPI_WARN("WARN: RSDT checksum invalid!")
+		ACPI_WARN("WARN: RSDT checksum invalid!\n")
 	}
 	if (isXsdt) {
 		xsdtContents = (uint64_t*)((uintptr_t)rsdtHeader + sizeof(struct acpiHeader));
@@ -73,5 +73,9 @@ void acpiInit(void) {
 			acpiMadtInit(paddr, entryLen);
 			foundMadt = true;
 		}
+	}
+	if (!foundMadt) {
+		sprint("No MADT found!");
+		while(1);
 	}
 }

@@ -22,12 +22,12 @@ static int getCPUInfo(unsigned int apicID) {
 	return -1;
 }
 static void initGDT(struct cpuInfo *info, uint16_t index) {
-	info->gdt[0] = 0; 															//NULL entry
-	info->gdt[1] = GDT_LONG | GDT_PRESENT | GDT_CODE;							//0x08 64-bit kernel text
-	info->gdt[2] = GDT_PRESENT | GDT_DATA;										//0x10 data
-	info->gdt[3] = (3 << GDT_DPL_SHIFT) | GDT_LONG | GDT_PRESENT | GDT_CODE;	//0x18 64-bit usermode text
-	info->gdt[4] = (3 << GDT_DPL_SHIFT) | GDT_OP_SIZE | GDT_PRESENT | GDT_CODE;	//0x20 32-bit usermode text
-	info->gdt[7] = index | (0x0000E200UL << 32);								//0x38 fake ldt = index selector
+	info->gdt[0] = 0; 																//NULL entry
+	info->gdt[1] = GDT_LONG | GDT_PRESENT | GDT_CODE;								//0x08 64-bit kernel text
+	info->gdt[2] = GDT_PRESENT | GDT_DATA;											//0x10 data
+	info->gdt[3] = (3UL << GDT_DPL_SHIFT) | GDT_LONG | GDT_PRESENT | GDT_CODE;		//0x18 64-bit usermode text
+	info->gdt[4] = (3UL << GDT_DPL_SHIFT) | GDT_OP_SIZE | GDT_PRESENT | GDT_CODE;	//0x20 32-bit usermode text
+	info->gdt[7] = index | (0x0000E200UL << 32);									//0x38 fake ldt = cpu index selector
 	info->gdt[8] = 0;
 
 	//0x28&30 tss entry

@@ -32,6 +32,15 @@ static struct isaOverride *isaOverrides = NULL;
 unsigned int nrofIOApics = 0;
 struct ioApicInfo *ioApicInfos = NULL;
 
+static struct ioApicInfo *findApic(unsigned int irq) {
+	for (unsigned int i = 0; i < nrofIOApics; i++) {
+		if (irq >= ioApicInfos[i].gsiBase && irq < ioApicInfos[i].gsiBase + ioApicInfos[i].gsiLength) {
+			return &(ioApicInfos[i]);
+		}
+	}
+	return NULL;
+}
+
 void ioApicInit(void) {
 	for (unsigned int i = 0; i < nrofIOApics; i++) {
 		acquireSpinlock(&(ioApicInfos[i].lock));
@@ -50,7 +59,8 @@ void ioApicInit(void) {
 }
 
 int routeHWIRQ(unsigned int irq, void (*ISR)(interruptFrame_t *frame), unsigned int flags) {
-	routeInterrupt(ISR, 0x40, 0);
+	interrupt_t vec = allocIrqVec();
+	routeInterrupt(ISR, vec, 0);
 	if (flags & IRQ_FLAG_ISA) {
 		unsigned int isaFlags = 0;
 		for (unsigned int i = 0; i < isaListLen; i++) {
@@ -68,18 +78,14 @@ int routeHWIRQ(unsigned int irq, void (*ISR)(interruptFrame_t *frame), unsigned 
 			flags |= IRQ_FLAG_TRIGGER;
 		}
 	}
-	struct ioApicInfo *ioApic = NULL;
-	for (unsigned int i = 0; i < nrofIOApics; i++) {
-		if (irq >= ioApicInfos[i].gsiBase && irq < ioApicInfos[i].gsiBase + ioApicInfos[i].gsiLength) {
-			ioApic = &(ioApicInfos[i]);
-			break;
-		}
-	}
+
+	struct ioApicInfo *ioApic = findApic(irq);
 	if (!ioApic) {
 		sprint("Could not find APIC for irq: ");
 		hexprintln(irq);
 		while(1);
 	}
+
 	acquireSpinlock(&(ioApic->lock));
 	uint32_t index = REG_IORED_BASE + ((irq - ioApic->gsiBase) * 2);
 	*(ioApic->indexPort) = index;
@@ -90,14 +96,18 @@ int routeHWIRQ(unsigned int irq, void (*ISR)(interruptFrame_t *frame), unsigned 
 		flags &= IRQ_FLAG_POLARITY | IRQ_FLAG_TRIGGER;
 	}
 	uint64_t apicID = cpuInfos[getCPU()].apicID;
+	uint64_t value = flags | (vec & 0xFF) | (apicID << IORED_APIC_ID_SHIFT);
 
-	uint64_t value = flags | (0x40 & 0xFF) | (apicID << IORED_APIC_ID_SHIFT);
 	*(ioApic->dataPort) = value;
 	index++;
 	*(ioApic->indexPort) = index;
 	*(ioApic->dataPort) = value >> 32;
 	releaseSpinlock(&(ioApic->lock));
 	return 0;
+}
+
+void unrouteHWIRQ(interrupt_t vec) {
+	//mask ioapic entry
 }
 
 int addISAOverride(uint32_t dst, uint16_t src, uint16_t flags) {

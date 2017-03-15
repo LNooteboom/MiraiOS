@@ -60,6 +60,8 @@ static void *heapAlloc(size_t size, memArea_t *heap, size_t heapSize) {
 
 	memArea_t oldSize = *newHeader;
 	memArea_t *freeFooter = getFooterFromHeader(newHeader);
+	//sprint("footer: ");
+	//hexprintln64(freeFooter);
 	*newHeader = totalSize;
 	memArea_t *newFooter = getFooterFromHeader(newHeader);
 
@@ -209,7 +211,7 @@ void *krealloc(void *addr, size_t newSize) {
 		return newAddr;
 	}
 	memArea_t *nextFooter = getFooterFromHeader(nextHeader);
-	*curHeader = newSize | AREA_INUSE;
+	*curHeader = (newSize + sizeof(memArea_t) * 2) | AREA_INUSE;
 	if (moreNeeded == (*nextHeader & AREA_SIZE)) {
 		//no split needed
 		*nextFooter = *curHeader;

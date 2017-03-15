@@ -41,19 +41,19 @@ static struct RSDP *findRsdp(void) {
 			searchBase += RSDPTR_BOUNDARY / sizeof(*searchBase);
 		}
 		if (!found) {
-			ACPI_WARN("ERROR: Could not find RSDP!");
+			ACPI_WARN("ERROR: Could not find RSDP!\n");
 			while (true) {
 				asm("hlt");
 			}
 		}
 	}
-	ACPI_LOG("Found RSDP at: ");
-	hexprintln64((uint64_t)searchBase);
+	//ACPI_LOG("Found RSDP at: ");
+	//hexprintln64((uint64_t)searchBase);
 	
 	if (acpiVerifyChecksum(searchBase, sizeof(struct RSDP))) {
-		ACPI_LOG("RSDP checksum valid");
+		//ACPI_LOG("RSDP checksum valid");
 	} else {
-		ACPI_WARN("WARN: RSDP checksum invalid");
+		ACPI_WARN("WARN: RSDP checksum invalid!\n");
 	}
 	return (struct RSDP*)searchBase;
 }
@@ -61,11 +61,16 @@ static struct RSDP *findRsdp(void) {
 void acpiGetRsdt(struct acpiHeader **rsdt, bool *isXsdt) {
 	struct RSDP *rsdp = findRsdp();
 	*isXsdt = (rsdp->revision >= 2);
+	//*isXsdt = false;
 
 	//get table size
 	struct acpiHeader *tempHeader = ioremap(rsdp->rsdtAddr, sizeof(struct acpiHeader));
 	size_t tableSize = tempHeader->length;
 	iounmap(tempHeader, sizeof(struct acpiHeader));
 
-	*rsdt = ioremap(rsdp->rsdtAddr, tableSize);
+	if (*isXsdt) {
+		*rsdt = ioremap(rsdp->xsdtAddr, tableSize);
+	} else {
+		*rsdt = ioremap(rsdp->rsdtAddr, tableSize);
+	}
 }

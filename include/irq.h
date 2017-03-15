@@ -27,4 +27,8 @@ void routeInterrupt(void (*ISR)(interruptFrame_t *frame), interrupt_t interrupt,
 
 void unrouteInterrupt(interrupt_t interrupt);
 
+interrupt_t allocIrqVec(void);
+
+void deallocIrqVec(interrupt_t vec);
+
 #endif
