@@ -7,15 +7,18 @@
 #include <print.h>
 #include <drivers/timer/i8253.h>
 
-uint64_t jiffyCount;
+extern void jiffyIrq(void);
+
+uint64_t jiffyCounter;
 struct jiffyTimer *jiffyTimer;
 
+/*
 void jiffyIrq(interruptFrame_t *frame) {
 	jiffyCount++;
 	hexprintln(jiffyCount);
 	hexprintln(0xDEADBEEF);
 	while(1);
-}
+}*/
 
 int jiffyInit(void) {
 	//select PIT for now
@@ -23,7 +26,7 @@ int jiffyInit(void) {
 	i8253Init(jiffyTimer);
 	
 	routeHWIRQ(jiffyTimer->irq, jiffyIrq, IRQ_FLAG_ISA);
-	jiffyTimer->setFreq(1);
+	jiffyTimer->setFreq(32);
 	jiffyTimer->setState(true);
 	return 0;
 }

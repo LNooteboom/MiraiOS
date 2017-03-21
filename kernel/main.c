@@ -22,6 +22,8 @@ void kmain(void) {
 	jiffyInit();
 	
 	sprint("Init complete.\n");
-	while(1);
+	while (1) {
+		asm("hlt");
+	}
 }
 

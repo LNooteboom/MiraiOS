@@ -19,7 +19,7 @@ static const uint32_t clkHz = 1193182;
 static unsigned int div = 0;
 
 void i8253SetFreq(uint32_t freq) {
-	div = clkHz / freq;
+	div = (clkHz / freq);
 }
 
 void i8253State(bool on) {

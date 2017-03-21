@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS := jiffy.o
+OBJECTS := jiffy.o irq.o
 
 all: ${OUTPUT}
 
@@ -9,3 +9,6 @@ ${OUTPUT}: ${OBJECTS}
 
 %.o: %.c
 	${CC} ${CFLAG} -c -o $@ $<
+	
+%.o: %.asm
+	${NASM} ${NASMFLAG} -o $@ $<

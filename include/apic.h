@@ -7,6 +7,7 @@
 #define NROF_GDT_ENTRIES 9
 
 //gdt selector bits
+#define GDT_WRITE		(1UL << 41)
 #define GDT_CONFORMING	(1UL << 42)
 #define GDT_DPL_SHIFT	45
 #define GDT_PRESENT		(1UL << 47)

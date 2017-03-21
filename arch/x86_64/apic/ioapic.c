@@ -58,7 +58,7 @@ void ioApicInit(void) {
 	asm("sti");
 }
 
-int routeHWIRQ(unsigned int irq, void (*ISR)(interruptFrame_t *frame), unsigned int flags) {
+int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags) {
 	interrupt_t vec = allocIrqVec();
 	routeInterrupt(ISR, vec, 0);
 	if (flags & IRQ_FLAG_ISA) {

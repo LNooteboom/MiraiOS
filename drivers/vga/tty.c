@@ -7,12 +7,15 @@
 #include <mm/memset.h>
 
 char currentAttrib = 0x07; //white text on black background
-uint16_t cursor = 0;
-uint16_t scroll = 0;
+int cursor = 0;
+int scroll = 0;
 
 void vgaCPrint(char c) {
 	if (c == '\n') {
 		newline();
+		return;
+	} else if (c == '\r') {
+		cursor -= cursor % vgaScreenWidth;
 		return;
 	}
 	vgaMem[cursor * 2] = c;
@@ -80,6 +83,7 @@ char *execCommand(char *command) {
 									case 0:
 										//reset
 										currentAttrib = 0x07;
+										//cursor = 0;
 										break;
 									case 1:
 										currentAttrib |= 0x08;
@@ -101,6 +105,7 @@ char *execCommand(char *command) {
 								break;
 						}
 					} while (*(command - 1) == ';');
+					break;
 			}
 			return commandLetter;
 	}

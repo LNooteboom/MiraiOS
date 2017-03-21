@@ -6,7 +6,7 @@
 
 void initIDT(void);
 
-void routeInterrupt(void (*ISR)(interruptFrame_t *frame), interrupt_t interrupt, uint8_t flags);
+void routeInterrupt(void (*ISR)(void), interrupt_t interrupt, uint8_t flags);
 
 void unrouteInterrupt(interrupt_t interrupt);
 

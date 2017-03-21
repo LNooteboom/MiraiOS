@@ -24,7 +24,7 @@ static int getCPUInfo(unsigned int apicID) {
 static void initGDT(struct cpuInfo *info, uint16_t index) {
 	info->gdt[0] = 0; 																//NULL entry
 	info->gdt[1] = GDT_LONG | GDT_PRESENT | GDT_CODE;								//0x08 64-bit kernel text
-	info->gdt[2] = GDT_PRESENT | GDT_DATA;											//0x10 data
+	info->gdt[2] = GDT_PRESENT | GDT_DATA | GDT_WRITE;								//0x10 data
 	info->gdt[3] = (3UL << GDT_DPL_SHIFT) | GDT_LONG | GDT_PRESENT | GDT_CODE;		//0x18 64-bit usermode text
 	info->gdt[4] = (3UL << GDT_DPL_SHIFT) | GDT_OP_SIZE | GDT_PRESENT | GDT_CODE;	//0x20 32-bit usermode text
 	info->gdt[7] = index | (0x0000E200UL << 32);									//0x38 fake ldt = cpu index selector
@@ -59,7 +59,7 @@ void lapicInit(void) {
 	}
 	struct cpuInfo *info = &(cpuInfos[index]);
 	acquireSpinlock(&(info->lock));
-
+	info->lapicBase = lapicRegs;
 	lapicRegs[0xF0 / 4] = 0x1FF; //set spurious register to vector 0xFF (points to empty isr)
 	useTSCP = setTSCAUX((uint32_t)index);
 	if (!useTSCP) {
@@ -68,4 +68,9 @@ void lapicInit(void) {
 	initGDT(info, index);
 
 	releaseSpinlock(&(info->lock));
+}
+
+void ackIRQ(void) {
+	uint32_t cpu = getCPU();
+	cpuInfos[cpu].lapicBase[0xB0 / 4] = 0;
 }
