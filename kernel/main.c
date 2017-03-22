@@ -1,13 +1,10 @@
 #include <stdint.h>
 #include <vga.h>
 #include <print.h>
-#include <irq.h>
 #include <mm/init.h>
 #include <param/main.h>
-#include <acpi.h>
-#include <apic.h>
-#include <ioapic.h>
 #include <timer.h>
+#include <arch.h>
 
 void kmain(void) {
 	initInterrupts();
@@ -16,9 +13,8 @@ void kmain(void) {
 	paramInit();
 	mmInit();
 
-	acpiInit();
-	lapicInit();
-	ioApicInit();
+	archInit();
+
 	jiffyInit();
 	
 	sprint("Init complete.\n");

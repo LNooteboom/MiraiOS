@@ -1,19 +1,19 @@
 SHELL = /bin/sh
 
 export TARGET = x86_64-elf
+export ARCH = x86_64
 
 WARNINGS = "-Wall" "-Wextra"
 NOSTDSTUFF = "-ffreestanding" "-nostdlib" "-nostartfiles" "-fno-pie"
-export CFLAG = ${WARNINGS} ${NOSTDSTUFF} "-g" "-I$(PWD)/include/" "-mcmodel=kernel" "-mno-red-zone" "-masm=intel"
-#export CC = ${TARGET}-gcc
-export CC = gcc
+export CFLAG = ${WARNINGS} ${NOSTDSTUFF} "-g" "-I$(PWD)/include/" "-I$(PWD)/arch/${ARCH}/include" "-mcmodel=kernel" "-mno-red-zone" "-masm=intel"
+export CC = ${TARGET}-gcc
+#export CC = gcc
 
 export NASM = nasm
 export NASMFLAG = "-f elf64"
 
 export LD = ${TARGET}-ld
 
-export ARCH = x86_64
 
 OUTPUT = vmmount/out.img
 KERNEL = miraiBoot

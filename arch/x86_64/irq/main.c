@@ -25,7 +25,7 @@ interrupt_t allocIrqVec(void) {
 	bool foundVec = false;
 	acquireSpinlock(&irqBitmapLock);
 	for (unsigned int i = 0; i < NROF_BITMAP_IRQS / 4; i++) {
-		if (irqBitmap[i] != ~0) {
+		if (irqBitmap[i] != (uint32_t)(~0)) {
 			bitPos = 0;
 			uint32_t bit = irqBitmap[i];
 			while (bit & 1) {
