@@ -5,8 +5,18 @@
 #include <param/main.h>
 #include <timer.h>
 #include <arch.h>
+#include <sched/thread.h>
+#include <stddef.h>
 
 uintptr_t __stack_chk_guard;
+
+void *testThreadlol(void *arg) {
+	while (1) {
+		sprint(arg);
+		asm("hlt");
+	}
+	return NULL;
+}
 
 void kmain(void) {
 	initInterrupts();
@@ -19,8 +29,13 @@ void kmain(void) {
 
 	jiffyInit();
 	
+	
+	thread_t startThread;
+	thread_t startThread2;
+	createKernelThread(&startThread, testThreadlol, "A");
+	createKernelThread(&startThread2, testThreadlol, "B");
 	sprint("Init complete.\n");
-	while(1) {
+	while (1) {
 		asm("hlt");
 	}
 }

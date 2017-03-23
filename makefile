@@ -19,7 +19,7 @@ OUTPUT = vmmount/out.img
 KERNEL = miraiBoot
 BOOT = BOOT
 IMAGE = out.img
-MODULES = kernel arch/${ARCH} drivers mm
+MODULES = kernel arch/${ARCH} drivers mm sched
 OBJ_INIT = init.o
 
 

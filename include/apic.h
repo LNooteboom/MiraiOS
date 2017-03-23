@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <spinlock.h>
+#include <sched/thread.h>
 
 #define NROF_GDT_ENTRIES 9
 
@@ -33,6 +34,8 @@ struct cpuGDTR {
 } __attribute__((packed));
 
 struct cpuInfo {
+	thread_t currentThread;
+
 	uint32_t apicID;
 	spinlock_t lock;
 	uint32_t *lapicBase;

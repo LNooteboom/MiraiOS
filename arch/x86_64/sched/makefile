@@ -1,14 +1,18 @@
 
 OUTPUT = main.o
-OBJECTS := jiffy.o
+OBJECTS = threadc.o thread.o
 
 all: ${OUTPUT}
 
 ${OUTPUT}: ${OBJECTS}
 	${LD} -r -o $@ $+
 
-%.o: %.c
+%c.o: %.c
 	${CC} ${CFLAG} -c -o $@ $<
-	
+
 %.o: %.asm
 	${NASM} ${NASMFLAG} -o $@ $<
+
+%.o: %.c
+	${CC} ${CFLAG} -c -o $@ $<
+

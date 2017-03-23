@@ -8,6 +8,7 @@ INPUT
 	drivers/main.o
 	arch/x86_64/main.o
 	kernel/main.o
+	sched/main.o
 )
 
 STARTUP(init.o)
