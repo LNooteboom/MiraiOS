@@ -19,6 +19,8 @@ int addISAOverride(uint32_t dst, uint16_t src, uint16_t flags);
 
 int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags);
 
+void unrouteHWIRQ(unsigned int irq, bool isa);
+
 void routeInterrupt(void (*ISR)(void), interrupt_t interrupt, uint8_t flags);
 
 void unrouteInterrupt(interrupt_t interrupt);

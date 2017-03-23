@@ -131,7 +131,7 @@ void cursorLeft(void) {
 	}
 }
 
-void setFullScreenColor(char attrib) {
+void setFullScreenColor(__attribute__((unused)) char attrib) {
 }
 void clearScreen(void) {
 	memset(vgaMem + scroll, 0, vgaScreenWidth * vgaScreenHeight * 2);

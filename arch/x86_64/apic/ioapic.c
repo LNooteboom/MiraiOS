@@ -32,6 +32,8 @@ static struct isaOverride *isaOverrides = NULL;
 unsigned int nrofIOApics = 0;
 struct ioApicInfo *ioApicInfos = NULL;
 
+static interrupt_t gsiToVec[256];
+
 static struct ioApicInfo *findApic(unsigned int irq) {
 	for (unsigned int i = 0; i < nrofIOApics; i++) {
 		if (irq >= ioApicInfos[i].gsiBase && irq < ioApicInfos[i].gsiBase + ioApicInfos[i].gsiLength) {
@@ -78,6 +80,7 @@ int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags) {
 			flags |= IRQ_FLAG_TRIGGER;
 		}
 	}
+	gsiToVec[irq] = vec;
 
 	struct ioApicInfo *ioApic = findApic(irq);
 	if (!ioApic) {
@@ -106,8 +109,29 @@ int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags) {
 	return 0;
 }
 
-void unrouteHWIRQ(interrupt_t vec) {
+void unrouteHWIRQ(unsigned int irq, bool isa) {
 	//mask ioapic entry
+	if (isa) {
+		for (unsigned int i = 0; i < isaListLen; i++) {
+			if (isaOverrides[i].source == irq) {
+				irq = isaOverrides[i].GSI;
+				break;
+			}
+		}
+	}
+	struct ioApicInfo *ioApic = findApic(irq);
+	if (!ioApic) {
+		return;
+	}
+	acquireSpinlock(&(ioApic->lock));
+	*(ioApic->indexPort) = REG_IORED_BASE + ((irq - ioApic->gsiBase) * 2);
+	*(ioApic->dataPort) |= IORED_FLAG_MASK;
+	releaseSpinlock(&(ioApic->lock));
+
+	//mask idt entry
+	interrupt_t vec = gsiToVec[irq];
+	unrouteInterrupt(vec);
+	deallocIrqVec(vec);
 }
 
 int addISAOverride(uint32_t dst, uint16_t src, uint16_t flags) {
