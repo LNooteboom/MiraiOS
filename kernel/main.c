@@ -6,6 +6,8 @@
 #include <timer.h>
 #include <arch.h>
 
+uintptr_t __stack_chk_guard;
+
 void kmain(void) {
 	initInterrupts();
 	vgaInit();
@@ -23,3 +25,10 @@ void kmain(void) {
 	}
 }
 
+__attribute__((noreturn)) void __stack_chk_fail(void) {
+	sprint("Stack smash detected!");
+	while (1) {
+		asm("cli");
+		asm("hlt");
+	}
+}

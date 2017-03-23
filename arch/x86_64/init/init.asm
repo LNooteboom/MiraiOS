@@ -9,6 +9,7 @@ extern gdtr
 extern PML4T
 extern PDPT
 extern kmain
+extern __stack_chk_guard
 
 SECTION .text
 init64: ;We are now in 64-bit
@@ -29,10 +30,16 @@ init64: ;We are now in 64-bit
 	mov [PML4T], rax
 	mov [PDPT], rax
 
+	;generate stack guard with tsc
+	rdtsc
+	shl rdx, 32
+	or rax, rdx
+	neg rax
+	mov [__stack_chk_guard], rax
+
 	call kmain
 
 	.halt:
 		cli
 		hlt
 		jmp .halt
-
