@@ -20,6 +20,7 @@ struct threadInfo {
 	uintptr_t stackPointer;
 	enum threadState state;
 	struct threadInfo *nextThread;
+	struct threadInfo *prevThread;
 	int priority;
 	int jiffiesRemaining;
 	int sleepTime;

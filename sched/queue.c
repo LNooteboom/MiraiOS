@@ -20,10 +20,13 @@ struct threadInfo *pullThread(void) {
 		releaseSpinlock(&(queue.lock));
 		return NULL;
 	}
-	if (queue.last == queue.first) {
-		queue.last = NULL;
-	}
 	queue.first = ret->nextThread;
+	if (!queue.first) {
+		//queue is now empty
+		queue.last = NULL;
+	} else {
+		queue.first->prevThread = NULL;
+	}
 	queue.nrofThreads -= 1;
 	releaseSpinlock(&(queue.lock));
 	return ret;
@@ -37,10 +40,12 @@ void pushThread(struct threadInfo *thread) {
 	acquireSpinlock(&(queue.lock));
 	if (queue.last) {
 		queue.last->nextThread = thread;
+		thread->prevThread = queue.last;
 		queue.last = thread;
 	} else {
 		queue.first = thread;
 		queue.last = thread;
+		thread->prevThread = NULL;
 	}
 	queue.nrofThreads += 1;
 	releaseSpinlock(&(queue.lock));
@@ -50,7 +55,7 @@ void pushThreadFront(struct threadInfo *thread) {
 	if (!thread) {
 		return;
 	}
-	thread->nextThread = NULL;
+	thread->prevThread = NULL;
 	acquireSpinlock(&(queue.lock));
 	thread->nextThread = queue.first;
 	queue.first = thread;

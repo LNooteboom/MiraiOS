@@ -100,7 +100,7 @@ jiffyIrq:
 			mov [rsp], r15
 			;save rsp
 			mov [rdx], rsp
-		.noSave
+		.noSave:
 		;get new rsp
 		mov rsp, [rax]
 		;restore optional registers

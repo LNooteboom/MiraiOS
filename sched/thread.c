@@ -17,7 +17,6 @@ int createKernelThread(thread_t *thread, void *(*start)(void *), void *arg) {
 	struct threadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct threadInfo));
 	*thread = thrd;
 
-	hexprintln64(stackBottom);
 	thrd->state = THREADSTATE_SCHEDWAIT;
 	thrd->priority = 0;
 	thrd->jiffiesRemaining = 1;
@@ -35,8 +34,8 @@ thread_t switchThread(void) {
 	uint32_t cpu = getCPU();
 	thread_t oldThread = cpuInfos[cpu].currentThread;
 	thread_t newThread = pullThread();
-	if (!newThread) {
-		sprint("No new threads!");
+	if (!newThread || newThread == oldThread) {
+		//sprint("No new threads!");
 		newThread = oldThread;
 		/*while (1) {
 			asm ("cli");
