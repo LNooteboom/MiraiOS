@@ -4,7 +4,7 @@ DEFAULT REL
 
 global init64:function
 
-extern stackEnd
+extern initStackEnd
 extern gdtr
 extern PML4T
 extern PDPT
@@ -19,8 +19,8 @@ init64: ;We are now in 64-bit
 
 	.cont:
 	;ok now reset stack
-	lea rsp, [stackEnd]
-	lea rbp, [stackEnd]
+	lea rsp, [initStackEnd]
+	lea rbp, [initStackEnd]
 
 	;reload gdtr
 	lgdt [gdtr]

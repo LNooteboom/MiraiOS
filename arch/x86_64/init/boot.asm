@@ -3,7 +3,10 @@ BITS 32
 global __init:function
 global vmemOffset:data
 global bootInfo:data
-global stackEnd:data
+
+global initStackEnd:data
+global excStackStart:data
+
 global PML4T:data
 global PDPT:data
 global gdtr:data
@@ -16,7 +19,7 @@ extern TEXT_END_ADDR
 extern init64
 
 VMEM_OFFSET				equ 0xFFFFFFFF80000000
-STACKSIZE				equ 0x4000
+INITSTACKSIZE			equ 0x400
 
 MULTIBOOT_MAGIC			equ 0x1BADB002
 MULTIBOOT_FLAGS			equ (1 << 16) + (1 << 1)
@@ -68,8 +71,8 @@ __init:
 	mov gs, ax
 
 	;setup esp
-	mov esp, (stackEnd - VMEM_OFFSET)
-	mov ebp, (stackEnd - VMEM_OFFSET)
+	mov esp, (initStackEnd - VMEM_OFFSET)
+	mov ebp, (initStackEnd - VMEM_OFFSET)
 
 	jmp 0x18:(.cont)
 	
@@ -300,8 +303,9 @@ PDPT:
 PDT:
 	resb PAGESIZE
 ;Use PSE for kernel static memory
-stackStart:
-	resb STACKSIZE
-stackEnd:
+excStackStart:
+	resb PAGESIZE
+initStackEnd:
+excStackEnd:
 bootInfo:
 	resq 1

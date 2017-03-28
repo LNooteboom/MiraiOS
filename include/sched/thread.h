@@ -33,4 +33,6 @@ int createKernelThread(thread_t *thread, void *(*start)(void *), void *arg);
 
 void kthreadInit(thread_t thread, void *(*start)(void *), void *arg);
 
+int createThreadFromMain(thread_t *thread);
+
 #endif

@@ -9,8 +9,8 @@ struct ioApicInfo {
 	spinlock_t lock;
 	uint32_t gsiBase;
 	uint32_t gsiLength;
-	uint32_t *indexPort;
-	uint32_t *dataPort;
+	volatile uint32_t *indexPort;
+	volatile uint32_t *dataPort;
 	uintptr_t paddr;
 };
 

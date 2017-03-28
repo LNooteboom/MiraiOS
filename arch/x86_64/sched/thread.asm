@@ -1,11 +1,12 @@
-
+extern PAGE_SIZE
 extern getCurrentThread
 extern switchThread
 extern ackIRQ
-extern cprint
+extern initStackEnd
 
 global kthreadInit:function
 global jiffyIrq:function
+global migrateMainStack:function
 
 SECTION .text
 
@@ -80,7 +81,6 @@ jiffyIrq:
 	mov [rsp + 0x08], r10
 	mov [rsp], r11
 
-	;TODO
 	call getCurrentThread
 	push rax
 	call switchThread
@@ -88,7 +88,7 @@ jiffyIrq:
 	cmp rax, rdx
 	je .noSwitch ;Don't switch if threads are the same
 		test rdx, rdx
-		jz .noSave
+		jz .noSave ;if this cpu isn't busy
 			;task switch occured
 			;save optional registers
 			sub rsp, 0x30
@@ -125,3 +125,24 @@ jiffyIrq:
 	mov r11, [rsp]
 	add rsp, 0x48
 	iretq
+
+
+migrateMainStack:
+	;rdi contains thread pointer
+	mov r8, rdi
+
+	std
+	mov rsi, initStackEnd
+	xor eax, eax
+	;lea rcx, [initStackEnd - rsp]
+	mov rcx, initStackEnd
+	sub rcx, rsp
+	add rcx, 8
+	rep movsb
+	cld
+
+	;mov r8, rdi
+	sub r8, initStackEnd
+	add rsp, r8
+	add rbp, r8
+	ret

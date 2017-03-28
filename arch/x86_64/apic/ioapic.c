@@ -53,7 +53,6 @@ void ioApicInit(void) {
 		uint32_t ver = *(ioApicInfos[i].dataPort);
 		//hexprintln(ver);
 		ioApicInfos[i].gsiLength = (ver >> 16) & 0xFF;
-
 		releaseSpinlock(&(ioApicInfos[i].lock));
 	}
 	irqEnabled = true;

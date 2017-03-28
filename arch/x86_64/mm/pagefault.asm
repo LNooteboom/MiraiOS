@@ -34,6 +34,7 @@ excPF:
     mov [rbp-0x48], r11
     mov [rbp-0x50], rbx
     mov [rbp-0x58], r12
+	cld
 
     ;test if caused by not present page
     mov eax, [rbp+16]
@@ -131,7 +132,6 @@ excPF:
     call sprint
     mov edi, [rsp]
     call hexprintln
-
     test [rsp], byte 0x01
     jz .L9
         mov rdi, PFPresent

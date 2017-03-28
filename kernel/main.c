@@ -24,17 +24,19 @@ void kmain(void) {
 	sprint("\e[0m\e[2JKernel initialising...\n");
 	paramInit();
 	mmInit();
-
+	
 	archInit();
 
 	jiffyInit();
-	
+	thread_t mainThread;
+	createThreadFromMain(&mainThread);
 	
 	thread_t startThread;
 	thread_t startThread2;
 	createKernelThread(&startThread, testThreadlol, "A");
 	createKernelThread(&startThread2, testThreadlol, "B");
 	sprint("Init complete.\n");
+	testThreadlol("C");
 	while (1) {
 		asm("hlt");
 	}

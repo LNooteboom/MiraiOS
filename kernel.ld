@@ -38,7 +38,7 @@ SECTIONS {
 		*.o (.data);
 	}
 	.rodata : {
-		*.o (.rodata);
+		*.o (.rodata*);
 	}
 	DATA_END_ADDR = .;
 	.bss : {

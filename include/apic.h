@@ -41,7 +41,7 @@ struct cpuInfo {
 	uint32_t *lapicBase;
 
 	struct cpuGDTR gdtr;
-	gdtEntry_t gdt[8];
+	gdtEntry_t gdt[16];
 	struct cpuTSS tss;
 };
 
