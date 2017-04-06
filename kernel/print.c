@@ -6,7 +6,7 @@
 void cprint(char c) {
 	vgaCPrint(c);
 }
-void sprint(char *text) {
+void sprint(const char *text) {
 	vgaSPrint(text);
 }
 

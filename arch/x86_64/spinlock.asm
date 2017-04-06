@@ -1,5 +1,3 @@
-BITS 64
-
 global acquireSpinlock:function
 global releaseSpinlock:function
 

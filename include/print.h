@@ -11,7 +11,7 @@ void cprint(char c);
 /*
 Prints a string to the output console
 */
-void sprint(char*text);
+void sprint(const char *text);
 
 /*
 Prints a 32-bit integer as hex to the output console

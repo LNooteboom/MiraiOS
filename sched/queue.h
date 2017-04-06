@@ -2,11 +2,19 @@
 #define QUEUE_H
 
 #include <sched/thread.h>
+#include <spinlock.h>
 
-struct threadInfo *pullThread(void);
+struct threadInfoQueue {
+	struct threadInfo *first;
+	struct threadInfo *last;
+	int nrofThreads;
+	spinlock_t lock;
+};
 
-void pushThread(struct threadInfo *thread);
+struct threadInfo *threadQueuePop(struct threadInfoQueue *queue);
 
-void pushThreadFront(struct threadInfo *thread);
+void threadQueuePush(struct threadInfoQueue *queue, struct threadInfo *thread);
+
+void threadQueuePushFront(struct threadInfoQueue *queue, struct threadInfo *thread);
 
 #endif

@@ -1,5 +1,3 @@
-BITS 64
-
 global excPF:function
 
 extern sprint

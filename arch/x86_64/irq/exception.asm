@@ -1,5 +1,3 @@
-BITS 64
-
 NROF_DEFINED_EXCS: equ 21
 
 %define endl 10, 0

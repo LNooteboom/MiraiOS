@@ -4,6 +4,6 @@
 void vgaInit(void);
 
 void vgaCPrint(char c);
-void vgaSPrint(char *text);
+void vgaSPrint(const char *text);
 
 #endif

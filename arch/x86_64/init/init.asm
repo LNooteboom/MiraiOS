@@ -1,7 +1,3 @@
-BITS 64
-
-DEFAULT REL
-
 global init64:function
 
 extern initStackEnd

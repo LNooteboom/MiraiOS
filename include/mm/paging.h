@@ -35,6 +35,11 @@ Allocates a set of contiguous virtual pages at a specified address
 void allocPageAt(void *addr, size_t size, pageFlags_t flags);
 
 /*
+Deallocates a set of pages
+*/
+void deallocPages(void *addr, size_t size);
+
+/*
 Maps mmio at address paddr to an allocated vaddr and returns it
 */
 void *ioremap(uintptr_t paddr, size_t size);

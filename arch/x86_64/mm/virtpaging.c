@@ -100,7 +100,7 @@ void deallocPages(void *addr, size_t size) {
 	}
 	for (unsigned int i = 0; i < nrofPages; i++) {
 		pte_t *entry = mmGetEntry((uintptr_t)addr + (i * PAGE_SIZE), 0);
-		if (*entry & PAGE_FLAG_PRESENT && *entry & PAGE_MASK) {
+		if ((*entry & PAGE_FLAG_PRESENT) && (*entry & PAGE_FLAG_INUSE) && (*entry & PAGE_MASK)) {
 			physPage_t page = *entry & PAGE_MASK;
 			deallocPhysPage(page);
 		}

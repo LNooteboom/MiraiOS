@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = queue.o thread.o
+OBJECTS = queue.o thread.o readyqueue.o
 
 %.o: %.c
 	${CC} ${CFLAG} -c -o $@ $<

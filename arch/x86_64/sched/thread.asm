@@ -1,12 +1,20 @@
 extern PAGE_SIZE
 extern getCurrentThread
+extern setCurrentThread
 extern switchThread
 extern ackIRQ
 extern initStackEnd
+extern kthreadFreeJoined
+extern acquireSpinlock
+extern releaseSpinlock
+extern readyQueuePop
+
+extern cprint
 
 global kthreadInit:function
 global jiffyIrq:function
 global migrateMainStack:function
+global kthreadStop:function
 
 SECTION .text
 
@@ -64,9 +72,27 @@ kthreadInit:
 	ret
 
 kthreadReturn:
-	;TODO
-	cli
-	hlt
+	mov rdi, rax
+kthreadExit:
+	push rdi
+	call getCurrentThread
+	push rax
+	lea rdi, [rax + 0x14]
+	call acquireSpinlock
+
+	xor rdi, rdi
+	call setCurrentThread
+
+	mov rax, [rsp]
+	mov rdi, [rsp + 8]
+	mov [rax + 8], rdi ;set return value
+	mov [rax + 16], dword 0 ;set threadstate to FINISHED
+
+	mov rdi, rax
+	call kthreadFreeJoined
+
+	add rsp, 16
+	jmp nextThread
 
 jiffyIrq:
 	;save mandatory registers
@@ -85,33 +111,32 @@ jiffyIrq:
 	push rax
 	call switchThread
 	pop rdx
-	cmp rax, rdx
-	je .noSwitch ;Don't switch if threads are the same
-		test rdx, rdx
-		jz .noSave ;if this cpu isn't busy
-			;task switch occured
-			;save optional registers
-			sub rsp, 0x30
-			mov [rsp + 0x28], rbx
-			mov [rsp + 0x20], rbp
-			mov [rsp + 0x18], r12
-			mov [rsp + 0x10], r13
-			mov [rsp + 0x08], r14
-			mov [rsp], r15
-			;save rsp
-			mov [rdx], rsp
-		.noSave:
-		;get new rsp
-		mov rsp, [rax]
-		;restore optional registers
-		mov rbx, [rsp + 0x28]
-		mov rbp, [rsp + 0x20]
-		mov r12, [rsp + 0x18]
-		mov r13, [rsp + 0x10]
-		mov r14, [rsp + 0x08]
-		mov r15, [rsp]
-		add rsp, 0x30
-	.noSwitch:
+
+	test rdx, rdx
+	jz .noSave ;skip if this cpu wasn't busy
+		;task switch occured
+		;save optional registers
+		sub rsp, 0x30
+		mov [rsp + 0x28], rbx
+		mov [rsp + 0x20], rbp
+		mov [rsp + 0x18], r12
+		mov [rsp + 0x10], r13
+		mov [rsp + 0x08], r14
+		mov [rsp], r15
+		;save rsp
+		mov [rdx], rsp
+	.noSave:
+	;get new rsp
+	mov rsp, [rax]
+	;restore optional registers
+	mov rbx, [rsp + 0x28]
+	mov rbp, [rsp + 0x20]
+	mov r12, [rsp + 0x18]
+	mov r13, [rsp + 0x10]
+	mov r14, [rsp + 0x08]
+	mov r15, [rsp]
+	add rsp, 0x30
+
 	call ackIRQ
 	;Restore mandatory registers
 	mov rax, [rsp + 0x40]
@@ -119,13 +144,12 @@ jiffyIrq:
 	mov rdx, [rsp + 0x30]
 	mov rdi, [rsp + 0x28]
 	mov rsi, [rsp + 0x20]
-	mov r8, [rsp + 0x18]
-	mov r9, [rsp + 0x10]
+	mov r8,  [rsp + 0x18]
+	mov r9,  [rsp + 0x10]
 	mov r10, [rsp + 0x08]
 	mov r11, [rsp]
 	add rsp, 0x48
 	iretq
-
 
 migrateMainStack:
 	;rdi contains thread pointer
@@ -145,4 +169,59 @@ migrateMainStack:
 	sub r8, initStackEnd
 	add rsp, r8
 	add rbp, r8
+	ret
+
+kthreadStop:
+	;setup stack for iret
+	push 0x10
+	lea rax, [rsp + 8]
+	push rax
+	pushfq
+	push 0x08
+	mov rax, return
+	push rax
+	sub rsp, 0x78
+
+	;save opt regs only
+	mov [rsp + 0x28], rbx
+	mov [rsp + 0x20], rbp
+	mov [rsp + 0x18], r12
+	mov [rsp + 0x10], r13
+	mov [rsp + 0x08], r14
+	mov [rsp], r15
+
+	call getCurrentThread
+
+	mov [rax], rsp ;save rsp
+nextThread:
+	call readyQueuePop
+	mov rdi, rax
+	push rax
+	call setCurrentThread
+	pop rax
+
+	;TODO halt if no task is available
+
+	;xchg bx, bx
+	mov rsp, [rax]
+	;Restore registers
+	mov rax, [rsp + 0x70]
+	mov rcx, [rsp + 0x68]
+	mov rdx, [rsp + 0x60]
+	mov rdi, [rsp + 0x58]
+	mov rsi, [rsp + 0x50]
+	mov r8,  [rsp + 0x48]
+	mov r9,  [rsp + 0x40]
+	mov r10, [rsp + 0x38]
+	mov r11, [rsp + 0x30]
+	mov rbx, [rsp + 0x28]
+	mov rbp, [rsp + 0x20]
+	mov r12, [rsp + 0x18]
+	mov r13, [rsp + 0x10]
+	mov r14, [rsp + 0x08]
+	mov r15, [rsp]
+	add rsp, 0x78
+	iretq
+
+return:
 	ret

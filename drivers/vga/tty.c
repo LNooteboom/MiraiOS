@@ -24,7 +24,7 @@ void vgaCPrint(char c) {
 	cursor++;
 	vgaSetCursor(cursor);
 }
-void vgaSPrint(char *text) {
+void vgaSPrint(const char *text) {
 	while (*text) {
 		switch (*text) {
 			case '\e':
