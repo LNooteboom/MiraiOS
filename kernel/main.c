@@ -18,11 +18,10 @@ void *testThreadlol(void *arg) {
 	while (1) {
 		sprint(arg);
 		if (count == 2) {
-			//hexprintln(startThread2->returnValue);
-			//deallocThread(startThread2);
 			int ret = 8;
-			joinKernelThread(startThread2, &ret);
+			kthreadJoin(startThread2, &ret);
 			hexprintln(ret);
+			startThread2->state = 0;
 		}
 		count++;
 		asm("hlt");
@@ -47,13 +46,12 @@ void kmain(void) {
 	
 	archInit();
 
-	
 	thread_t mainThread;
-	createThreadFromMain(&mainThread);
+	kthreadCreateFromMain(&mainThread);
+
 	jiffyInit();
 
-	//createKernelThread(&startThread, testThreadlol, "A");
-	createKernelThread(&startThread2, testThreadlol2, "B");
+	kthreadCreate(&startThread2, testThreadlol2, "B");
 	sprint("Init complete.\n");
 	testThreadlol("A");
 	while (1) {

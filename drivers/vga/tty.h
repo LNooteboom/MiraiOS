@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-char *execCommand(char *command);
+const char *execCommand(const char *command);
 
 void newline(void);
 

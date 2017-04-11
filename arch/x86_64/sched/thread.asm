@@ -1,12 +1,13 @@
 extern PAGE_SIZE
-extern getCurrentThread
-extern setCurrentThread
-extern switchThread
 extern ackIRQ
 extern initStackEnd
-extern kthreadFreeJoined
 extern acquireSpinlock
 extern releaseSpinlock
+
+extern getCurrentThread
+extern setCurrentThread
+extern kthreadSwitch
+extern kthreadFreeJoined
 extern readyQueuePop
 
 extern cprint
@@ -109,7 +110,7 @@ jiffyIrq:
 
 	call getCurrentThread
 	push rax
-	call switchThread
+	call kthreadSwitch
 	pop rdx
 
 	test rdx, rdx
@@ -172,17 +173,23 @@ migrateMainStack:
 	ret
 
 kthreadStop:
+	;load return address in rdx
+	pop rdx
 	;setup stack for iret
+	;push ss
 	push 0x10
+	;push stackpointer
 	lea rax, [rsp + 8]
 	push rax
+	;push flags
 	pushfq
+	;push cs
 	push 0x08
-	mov rax, return
-	push rax
-	sub rsp, 0x78
+	;push return address
+	push rdx
 
 	;save opt regs only
+	sub rsp, 0x78
 	mov [rsp + 0x28], rbx
 	mov [rsp + 0x20], rbp
 	mov [rsp + 0x18], r12
@@ -200,7 +207,12 @@ nextThread:
 	call setCurrentThread
 	pop rax
 
-	;TODO halt if no task is available
+	;Halt if no task is available
+	test rax, rax
+	jnz .load
+		hlt
+		jmp nextThread
+	.load:
 
 	;xchg bx, bx
 	mov rsp, [rax]
@@ -223,5 +235,5 @@ nextThread:
 	add rsp, 0x78
 	iretq
 
-return:
-	ret
+;return:
+;	ret

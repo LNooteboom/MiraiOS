@@ -12,12 +12,12 @@ extern void migrateMainStack(thread_t mainThread);
 
 extern void kthreadInit(thread_t thread, void *(*start)(void *), void *arg);
 
-void deallocThread(thread_t thread) {
+static void deallocThread(thread_t thread) {
 	uintptr_t stackBottom = (uintptr_t)(thread) - (THREAD_STACK_SIZE - sizeof(struct threadInfo));
 	deallocPages((void*)stackBottom, THREAD_STACK_SIZE);
 }
 
-int createKernelThread(thread_t *thread, void *(*start)(void *), void *arg) {
+int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg) {
 	//alloc thread stack
 	uintptr_t stackBottom = (uintptr_t)(allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE));
 	if (!stackBottom) {
@@ -39,7 +39,7 @@ int createKernelThread(thread_t *thread, void *(*start)(void *), void *arg) {
 	return THRD_SUCCESS;
 }
 
-int createThreadFromMain(thread_t *thread) {
+int kthreadCreateFromMain(thread_t *thread) {
 	//alloc thread stack
 	uintptr_t stackBottom = (uintptr_t)(allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE));
 	if (!stackBottom) {
@@ -61,9 +61,8 @@ int createThreadFromMain(thread_t *thread) {
 	return THRD_SUCCESS;
 }
 
-thread_t switchThread(void) {
-	uint32_t cpu = getCPU();
-	thread_t oldThread = cpuInfos[cpu].currentThread;
+thread_t kthreadSwitch(void) {
+	thread_t oldThread = getCurrentThread();
 	thread_t newThread = readyQueuePop();
 	if (!newThread || newThread == oldThread) {
 		newThread = oldThread;
@@ -72,11 +71,11 @@ thread_t switchThread(void) {
 		readyQueuePush(oldThread);
 	}
 	newThread->state = THREADSTATE_RUNNING;
-	cpuInfos[cpu].currentThread = newThread;
+	setCurrentThread(newThread);
 	return newThread;
 }
 
-void joinKernelThread(thread_t thread, void **returnValue) {
+void kthreadJoin(thread_t thread, void **returnValue) {
 	acquireSpinlock(&(thread->lock));
 	if (thread->state != THREADSTATE_FINISHED) {
 		thread_t curThread = getCurrentThread();

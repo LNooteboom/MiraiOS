@@ -39,11 +39,11 @@ void vgaSPrint(const char *text) {
 	}
 }
 
-char *execCommand(char *command) {
+const char *execCommand(const char *command) {
 	switch (*command) {
 		case '[':
 			command++;
-			char *commandLetter = command;
+			const char *commandLetter = command;
 			while (*commandLetter < 64 || *commandLetter > 126) {
 				commandLetter++;
 			}

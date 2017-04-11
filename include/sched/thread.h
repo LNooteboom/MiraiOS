@@ -36,15 +36,32 @@ struct threadInfo {
 
 typedef struct threadInfo *thread_t;
 
-int createKernelThread(thread_t *thread, void *(*start)(void *), void *arg);
+/*
+Creates a new kernel thread
+*/
+int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg);
 
-void joinKernelThread(thread_t thread, void **returnValue);
+/*
+Registers the main function as a thread
+*/
+int kthreadCreateFromMain(thread_t *thread);
+
+/*
+Joins a kernel thread
+*/
+void kthreadJoin(thread_t thread, void **returnValue);
 
 thread_t getCurrentThread(void);
 void setCurrentThread(thread_t thread);
 
-int createThreadFromMain(thread_t *thread);
+/*
+Exit the current thread, freeing any joined threads
+*/
+void kthreadExit(void *ret);
 
+/*
+Puts the current thread to sleep
+*/
 void kthreadStop(void);
 
 #endif
