@@ -1,13 +1,12 @@
 #include <sched/thread.h>
 
 #include <stdint.h>
-#include <apic.h>
+#include <arch/cpu.h>
 
 thread_t getCurrentThread(void) {
-	//This is unsafe, it should only be used in an interrupt context
-	return cpuInfos[getCPU()].currentThread;
+	return (thread_t)pcpuRead(PCPU_THREAD);
 }
 
 void setCurrentThread(thread_t thread) {
-	cpuInfos[getCPU()].currentThread = thread;
+	pcpuWrite(PCPU_THREAD, (uint64_t)thread);
 }

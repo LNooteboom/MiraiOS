@@ -45,6 +45,8 @@ static void *heapAlloc(size_t size, memArea_t *heap, size_t heapSize) {
 	memArea_t *newHeader = heap;
 	bool foundMem = false;
 	while ( (uintptr_t)(newHeader) < (uintptr_t)(heap) + heapSize){
+		//hexprint64(*newHeader);
+		//cprint('-');
 		if ( !(*newHeader & AREA_INUSE) && *newHeader >= totalSize) {
 			foundMem = true;
 			break;
@@ -60,8 +62,6 @@ static void *heapAlloc(size_t size, memArea_t *heap, size_t heapSize) {
 
 	memArea_t oldSize = *newHeader;
 	memArea_t *freeFooter = getFooterFromHeader(newHeader);
-	//sprint("footer: ");
-	//hexprintln64(freeFooter);
 	*newHeader = totalSize;
 	memArea_t *newFooter = getFooterFromHeader(newHeader);
 
@@ -74,7 +74,6 @@ static void *heapAlloc(size_t size, memArea_t *heap, size_t heapSize) {
 
 	*newHeader |= 1;
 	*newFooter = *newHeader;
-
 	return (void*)(newHeader + 1);
 }
 
@@ -110,6 +109,7 @@ static void heapFree(void *addr, memArea_t *heap, size_t heapSize) {
 }
 
 void *kmalloc(size_t size) {
+	//asm volatile ("xchg bx, bx");
 	if (size == 0) {
 		return NULL;
 	}

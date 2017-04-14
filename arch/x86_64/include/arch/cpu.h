@@ -1,9 +1,14 @@
-#ifndef INCLUDE_APIC_H
-#define INCLUDE_APIC_H
+#ifndef INCLUDE_ARCH_APIC_H
+#define INCLUDE_ARCH_APIC_H
 
 #include <stdint.h>
 #include <spinlock.h>
 #include <sched/thread.h>
+
+//pcpu Addresses
+#define PCPU_THREAD		0
+#define PCPU_LAPIC_BASE	8
+#define PCPU_APIC_ID	16
 
 #define NROF_GDT_ENTRIES 9
 
@@ -35,10 +40,10 @@ struct cpuGDTR {
 
 struct cpuInfo {
 	thread_t currentThread;
-
-	uint32_t apicID;
-	spinlock_t lock;
 	uint32_t *lapicBase;
+	uint64_t apicID;
+	
+	spinlock_t lock;
 
 	struct cpuGDTR gdtr;
 	gdtEntry_t gdt[16];
@@ -48,8 +53,21 @@ struct cpuInfo {
 extern unsigned int nrofCPUs;
 extern struct cpuInfo *cpuInfos;
 
-uint32_t getCPU(void);
+/*
+static inline uint64_t pcpuRead(uint64_t addr) {
+	uint64_t ret;
+	asm volatile ("mov rax, [gs:rdi]" : "=a"(ret) : "D"(addr));
+	return ret;
+}
+
+static inline void pcpuWrite(uint64_t addr, uint64_t value) {
+	asm volatile ("mov [gs:rdi], rax" : : "D"(addr), "a"(value));
+}
+*/
+uint64_t pcpuRead(uint64_t addr);
+void pcpuWrite(uint64_t addr, uint64_t value);
 
 void lapicInit(void);
+void tssGdtInit(struct cpuInfo *info);
 
 #endif

@@ -1,5 +1,6 @@
+
 OUTPUT = main.o
-OBJECTS = lapicc.o lapic.o ioapic.o
+OBJECTS = lapic.o tssgdt.o pcpu.o
 
 all: ${OUTPUT}
 
@@ -9,11 +10,8 @@ ${OUTPUT}: ${OBJECTS}
 mainc.o: main.c
 	${CC} ${CFLAG} -c -o $@ $<
 
-%c.o: %.c
+%.o: %.c
 	${CC} ${CFLAG} -c -o $@ $<
 
 %.o: %.asm
 	${NASM} ${NASMFLAG} -o $@ $<
-
-%.o: %.c
-	${CC} ${CFLAG} -c -o $@ $<

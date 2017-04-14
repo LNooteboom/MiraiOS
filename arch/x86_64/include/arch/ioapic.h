@@ -1,5 +1,5 @@
-#ifndef INCLUDE_IOAPIC_H
-#define INCLUDE_IOAPIC_H
+#ifndef INCLUDE_ARCH_IOAPIC_H
+#define INCLUDE_ARCH_IOAPIC_H
 
 #include <stdint.h>
 #include <spinlock.h>

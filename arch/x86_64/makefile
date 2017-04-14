@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-SUBDIRS = irq mm acpi apic sched
+SUBDIRS = irq mm acpi cpu sched
 OBJECTS = spinlock.o mainc.o
 
 

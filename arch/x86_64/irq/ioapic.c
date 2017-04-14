@@ -1,4 +1,4 @@
-#include <ioapic.h>
+#include <arch/ioapic.h>
 #include <irq.h>
 
 #include <stdint.h>
@@ -7,7 +7,7 @@
 #include <mm/paging.h>
 #include <mm/heap.h>
 #include <print.h>
-#include <apic.h>
+#include <arch/cpu.h>
 
 #define ISA_LIST_INC	4
 
@@ -97,7 +97,8 @@ int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags) {
 	} else {
 		flags &= IRQ_FLAG_POLARITY | IRQ_FLAG_TRIGGER;
 	}
-	uint64_t apicID = cpuInfos[getCPU()].apicID;
+	//uint64_t apicID = cpuInfos[getCPU()].apicID;
+	uint64_t apicID = pcpuRead(PCPU_APIC_ID);
 	uint64_t value = flags | (vec & 0xFF) | (apicID << IORED_APIC_ID_SHIFT);
 
 	*(ioApic->dataPort) = value;

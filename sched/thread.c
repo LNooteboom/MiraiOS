@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <mm/paging.h>
-#include <apic.h>
+//#include <arch/apic.h>
 #include <print.h>
 #include "readyqueue.h"
 

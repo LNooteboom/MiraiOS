@@ -1,5 +1,5 @@
-#ifndef INCLUDE_ACPI_H
-#define INCLUDE_ACPI_H
+#ifndef INCLUDE_ARCH_ACPI_H
+#define INCLUDE_ARCH_ACPI_H
 
 #include <print.h>
 

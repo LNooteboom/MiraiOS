@@ -1,7 +1,7 @@
 #include <print.h>
 
 #include <stdint.h>
-#include <vga.h>
+#include <drivers/vga.h>
 
 void cprint(char c) {
 	vgaCPrint(c);

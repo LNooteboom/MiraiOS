@@ -1,9 +1,13 @@
 #include <arch.h>
 
 #include <stdint.h>
-#include <acpi.h>
-#include <apic.h>
-#include <ioapic.h>
+#include <stddef.h>
+#include <arch/acpi.h>
+#include <arch/cpu.h>
+#include <arch/ioapic.h>
+
+unsigned int nrofCPUs = 0;
+struct cpuInfo *cpuInfos = NULL;
 
 void archInit(void) {
 	acpiInit();

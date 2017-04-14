@@ -9,8 +9,8 @@
 #include <print.h>
 #include <pio.h>
 #include <irq.h>
-#include <apic.h>
-#include <ioapic.h>
+#include <arch/cpu.h>
+#include <arch/ioapic.h>
 
 #define ioWait() outb(0x80, 0)
 
@@ -127,8 +127,15 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		sprint("No memory available for cpuInfo!\n");
 		while(1);
 	}
+	//hexprintln64(cpuInfos);
+	//uint64_t *test = cpuInfos;
+	//hexprintln64(test[0x25]);
 	memset(cpuInfos, 0, nrofCPUs * sizeof(struct cpuInfo));
-	for (unsigned int i = 0; i < nrofCPUs; i++) {
+	//uint64_t test2 = test[0x25];
+	//hexprintln64(test[0x25]);
+	for (int i = 0; i < nrofCPUs; i++) {
 		cpuInfos[i].apicID = apicIDs[i];
 	}
+	//hexprintln64(test2);
+	//hexprintln64(test[0x25]);
 }

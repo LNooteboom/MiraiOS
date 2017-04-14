@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <mm/paging.h>
-#include <acpi.h>
+#include <arch/acpi.h>
 #include "header.h"
 #include "acpi.h"
 
