@@ -92,6 +92,10 @@ kthreadExit:
 	mov rdi, rax
 	call kthreadFreeJoined
 
+	mov rdi, [rsp]
+	add rdi, 0x14
+	call releaseSpinlock
+
 	add rsp, 16
 	jmp nextThread
 

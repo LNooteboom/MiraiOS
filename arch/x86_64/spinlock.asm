@@ -1,29 +1,44 @@
 global acquireSpinlock:function
 global releaseSpinlock:function
 
-extern irqEnabled
+SECTION .text
 
-acquireSpinlock: ;(spinlock_t *lock) returns void
-	xor eax, eax
-	mov cl, 1
+spinlockSpin:
+	pause
+	test [rdi], dword 1
+	jnz spinlockSpin
 
+acquireSpinlock:
+	pushf
 	cli
+
+	.lock:
+	lock bts dword [rdi], 0
+	jnc .noSpin
 	.spin:
-		lock cmpxchg [rdi], cl
-		jz .end
 		pause
-		jmp .spin
+		test [rdi], dword 1
+		jnz .spin
+		jmp .lock
 
+	.noSpin:
+
+	;We now have the lock, read IF from stack
+	test [rsp], dword (1 << 9)
+	jz .noIF
+		or [rdi], dword 2
+		jmp .end
+	.noIF:
+		and [rdi], dword ~2
 	.end:
+	add rsp, 8
 	ret
 
-releaseSpinlock: ;(spinlock_t *lock) returns void
-	mov [rdi], byte 0
-	cmp [irqEnabled], byte 0
-	je .cont
+releaseSpinlock:
+	xor eax, eax
+	xchg [rdi], eax
+	test eax, 2
+	jz .noIF
 		sti
-
-	.cont:
-	nop
+	.noIF:
 	ret
-

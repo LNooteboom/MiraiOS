@@ -55,8 +55,7 @@ void kmain(void) {
 	sprint("Init complete.\n");
 	testThreadlol("A");
 	while (1) {
-		cprint('C');
-		//sprint("C");
+		sprint("C");
 		asm("hlt");
 	}
 }

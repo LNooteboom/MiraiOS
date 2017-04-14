@@ -1,7 +1,7 @@
 #ifndef INCLUDE_SPINLOCK_H
 #define INCLUDE_SPINLOCK_H
 
-typedef uint8_t spinlock_t;
+typedef uint32_t spinlock_t;
 
 void acquireSpinlock(spinlock_t *lock);
 
