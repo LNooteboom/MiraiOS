@@ -25,7 +25,6 @@ void tssGdtInit(struct cpuInfo *info) {
 	info->gdtr.base = (uint64_t)(&(info->gdt));
 	asm volatile ("lgdt [%0]" : : "g"(&(info->gdtr)));
 	asm volatile ("ltr ax" : : "a"(0x28));
-	//asm volatile ("mov gs, ax" : : "a"(0x10));
 }
 
 void tssSetIST(int ist, void *addr) {

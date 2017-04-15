@@ -28,8 +28,10 @@ void semSignal(semaphore_t *semaphore) {
 	thread_t freedThread = threadQueuePop(&semaphore->queue);
 	semaphore->value += 1;
 	releaseSpinlock(&semaphore->lock);
-	acquireSpinlock(&freedThread->lock);
-	freedThread->state = THREADSTATE_SCHEDWAIT;
-	readyQueuePush(freedThread);
-	releaseSpinlock(&freedThread->lock);
+	if (freedThread) {
+		acquireSpinlock(&freedThread->lock);
+		freedThread->state = THREADSTATE_SCHEDWAIT;
+		readyQueuePush(freedThread);
+		releaseSpinlock(&freedThread->lock);
+	}
 }

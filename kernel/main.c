@@ -38,7 +38,7 @@ void *testThreadlol(void *arg) {
 void *testThreadlol2(void *arg) {
 	for(int i = 0; i < 20; i++) {
 		sprint(arg);
-		if (i == 5) {
+		if (i == 3) {
 			semWait(&sem);
 		}
 		asm("hlt");
@@ -61,7 +61,7 @@ void kmain(void) {
 	jiffyInit();
 
 	semInit(&sem, 1);
-	kthreadCreate(&startThread2, testThreadlol2, "B");
+	kthreadCreate(&startThread2, testThreadlol2, "B", THREAD_FLAG_FIXED_PRIORITY);
 	sprint("Init complete.\n");
 	testThreadlol("A");
 	while (1) {

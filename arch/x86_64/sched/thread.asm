@@ -79,7 +79,6 @@ kthreadExit:
 	call getCurrentThread
 	push rax
 	lea rdi, [rax + 0x14]
-	xchg bx, bx
 	call acquireSpinlock
 
 	xor rdi, rdi
@@ -115,33 +114,54 @@ jiffyIrq:
 
 	call getCurrentThread
 	push rax
+	test rax, rax
+	jz .noLock
+		lea rdi, [rax + 0x14]
+		call acquireSpinlock
+	.noLock:
+	mov rdi, rax
 	call kthreadSwitch
 	pop rdx
 
+	cmp rax, rdx
+	je .noSwitch
+		test rdx, rdx
+		jz .noSave ;skip if this cpu wasn't busy
+			;task switch occured
+			;save optional registers
+			sub rsp, 0x30
+			mov [rsp + 0x28], rbx
+			mov [rsp + 0x20], rbp
+			mov [rsp + 0x18], r12
+			mov [rsp + 0x10], r13
+			mov [rsp + 0x08], r14
+			mov [rsp], r15
+			;save rsp
+			mov [rdx], rsp
+		.noSave:
+		;get new rsp
+		mov rsp, [rax]
+		;restore optional registers
+		mov rbx, [rsp + 0x28]
+		mov rbp, [rsp + 0x20]
+		mov r12, [rsp + 0x18]
+		mov r13, [rsp + 0x10]
+		mov r14, [rsp + 0x08]
+		mov r15, [rsp]
+		add rsp, 0x30
+
+		;release spinlock on new thread
+		push rdx
+		lea rdi, [rax + 0x14]
+		call releaseSpinlock
+		pop rdx
+	.noSwitch:
 	test rdx, rdx
-	jz .noSave ;skip if this cpu wasn't busy
-		;task switch occured
-		;save optional registers
-		sub rsp, 0x30
-		mov [rsp + 0x28], rbx
-		mov [rsp + 0x20], rbp
-		mov [rsp + 0x18], r12
-		mov [rsp + 0x10], r13
-		mov [rsp + 0x08], r14
-		mov [rsp], r15
-		;save rsp
-		mov [rdx], rsp
-	.noSave:
-	;get new rsp
-	mov rsp, [rax]
-	;restore optional registers
-	mov rbx, [rsp + 0x28]
-	mov rbp, [rsp + 0x20]
-	mov r12, [rsp + 0x18]
-	mov r13, [rsp + 0x10]
-	mov r14, [rsp + 0x08]
-	mov r15, [rsp]
-	add rsp, 0x30
+	jz .noReleaseOld
+		;release spinlock on old thread
+		lea rdi, [rdx + 0x14]
+		call releaseSpinlock
+	.noReleaseOld:
 
 	call ackIRQ
 	;Restore mandatory registers

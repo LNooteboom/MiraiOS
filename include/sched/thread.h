@@ -5,6 +5,11 @@
 #include <stdbool.h>
 #include <sched/spinlock.h>
 
+#define THREAD_FLAG_DETACHED		1
+#define THREAD_FLAG_FIXED_PRIORITY	2
+
+#define TIMESLICE_BASE	1
+
 #define THRD_SUCCESS	0
 #define THRD_NOMEM		-1
 #define THRD_BAD_PARAM	-2
@@ -29,6 +34,7 @@ struct threadInfo {
 	int jiffiesRemaining;
 	int sleepTime;
 	bool detached;
+	bool fixedPriority;
 
 	struct threadInfo *joinFirst;
 	struct threadInfo *joinLast;
@@ -39,7 +45,7 @@ typedef struct threadInfo *thread_t;
 /*
 Creates a new kernel thread
 */
-int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg);
+int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags);
 
 /*
 Registers the main function as a thread

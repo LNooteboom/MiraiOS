@@ -17,7 +17,7 @@ static void deallocThread(thread_t thread) {
 	deallocPages((void*)stackBottom, THREAD_STACK_SIZE);
 }
 
-int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg) {
+int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags) {
 	//alloc thread stack
 	uintptr_t stackBottom = (uintptr_t)(allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE));
 	if (!stackBottom) {
@@ -28,8 +28,10 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg) {
 
 	thrd->state = THREADSTATE_SCHEDWAIT;
 	thrd->priority = 0;
-	thrd->jiffiesRemaining = 1;
-	thrd->detached = false;
+	thrd->jiffiesRemaining = TIMESLICE_BASE;
+
+	thrd->detached = flags & THREAD_FLAG_DETACHED;
+	thrd->fixedPriority = flags & THREAD_FLAG_FIXED_PRIORITY;
 
 	kthreadInit(thrd, start, arg);
 
@@ -51,8 +53,10 @@ int kthreadCreateFromMain(thread_t *thread) {
 
 	thrd->state = THREADSTATE_RUNNING;
 	thrd->priority = 0;
-	thrd->jiffiesRemaining = 1;
+	thrd->jiffiesRemaining = TIMESLICE_BASE;
+
 	thrd->detached = true;
+	thrd->fixedPriority = true;
 
 	//uint32_t cpu = getCPU();
 	//cpuInfos[cpu].currentThread = thrd;
@@ -61,14 +65,16 @@ int kthreadCreateFromMain(thread_t *thread) {
 	return THRD_SUCCESS;
 }
 
-thread_t kthreadSwitch(void) {
-	thread_t oldThread = getCurrentThread();
-	thread_t newThread = readyQueuePop();
-	if (!newThread || newThread == oldThread) {
-		newThread = oldThread;
-	} else {
-		oldThread->state = THREADSTATE_SCHEDWAIT;
-		readyQueuePush(oldThread);
+thread_t kthreadSwitch(thread_t oldThread) {
+	oldThread->jiffiesRemaining -= 1;
+	if (oldThread->jiffiesRemaining > 0) {
+		return oldThread;
+	}
+
+	oldThread->state = THREADSTATE_SCHEDWAIT;
+	thread_t newThread = readyQueueExchange(oldThread);
+	if (newThread != oldThread) {
+		acquireSpinlock(&newThread->lock);
 	}
 	newThread->state = THREADSTATE_RUNNING;
 	setCurrentThread(newThread);
@@ -107,9 +113,11 @@ void kthreadFreeJoined(thread_t thread) {
 	thread_t curFreeThread = thread->joinFirst;
 	while (curFreeThread) {
 		acquireSpinlock(&curFreeThread->lock);
+
 		thread_t nextFreeThread = curFreeThread->nextThread;
 		curFreeThread->state = THREADSTATE_SCHEDWAIT;
 		readyQueuePush(curFreeThread);
+
 		releaseSpinlock(&curFreeThread->lock);
 		curFreeThread = nextFreeThread;
 	}
