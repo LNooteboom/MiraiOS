@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <mm/init.h> //for BSS_END_ADDR
 #include <mm/pagemap.h>
-#include <spinlock.h>
+#include <sched/spinlock.h>
 #include <mm/physpaging.h>
 #include "map.h"
 

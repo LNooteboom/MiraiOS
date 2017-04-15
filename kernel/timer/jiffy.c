@@ -23,7 +23,6 @@ void jiffyIrq(interruptFrame_t *frame) {
 int jiffyInit(void) {
 	//select PIT for now
 	jiffyTimer = kmalloc(sizeof(struct jiffyTimer));
-	hexprintln64(jiffyTimer);
 	i8253Init(jiffyTimer);
 	
 	routeHWIRQ(jiffyTimer->irq, jiffyIrq, IRQ_FLAG_ISA);

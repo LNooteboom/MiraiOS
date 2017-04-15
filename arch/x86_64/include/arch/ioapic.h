@@ -2,7 +2,7 @@
 #define INCLUDE_ARCH_IOAPIC_H
 
 #include <stdint.h>
-#include <spinlock.h>
+#include <sched/spinlock.h>
 
 struct ioApicInfo {
 	uint32_t id;

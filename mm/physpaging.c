@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <mm/pagemap.h>
 #include <mm/paging.h>
-#include <spinlock.h>
+#include <sched/spinlock.h>
 #include <print.h>
 #include <mm/memset.h>
 

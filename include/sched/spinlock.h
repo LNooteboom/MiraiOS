@@ -1,5 +1,7 @@
-#ifndef INCLUDE_SPINLOCK_H
-#define INCLUDE_SPINLOCK_H
+#ifndef INCLUDE_SCHED_SPINLOCK_H
+#define INCLUDE_SCHED_SPINLOCK_H
+
+#include <stdint.h>
 
 typedef uint32_t spinlock_t;
 

@@ -1,7 +1,8 @@
+#include <sched/queue.h>
+
 #include <stdint.h>
 #include <stddef.h>
-#include <spinlock.h>
-#include "queue.h"
+#include <sched/spinlock.h>
 #include <sched/thread.h>
 
 /*struct threadInfoQueue {
@@ -14,10 +15,8 @@
 //struct threadInfoQueue queue;
 
 struct threadInfo *threadQueuePop(struct threadInfoQueue *queue) {
-	acquireSpinlock(&(queue->lock));
 	struct threadInfo *ret = queue->first;
 	if (!ret) {
-		releaseSpinlock(&(queue->lock));
 		return NULL;
 	}
 	queue->first = ret->nextThread;
@@ -28,7 +27,6 @@ struct threadInfo *threadQueuePop(struct threadInfoQueue *queue) {
 		queue->first->prevThread = NULL;
 	}
 	queue->nrofThreads -= 1;
-	releaseSpinlock(&(queue->lock));
 	return ret;
 }
 
@@ -37,7 +35,6 @@ void threadQueuePush(struct threadInfoQueue *queue, struct threadInfo *thread) {
 		return;
 	}
 	thread->nextThread = NULL;
-	acquireSpinlock(&(queue->lock));
 	if (queue->last) {
 		queue->last->nextThread = thread;
 		thread->prevThread = queue->last;
@@ -48,7 +45,6 @@ void threadQueuePush(struct threadInfoQueue *queue, struct threadInfo *thread) {
 		thread->prevThread = NULL;
 	}
 	queue->nrofThreads += 1;
-	releaseSpinlock(&(queue->lock));
 }
 
 void threadQueuePushFront(struct threadInfoQueue *queue, struct threadInfo *thread) {
@@ -56,12 +52,10 @@ void threadQueuePushFront(struct threadInfoQueue *queue, struct threadInfo *thre
 		return;
 	}
 	thread->prevThread = NULL;
-	acquireSpinlock(&(queue->lock));
 	thread->nextThread = queue->first;
 	queue->first = thread;
 	if (!queue->last) {
 		queue->last = thread;
 	}
 	queue->nrofThreads += 1;
-	releaseSpinlock(&(queue->lock));
 }

@@ -4,7 +4,7 @@
 #include <mm/paging.h>
 #include <mm/heap.h>
 #include <print.h>
-#include <spinlock.h>
+#include <sched/spinlock.h>
 #include <arch/msr.h>
 
 static int getCPUInfo(unsigned int apicID) {

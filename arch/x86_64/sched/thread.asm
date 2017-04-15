@@ -79,6 +79,7 @@ kthreadExit:
 	call getCurrentThread
 	push rax
 	lea rdi, [rax + 0x14]
+	xchg bx, bx
 	call acquireSpinlock
 
 	xor rdi, rdi
@@ -192,6 +193,7 @@ kthreadStop:
 	;push return address
 	push rdx
 
+	
 	;save opt regs only
 	sub rsp, 0x78
 	mov [rsp + 0x28], rbx
@@ -203,7 +205,14 @@ kthreadStop:
 
 	call getCurrentThread
 
+	test [rax + 0x14], dword 0x02 ;get IF on spinlock
+	jz .noIRQ
+		or [rsp + 0x88], dword (1 << 9) ;set IF on stack
+	.noIRQ:
+
 	mov [rax], rsp ;save rsp
+	lea rdi, [rax + 0x14]
+	call releaseSpinlock
 nextThread:
 	call readyQueuePop
 	mov rdi, rax

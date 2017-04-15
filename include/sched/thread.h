@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <spinlock.h>
+#include <sched/spinlock.h>
 
 #define THRD_SUCCESS	0
 #define THRD_NOMEM		-1

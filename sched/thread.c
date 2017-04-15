@@ -4,7 +4,7 @@
 #include <mm/paging.h>
 //#include <arch/apic.h>
 #include <print.h>
-#include "readyqueue.h"
+#include <sched/readyqueue.h>
 
 #define THREAD_STACK_SIZE	0x2000
 
@@ -76,9 +76,10 @@ thread_t kthreadSwitch(void) {
 }
 
 void kthreadJoin(thread_t thread, void **returnValue) {
-	acquireSpinlock(&(thread->lock));
+	thread_t curThread = getCurrentThread();
+	acquireSpinlock(&curThread->lock);
+	acquireSpinlock(&thread->lock);
 	if (thread->state != THREADSTATE_FINISHED) {
-		thread_t curThread = getCurrentThread();
 		curThread->nextThread = NULL;
 		if (thread->joinLast) {
 			curThread->prevThread = thread->joinLast;
@@ -89,13 +90,15 @@ void kthreadJoin(thread_t thread, void **returnValue) {
 			thread->joinFirst = curThread;
 			thread->joinLast = curThread;
 		}
-		releaseSpinlock(&(thread->lock));
-		kthreadStop();
-		acquireSpinlock(&(thread->lock));
+		releaseSpinlock(&thread->lock);
+		kthreadStop(); //will release curthread spinlock
+		acquireSpinlock(&curThread->lock);
+		acquireSpinlock(&thread->lock);
 	}
 
 	*returnValue = thread->returnValue;
-	releaseSpinlock(&(thread->lock));
+	releaseSpinlock(&thread->lock);
+	releaseSpinlock(&curThread->lock);
 	deallocThread(thread);
 }
 
@@ -103,11 +106,11 @@ void kthreadFreeJoined(thread_t thread) {
 	//spinlock is already acquired
 	thread_t curFreeThread = thread->joinFirst;
 	while (curFreeThread) {
-		acquireSpinlock(&(curFreeThread->lock));
+		acquireSpinlock(&curFreeThread->lock);
 		thread_t nextFreeThread = curFreeThread->nextThread;
 		curFreeThread->state = THREADSTATE_SCHEDWAIT;
 		readyQueuePush(curFreeThread);
-		releaseSpinlock(&(curFreeThread->lock));
+		releaseSpinlock(&curFreeThread->lock);
 		curFreeThread = nextFreeThread;
 	}
 	thread->joinFirst = NULL;

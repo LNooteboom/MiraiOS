@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <mm/paging.h>
 #include <mm/memset.h>
-#include <spinlock.h>
+#include <sched/spinlock.h>
 #include <atomic.h>
 #include <print.h>
 

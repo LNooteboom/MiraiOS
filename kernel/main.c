@@ -7,19 +7,25 @@
 #include <arch.h>
 #include <sched/thread.h>
 #include <stddef.h>
+#include <sched/lock.h>
 
 uintptr_t __stack_chk_guard;
 
 thread_t startThread;
 thread_t startThread2;
+semaphore_t sem;
 
 void *testThreadlol(void *arg) {
 	int count = 0;
 	while (1) {
 		sprint(arg);
 		if (count == 2) {
+			semWait(&sem);
+		} else if (count == 8) {
+			semSignal(&sem);
+		} else if (count == 10) {
 			int ret = 8;
-			kthreadJoin(startThread2, &ret);
+			kthreadJoin(startThread2, (void**)(&ret));
 			hexprintln(ret);
 			startThread2->state = 0;
 		}
@@ -32,9 +38,12 @@ void *testThreadlol(void *arg) {
 void *testThreadlol2(void *arg) {
 	for(int i = 0; i < 20; i++) {
 		sprint(arg);
+		if (i == 5) {
+			semWait(&sem);
+		}
 		asm("hlt");
 	}
-	return 1;
+	return (void*)1;
 }
 
 void kmain(void) {
@@ -51,6 +60,7 @@ void kmain(void) {
 
 	jiffyInit();
 
+	semInit(&sem, 1);
 	kthreadCreate(&startThread2, testThreadlol2, "B");
 	sprint("Init complete.\n");
 	testThreadlol("A");

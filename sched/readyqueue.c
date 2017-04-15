@@ -1,6 +1,6 @@
-#include "readyqueue.h"
+#include <sched/readyqueue.h>
 
-#include "queue.h"
+#include <sched/queue.h>
 #include <sched/thread.h>
 #include <stdint.h>
 

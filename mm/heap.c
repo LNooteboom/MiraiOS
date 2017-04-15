@@ -7,7 +7,7 @@
 #include <mm/paging.h>
 #include <mm/pagemap.h>
 #include <mm/memset.h>
-#include <spinlock.h>
+#include <sched/spinlock.h>
 #include <print.h>
 
 #define VHEAPLIMIT	0xFFFFFFFFE0000000

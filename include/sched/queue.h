@@ -1,8 +1,8 @@
-#ifndef QUEUE_H
-#define QUEUE_H
+#ifndef INCLUDE_SCHED_QUEUE_H
+#define INCLUDE_SCHED_QUEUE_H
 
 #include <sched/thread.h>
-#include <spinlock.h>
+#include <sched/spinlock.h>
 
 struct threadInfoQueue {
 	struct threadInfo *first;

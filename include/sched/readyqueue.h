@@ -1,5 +1,5 @@
-#ifndef READYQUEUE_H
-#define READYQUEUE_H
+#ifndef INCLUDE_SCHED_READYQUEUE_H
+#define INCLUDE_SCHED_READYQUEUE_H
 
 #include <sched/thread.h>
 

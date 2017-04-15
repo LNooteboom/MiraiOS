@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = threadc.o thread.o
+OBJECTS = threadc.o thread.o spinlock.o
 
 all: ${OUTPUT}
 

@@ -2,7 +2,7 @@
 #define INCLUDE_ARCH_APIC_H
 
 #include <stdint.h>
-#include <spinlock.h>
+#include <sched/spinlock.h>
 #include <sched/thread.h>
 
 //pcpu Addresses

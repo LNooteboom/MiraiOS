@@ -1,7 +1,7 @@
 
 OUTPUT = main.o
 SUBDIRS = irq mm acpi cpu sched
-OBJECTS = spinlock.o mainc.o
+OBJECTS = mainc.o
 
 
 OBJECTS += $(patsubst %, %/main.o, ${SUBDIRS})

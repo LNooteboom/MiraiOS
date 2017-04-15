@@ -1,15 +1,15 @@
-#ifndef INCLUDE_MEMSET_H
-#define INCLUDE_MEMSET_H
+#ifndef INCLUDE_MM_MEMSET_H
+#define INCLUDE_MM_MEMSET_H
 
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 
-static inline void memset(void *str, char c, size_t n) {
+static inline void memset(volatile void *str, char c, size_t n) {
     asm("rep stosb": :"D"(str), "a"(c), "c"(n) : "memory");
 }
 
-static inline void memcpy(void *dst, void *src, size_t n) {
+static inline void memcpy(volatile void *dst, volatile void *src, size_t n) {
 	asm("rep movsb": :"S"(src), "D"(dst), "c"(n) : "memory");
 }
 

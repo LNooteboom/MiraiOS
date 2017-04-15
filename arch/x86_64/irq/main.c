@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <mm/heap.h>
-#include <spinlock.h>
+#include <sched/spinlock.h>
 #include "idt.h"
 #include "exception.h"
 
