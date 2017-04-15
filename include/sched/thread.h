@@ -4,11 +4,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sched/spinlock.h>
+#include <timer.h>
 
 #define THREAD_FLAG_DETACHED		1
 #define THREAD_FLAG_FIXED_PRIORITY	2
+#define THREAD_FLAG_RT				4
 
-#define TIMESLICE_BASE	1
+#define TIMESLICE_BASE	(JIFFY_HZ / 10)
 
 #define THRD_SUCCESS	0
 #define THRD_NOMEM		-1
@@ -32,7 +34,7 @@ struct threadInfo {
 	struct threadInfo *prevThread;
 	int priority;
 	int jiffiesRemaining;
-	int sleepTime;
+	unsigned long sleepTime;
 	bool detached;
 	bool fixedPriority;
 

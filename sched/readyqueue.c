@@ -23,7 +23,7 @@ static void calcNewPriority(thread_t thread) {
 	} else if (remaining >= (timeslice / 2)) {
 		//If thread used up less than half of its timeslice
 		//Higher priority
-		if (thread->priority > 0) {
+		if (thread->priority > 1) {
 			thread->priority -= 1;
 		}
 	}
@@ -57,10 +57,15 @@ void readyQueuePushFront(thread_t thread) {
 	releaseSpinlock(&readyListLock);
 }
 
-thread_t readyQueueExchange(thread_t thread) {
-	calcNewPriority(thread);
-	acquireSpinlock(&readyListLock);
-	threadQueuePush(&readyList[thread->priority], thread);
+thread_t readyQueueExchange(thread_t thread, bool front) {
+	if (front) {
+		acquireSpinlock(&readyListLock);
+		threadQueuePushFront(&readyList[thread->priority], thread);
+	} else {
+		calcNewPriority(thread);
+		acquireSpinlock(&readyListLock);
+		threadQueuePush(&readyList[thread->priority], thread);
+	}
 
 	thread_t ret;
 	for (int i = 0; i < NROF_QUEUE_PRIORITIES; i++) {

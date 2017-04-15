@@ -3,14 +3,12 @@ extern ackIRQ
 extern initStackEnd
 extern acquireSpinlock
 extern releaseSpinlock
-
 extern getCurrentThread
 extern setCurrentThread
 extern kthreadSwitch
 extern kthreadFreeJoined
 extern readyQueuePop
-
-extern cprint
+extern sleepSkipTime
 
 global kthreadInit:function
 global jiffyIrq:function
@@ -119,7 +117,10 @@ jiffyIrq:
 		lea rdi, [rax + 0x14]
 		call acquireSpinlock
 	.noLock:
-	mov rdi, rax
+	mov rdi, [rsp]
+	call sleepSkipTime
+	mov esi, eax
+	mov rdi, [rsp]
 	call kthreadSwitch
 	pop rdx
 

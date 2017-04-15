@@ -26,7 +26,7 @@ int jiffyInit(void) {
 	i8253Init(jiffyTimer);
 	
 	routeHWIRQ(jiffyTimer->irq, jiffyIrq, IRQ_FLAG_ISA);
-	jiffyTimer->setFreq(10);
+	jiffyTimer->setFreq(JIFFY_HZ);
 	jiffyTimer->setState(true);
 	return 0;
 }

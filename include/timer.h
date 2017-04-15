@@ -5,6 +5,8 @@
 #include <irq.h>
 #include <stdbool.h>
 
+#define JIFFY_HZ	1000
+
 struct jiffyTimer {
 	//Sets timer frequency
 	void (*setFreq)(uint32_t);

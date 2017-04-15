@@ -13,37 +13,27 @@ uintptr_t __stack_chk_guard;
 
 thread_t startThread;
 thread_t startThread2;
-semaphore_t sem;
 
 void *testThreadlol(void *arg) {
-	int count = 0;
 	while (1) {
 		sprint(arg);
-		if (count == 2) {
-			semWait(&sem);
-		} else if (count == 8) {
-			semSignal(&sem);
-		} else if (count == 10) {
-			int ret = 8;
-			kthreadJoin(startThread2, (void**)(&ret));
-			hexprintln(ret);
-			startThread2->state = 0;
+		for (int j = 0; j < TIMESLICE_BASE; j++) {
+			asm("hlt");
 		}
-		count++;
-		asm("hlt");
 	}
 	return NULL;
 }
 
 void *testThreadlol2(void *arg) {
-	for(int i = 0; i < 20; i++) {
+	sprint(arg);
+	kthreadSleep(2000);
+	while (1) {
 		sprint(arg);
-		if (i == 3) {
-			semWait(&sem);
+		for (int j = 0; j < TIMESLICE_BASE; j++) {
+			asm("hlt");
 		}
-		asm("hlt");
 	}
-	return (void*)1;
+	return NULL;
 }
 
 void kmain(void) {
@@ -60,12 +50,10 @@ void kmain(void) {
 
 	jiffyInit();
 
-	semInit(&sem, 1);
 	kthreadCreate(&startThread2, testThreadlol2, "B", THREAD_FLAG_FIXED_PRIORITY);
 	sprint("Init complete.\n");
 	testThreadlol("A");
 	while (1) {
-		sprint("C");
 		asm("hlt");
 	}
 }

@@ -2,9 +2,9 @@
 
 #include <stdint.h>
 #include <mm/paging.h>
-//#include <arch/apic.h>
 #include <print.h>
 #include <sched/readyqueue.h>
+#include <stdbool.h>
 
 #define THREAD_STACK_SIZE	0x2000
 
@@ -27,11 +27,17 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 	*thread = thrd;
 
 	thrd->state = THREADSTATE_SCHEDWAIT;
-	thrd->priority = 0;
-	thrd->jiffiesRemaining = TIMESLICE_BASE;
+
+	if (flags & THREAD_FLAG_RT) {
+		thrd->priority = 0;
+		thrd->fixedPriority = true;
+	} else {
+		thrd->priority = 1;
+		thrd->fixedPriority = flags & THREAD_FLAG_FIXED_PRIORITY;
+	}
 
 	thrd->detached = flags & THREAD_FLAG_DETACHED;
-	thrd->fixedPriority = flags & THREAD_FLAG_FIXED_PRIORITY;
+	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
 
 	kthreadInit(thrd, start, arg);
 
@@ -52,27 +58,29 @@ int kthreadCreateFromMain(thread_t *thread) {
 	migrateMainStack(thrd);
 
 	thrd->state = THREADSTATE_RUNNING;
-	thrd->priority = 0;
-	thrd->jiffiesRemaining = TIMESLICE_BASE;
+	thrd->priority = 1;
 
 	thrd->detached = true;
 	thrd->fixedPriority = true;
+	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
 
-	//uint32_t cpu = getCPU();
-	//cpuInfos[cpu].currentThread = thrd;
 	setCurrentThread(thrd);
 	
 	return THRD_SUCCESS;
 }
 
-thread_t kthreadSwitch(thread_t oldThread) {
+thread_t kthreadSwitch(thread_t oldThread, bool higherThreadReleased) {
+	bool front = false;
 	oldThread->jiffiesRemaining -= 1;
 	if (oldThread->jiffiesRemaining > 0) {
-		return oldThread;
+		if (!higherThreadReleased) {
+			return oldThread;
+		}
+		front = true;
 	}
 
 	oldThread->state = THREADSTATE_SCHEDWAIT;
-	thread_t newThread = readyQueueExchange(oldThread);
+	thread_t newThread = readyQueueExchange(oldThread, front);
 	if (newThread != oldThread) {
 		acquireSpinlock(&newThread->lock);
 	}

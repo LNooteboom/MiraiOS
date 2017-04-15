@@ -8,7 +8,6 @@ struct threadInfoQueue {
 	struct threadInfo *first;
 	struct threadInfo *last;
 	int nrofThreads;
-	spinlock_t lock;
 };
 
 struct threadInfo *threadQueuePop(struct threadInfoQueue *queue);
