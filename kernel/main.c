@@ -14,6 +14,8 @@ uintptr_t __stack_chk_guard;
 thread_t startThread;
 thread_t startThread2;
 
+extern void lapicDoSMPBoot(void *arg);
+
 void *testThreadlol(void *arg) {
 	while (1) {
 		sprint(arg);
@@ -51,6 +53,10 @@ void kmain(void) {
 	jiffyInit();
 
 	kthreadCreate(&startThread2, testThreadlol2, "B", THREAD_FLAG_FIXED_PRIORITY);
+
+	thread_t smpThread;
+	kthreadCreate(&smpThread, lapicDoSMPBoot, NULL, THREAD_FLAG_RT);
+
 	sprint("Init complete.\n");
 	testThreadlol("A");
 	while (1) {

@@ -10,6 +10,9 @@ extern kthreadFreeJoined
 extern readyQueuePop
 extern sleepSkipTime
 
+extern hexprintln64
+extern cprint
+
 global kthreadInit:function
 global jiffyIrq:function
 global migrateMainStack:function

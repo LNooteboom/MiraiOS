@@ -29,4 +29,6 @@ interrupt_t allocIrqVec(void);
 
 void deallocIrqVec(interrupt_t vec);
 
+void ackIRQ(void);
+
 #endif

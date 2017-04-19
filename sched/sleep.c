@@ -24,7 +24,9 @@ bool sleepSkipTime(thread_t curThread) {
 	thread_t thrd = sleepQueue.first;
 	bool higherThreadReleased = false;
 	while (thrd) {
-		acquireSpinlock(&thrd->lock);
+		if (thrd != curThread) {
+			acquireSpinlock(&thrd->lock);
+		}
 		thread_t next = thrd->nextThread;
 		thrd->sleepTime--;
 		if (thrd->sleepTime == 0) {
@@ -46,7 +48,9 @@ bool sleepSkipTime(thread_t curThread) {
 				higherThreadReleased = true;
 			}
 		}
-		releaseSpinlock(&thrd->lock);
+		if (thrd != curThread) {
+			releaseSpinlock(&thrd->lock);
+		}
 		thrd = next;
 	}
 	return higherThreadReleased;

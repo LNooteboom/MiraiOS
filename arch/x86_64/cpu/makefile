@@ -7,6 +7,12 @@ all: ${OUTPUT}
 ${OUTPUT}: ${OBJECTS}
 	${LD} -r -o $@ $+
 
+pcpu.o: pcpu.asm smpboot16.bin
+	${NASM} ${NASMFLAG} -o $@ $<
+
+smpboot16.bin: smpboot16.asm
+	${NASM} -f bin -o $@ $<
+
 mainc.o: main.c
 	${CC} ${CFLAG} -c -o $@ $<
 

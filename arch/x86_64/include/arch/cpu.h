@@ -22,7 +22,30 @@
 #define GDT_DATA		(1UL << 44)
 #define GDT_CODE		((1UL << 43) | (1UL << 44))
 
+//IPI types
+/*
+#define IPI_FIXED		0
+#define IPI_LOWEST		1
+#define IPI_SMI			2
+#define IPI_RR			3
+#define IPI_NMI			4
+#define IPI_INIT		5
+#define IPI_START		6
+#define IPI_EXT			7
+*/
+
 typedef uint64_t gdtEntry_t;
+
+enum ipiTypes {
+	IPI_FIXED	= 0,
+	IPI_LOWEST	= 1,
+	IPI_SMI		= 2,
+	IPI_RR		= 3,
+	IPI_NMI		= 4,
+	IPI_INIT	= 5,
+	IPI_START	= 6,
+	IPI_EXT		= 7
+};
 
 struct cpuTSS {
 	uint32_t reserved0;
@@ -40,8 +63,8 @@ struct cpuGDTR {
 
 struct cpuInfo {
 	thread_t currentThread;
-	uint32_t *lapicBase;
-	uint64_t apicID;
+	volatile uint32_t *lapicBase;
+	uint32_t apicID;
 	
 	spinlock_t lock;
 
@@ -69,5 +92,7 @@ void pcpuWrite(uint64_t addr, uint64_t value);
 
 void lapicInit(void);
 void tssGdtInit(struct cpuInfo *info);
+
+void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type);
 
 #endif
