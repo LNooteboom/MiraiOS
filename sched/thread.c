@@ -6,13 +6,16 @@
 #include <sched/readyqueue.h>
 #include <stdbool.h>
 
+#include <mm/pagemap.h>
+
 #define THREAD_STACK_SIZE	0x2000
 
 extern void migrateMainStack(thread_t mainThread);
 
 extern void kthreadInit(thread_t thread, void *(*start)(void *), void *arg);
 
-static void deallocThread(thread_t thread) {
+void deallocThread(thread_t thread) {
+	//hexprintln64(thread);
 	uintptr_t stackBottom = (uintptr_t)(thread) - (THREAD_STACK_SIZE - sizeof(struct threadInfo));
 	deallocPages((void*)stackBottom, THREAD_STACK_SIZE);
 }
@@ -131,4 +134,9 @@ void kthreadFreeJoined(thread_t thread) {
 	}
 	thread->joinFirst = NULL;
 	thread->joinLast = NULL;
+}
+
+void kthreadDetach(void) {
+	thread_t curThread = getCurrentThread();
+	curThread->detached = true;
 }

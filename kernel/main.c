@@ -9,20 +9,23 @@
 #include <stddef.h>
 #include <sched/lock.h>
 
+#include <mm/pagemap.h>
+
 uintptr_t __stack_chk_guard;
 
-thread_t startThread;
+thread_t mainThread;
 thread_t startThread2;
 
 extern void lapicDoSMPBoot(void *arg);
 
 void *testThreadlol(void *arg) {
-	while (1) {
+	kthreadDetach();
+	//while (1) {
 		sprint(arg);
 		for (int j = 0; j < TIMESLICE_BASE; j++) {
 			asm("hlt");
 		}
-	}
+	//}
 	return NULL;
 }
 
@@ -47,18 +50,18 @@ void kmain(void) {
 	
 	archInit();
 
-	thread_t mainThread;
 	kthreadCreateFromMain(&mainThread);
 
 	jiffyInit();
 
-	kthreadCreate(&startThread2, testThreadlol2, "B", THREAD_FLAG_FIXED_PRIORITY);
+	kthreadCreate(&startThread2, testThreadlol, "B", THREAD_FLAG_FIXED_PRIORITY);
+	hexprintln64(startThread2);
 
-	thread_t smpThread;
-	kthreadCreate(&smpThread, lapicDoSMPBoot, NULL, THREAD_FLAG_RT);
+	//thread_t smpThread;
+	//kthreadCreate(&smpThread, lapicDoSMPBoot, NULL, THREAD_FLAG_RT);
 
 	sprint("Init complete.\n");
-	testThreadlol("A");
+	testThreadlol2("A");
 	while (1) {
 		asm("hlt");
 	}

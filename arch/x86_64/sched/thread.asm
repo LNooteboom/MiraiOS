@@ -9,6 +9,7 @@ extern kthreadSwitch
 extern kthreadFreeJoined
 extern readyQueuePop
 extern sleepSkipTime
+extern deallocThread
 
 extern hexprintln64
 extern cprint
@@ -76,29 +77,27 @@ kthreadInit:
 kthreadReturn:
 	mov rdi, rax
 kthreadExit:
-	push rdi
+	mov r14, rdi ;r14 = thread return value
 	call getCurrentThread
-	push rax
+	mov r15, rax
 	lea rdi, [rax + 0x14]
 	call acquireSpinlock
 
 	xor rdi, rdi
 	call setCurrentThread
 
-	mov rax, [rsp]
-	mov rdi, [rsp + 8]
-	mov [rax + 8], rdi ;set return value
-	mov [rax + 16], dword 0 ;set threadstate to FINISHED
+	mov [r15 + 8], r14 ;set return value
+	mov [r15 + 16], dword 0 ;set threadstate to FINISHED
 
-	mov rdi, rax
-	call kthreadFreeJoined
+	xchg bx, bx
 
-	mov rdi, [rsp]
-	add rdi, 0x14
-	call releaseSpinlock
-
-	add rsp, 16
-	jmp nextThread
+	mov eax, [r15 + 0x18]
+	test eax, eax
+	jnz nextThread ;don't free joined if thread is detached
+		mov rdi, r15
+		call kthreadFreeJoined
+		jmp nextThread
+	
 
 jiffyIrq:
 	;save mandatory registers
@@ -124,6 +123,8 @@ jiffyIrq:
 	call sleepSkipTime
 	mov esi, eax
 	mov rdi, [rsp]
+	test rdi, rdi
+	jz .noThread
 	call kthreadSwitch
 	pop rdx
 
@@ -158,6 +159,7 @@ jiffyIrq:
 		push rdx
 		lea rdi, [rax + 0x14]
 		call releaseSpinlock
+		.noThread:
 		pop rdx
 	.noSwitch:
 	test rdx, rdx
@@ -235,24 +237,41 @@ kthreadStop:
 	.noIRQ:
 
 	mov [rax], rsp ;save rsp
-	lea rdi, [rax + 0x14]
-	call releaseSpinlock
-nextThread:
+	mov r15, rax
+
+nextThread: ;r15 = old thread
 	call readyQueuePop
 	mov rdi, rax
-	push rax
+	mov r14, rax ;r14 = new thread
 	call setCurrentThread
-	pop rax
 
 	;Halt if no task is available
-	test rax, rax
+	test r14, r14
 	jnz .load
+		sti
 		hlt
+		cli
 		jmp nextThread
 	.load:
 
+	mov rsp, [r14] ;switch to new stack
+
+	mov r13d, [r15 + 0x18] ;get thread detached
+	lea rdi, [r15 + 0x14]
+	call releaseSpinlock ;release spinlock on old thread
+
+	test r13d, r13d ;is the old thread detached?
+	jz .notDetached
+		;is the old thread finished?
+		mov eax, [r15 + 0x10]
+		test eax, eax
+		jnz .notDetached
+			;dealloc old thread
+			mov rdi, r15
+			call deallocThread
+	.notDetached:
+
 	;xchg bx, bx
-	mov rsp, [rax]
 	;Restore registers
 	mov rax, [rsp + 0x70]
 	mov rcx, [rsp + 0x68]

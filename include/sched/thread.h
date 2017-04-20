@@ -29,15 +29,15 @@ struct threadInfo {
 	void *returnValue;
 	enum threadState state;
 	spinlock_t lock;
+	bool detached;
 
 	struct threadInfo *nextThread;
 	struct threadInfo *prevThread;
 	int priority;
 	int jiffiesRemaining;
 	unsigned long sleepTime;
-	bool detached;
+	
 	bool fixedPriority;
-
 	struct threadInfo *joinFirst;
 	struct threadInfo *joinLast;
 };
@@ -59,6 +59,11 @@ Joins a kernel thread
 */
 void kthreadJoin(thread_t thread, void **returnValue);
 
+/*
+Detaches a kernel thread
+*/
+void kthreadDetach(void);
+
 thread_t getCurrentThread(void);
 void setCurrentThread(thread_t thread);
 
@@ -71,5 +76,10 @@ void kthreadExit(void *ret);
 Puts the current thread to sleep
 */
 void kthreadStop(void);
+
+/*
+Deallocates a thread from memory
+*/
+void deallocThread(thread_t thread);
 
 #endif
