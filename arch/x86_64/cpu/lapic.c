@@ -58,20 +58,24 @@ void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type) {
 
 void lapicDoSMPBoot(void) {
 	uint32_t currentAPIC = pcpuRead(PCPU_APIC_ID);
-	char *brk = (char*)0xFFFFFFFF80070000;
+	volatile char *brk = (char*)0xFFFFFFFF80070000;
 	size_t s = (size_t)(&smpboot16end) - (size_t)(&smpboot16start);
-	hexprintln64(s);
 	memcpy(brk, &smpboot16start, s);
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
 		if (cpuInfos[i].apicID == currentAPIC) {
 			continue; //ignore this cpu
 		}
-		kthreadSleep(1); //align to milliseconds for maximum timing precision
+		brk[2] = 0; //reset started up flag
 		sprint("Starting CPU ");
 		decprint(i);
+		sprint("...\n");
+		
+		kthreadSleep(1); //align to milliseconds for maximum timing precision
 		lapicSendIPI(cpuInfos[i].apicID, 0, IPI_INIT); //send INIT IPI
 		kthreadSleep(10);
-		asm("xchg bx, bx");
 		lapicSendIPI(cpuInfos[i].apicID, 0x70, IPI_START); //send SIPI
+
+		while (brk[2] == 0);
+		sprint("Success!\n");
 	}
 }

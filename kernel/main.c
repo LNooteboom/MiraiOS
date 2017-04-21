@@ -14,32 +14,8 @@
 uintptr_t __stack_chk_guard;
 
 thread_t mainThread;
-thread_t startThread2;
 
 extern void lapicDoSMPBoot(void *arg);
-
-void *testThreadlol(void *arg) {
-	kthreadDetach();
-	//while (1) {
-		sprint(arg);
-		for (int j = 0; j < TIMESLICE_BASE; j++) {
-			asm("hlt");
-		}
-	//}
-	return NULL;
-}
-
-void *testThreadlol2(void *arg) {
-	sprint(arg);
-	kthreadSleep(2000);
-	while (1) {
-		sprint(arg);
-		for (int j = 0; j < TIMESLICE_BASE; j++) {
-			asm("hlt");
-		}
-	}
-	return NULL;
-}
 
 void kmain(void) {
 	initInterrupts();
@@ -54,17 +30,12 @@ void kmain(void) {
 
 	jiffyInit();
 
-	kthreadCreate(&startThread2, testThreadlol, "B", THREAD_FLAG_FIXED_PRIORITY);
-	hexprintln64(startThread2);
-
 	//thread_t smpThread;
-	//kthreadCreate(&smpThread, lapicDoSMPBoot, NULL, THREAD_FLAG_RT);
+	kthreadCreate(NULL, lapicDoSMPBoot, NULL, THREAD_FLAG_RT | THREAD_FLAG_DETACHED);
 
 	sprint("Init complete.\n");
-	testThreadlol2("A");
-	while (1) {
-		asm("hlt");
-	}
+	
+	kthreadExit(NULL);
 }
 
 __attribute__((noreturn)) void __stack_chk_fail(void) {

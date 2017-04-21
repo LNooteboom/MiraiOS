@@ -27,7 +27,9 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 		return THRD_NOMEM;
 	}
 	struct threadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct threadInfo));
-	*thread = thrd;
+	if (thread) {
+		*thread = thrd;
+	}
 
 	thrd->state = THREADSTATE_SCHEDWAIT;
 

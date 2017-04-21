@@ -11,9 +11,7 @@ extern readyQueuePop
 extern sleepSkipTime
 extern deallocThread
 
-extern hexprintln64
-extern cprint
-
+global kthreadExit:function
 global kthreadInit:function
 global jiffyIrq:function
 global migrateMainStack:function
@@ -89,8 +87,6 @@ kthreadExit:
 	mov [r15 + 8], r14 ;set return value
 	mov [r15 + 16], dword 0 ;set threadstate to FINISHED
 
-	xchg bx, bx
-
 	mov eax, [r15 + 0x18]
 	test eax, eax
 	jnz nextThread ;don't free joined if thread is detached
@@ -116,6 +112,8 @@ jiffyIrq:
 	push rax
 	test rax, rax
 	jz .noLock
+	cmp [rax + 0x10], dword 1
+	jne .noLock
 		lea rdi, [rax + 0x14]
 		call acquireSpinlock
 	.noLock:
@@ -164,6 +162,8 @@ jiffyIrq:
 	.noSwitch:
 	test rdx, rdx
 	jz .noReleaseOld
+	cmp [rdx + 0x10], dword 1
+	jne .noReleaseOld
 		;release spinlock on old thread
 		lea rdi, [rdx + 0x14]
 		call releaseSpinlock
@@ -241,9 +241,7 @@ kthreadStop:
 
 nextThread: ;r15 = old thread
 	call readyQueuePop
-	mov rdi, rax
 	mov r14, rax ;r14 = new thread
-	call setCurrentThread
 
 	;Halt if no task is available
 	test r14, r14
@@ -255,6 +253,9 @@ nextThread: ;r15 = old thread
 	.load:
 
 	mov rsp, [r14] ;switch to new stack
+
+	mov rdi, r14
+	call setCurrentThread
 
 	mov r13d, [r15 + 0x18] ;get thread detached
 	lea rdi, [r15 + 0x14]

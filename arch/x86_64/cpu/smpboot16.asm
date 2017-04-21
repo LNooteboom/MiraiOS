@@ -1,13 +1,14 @@
 
 BITS 16
 
-	nop
-	nop
-	nop
-	nop
-	mov ax, 0x7000
+	jmp short start
+
+startedUpFlag:	dd 0
+
+start:
+	mov ax, cs
+	mov dl, 1
 	mov ds, ax
 	mov es, ax
-	mov dx, 0xBEEF
-	xchg bx, bx
+	mov [startedUpFlag], dl
 	jmp $
