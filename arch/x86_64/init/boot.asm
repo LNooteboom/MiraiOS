@@ -173,7 +173,7 @@ __init:
 	mov cr0, eax
 	
 	;now jump to 64 bit (in another file)
-	jmp far [jumpVect]
+	jmp far dword [jumpVect]
 
 detectLongMode:
 	mov eax, 0x80000000

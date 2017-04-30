@@ -1,13 +1,13 @@
 
 OUTPUT = main.o
-OBJECTS = lapic.o tssgdt.o pcpu.o
+OBJECTS = lapic.o tssgdt.o pcpu.o smpboot.o
 
 all: ${OUTPUT}
 
 ${OUTPUT}: ${OBJECTS}
 	${LD} -r -o $@ $+
 
-pcpu.o: pcpu.asm smpboot16.bin
+smpboot.o: smpboot.asm smpboot16.bin
 	${NASM} ${NASMFLAG} -o $@ $<
 
 smpboot16.bin: smpboot16.asm

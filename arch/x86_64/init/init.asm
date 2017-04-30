@@ -22,9 +22,9 @@ init64: ;We are now in 64-bit
 	lgdt [gdtr]
 
 	;remove temp PML4T and PDPT entries
-	xor rax, rax
-	mov [PML4T], rax
-	mov [PDPT], rax
+	;xor rax, rax
+	;mov [PML4T], rax
+	;mov [PDPT], rax
 
 	;generate stack guard with tsc
 	rdtsc

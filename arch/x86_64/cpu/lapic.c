@@ -1,6 +1,7 @@
 #include <arch/cpu.h>
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <mm/paging.h>
 #include <mm/heap.h>
 #include <print.h>
@@ -9,8 +10,22 @@
 #include <arch/msr.h>
 #include <mm/memset.h>
 
+struct smpbootInfo {
+	uint16_t jump;
+	uint16_t reserved;
+	uint32_t contAddr;
+	uint32_t pml4tAddr;
+	uint16_t nxEnabled;
+} __attribute__((packed));
+
+
+extern void smpbootStart(void);
 extern char smpboot16start;
 extern char smpboot16end;
+
+extern char VMEM_OFFSET;
+extern bool nxEnabled;
+extern char PML4T;
 
 static int getCPUInfo(unsigned int apicID) {
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
@@ -58,14 +73,16 @@ void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type) {
 
 void lapicDoSMPBoot(void) {
 	uint32_t currentAPIC = pcpuRead(PCPU_APIC_ID);
-	volatile char *brk = (char*)0xFFFFFFFF80070000;
+	volatile struct smpbootInfo *info = (struct smpbootInfo *)0xFFFFFFFF80070000;
 	size_t s = (size_t)(&smpboot16end) - (size_t)(&smpboot16start);
-	memcpy(brk, &smpboot16start, s);
+	memcpy(info, &smpboot16start, s);
+	info->contAddr = (uint32_t)((uintptr_t)&smpbootStart - (uintptr_t)&VMEM_OFFSET);
+	info->pml4tAddr = (uint32_t)((uintptr_t)&PML4T - (uintptr_t)&VMEM_OFFSET);
+	info->nxEnabled = nxEnabled;
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
 		if (cpuInfos[i].apicID == currentAPIC) {
 			continue; //ignore this cpu
 		}
-		brk[2] = 0; //reset started up flag
 		sprint("Starting CPU ");
 		decprint(i);
 		sprint("...\n");
@@ -75,7 +92,7 @@ void lapicDoSMPBoot(void) {
 		kthreadSleep(10);
 		lapicSendIPI(cpuInfos[i].apicID, 0x70, IPI_START); //send SIPI
 
-		while (brk[2] == 0);
-		sprint("Success!\n");
+		//while (info->startedUpFlag == 0);
+		//sprint("Success!\n");
 	}
 }
