@@ -4,10 +4,9 @@ BITS 16
 	jmp short start
 
 infoStart:
-reserved:		dw 0
+nxEnabled:		dw 0
 contAddr:		dd 0
 pml4tAddr:		dd 0
-nxEnabled:		dw 0
 
 start:
 	cli
@@ -40,15 +39,14 @@ start:
 	xor eax, eax
 	mov ax, cs
 	shl eax, 4
-	add [gdtr + 2], eax
+	add eax, gdt
+	mov [gdtr + 2], eax
 
 	lgdt [gdtr]
 
 	;prepare jumpvect
 	mov eax, [contAddr]
 	mov [jumpVect], eax
-
-	mov eax, infoStart
 
 	db 0x66
 	jmp far [jumpVect]
@@ -64,7 +62,7 @@ idtr:
 
 gdtr:
 	dw (gdtEnd - gdt)
-	dd gdt
+	dd 0
 
 gdt:
 	;entry 0x00: dummy

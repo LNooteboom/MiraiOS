@@ -306,6 +306,5 @@ PDT:
 excStackStart:
 	resb PAGESIZE
 initStackEnd:
-excStackEnd:
 bootInfo:
 	resq 1

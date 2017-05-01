@@ -7,8 +7,7 @@
 
 //pcpu Addresses
 #define PCPU_THREAD		0
-#define PCPU_LAPIC_BASE	8
-#define PCPU_APIC_ID	16
+#define PCPU_APIC_ID	8
 
 #define NROF_GDT_ENTRIES 9
 
@@ -63,7 +62,6 @@ struct cpuGDTR {
 
 struct cpuInfo {
 	thread_t currentThread;
-	volatile uint32_t *lapicBase;
 	uint32_t apicID;
 	
 	spinlock_t lock;

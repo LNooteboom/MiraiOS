@@ -12,20 +12,24 @@
 
 struct smpbootInfo {
 	uint16_t jump;
-	uint16_t reserved;
+	uint16_t nxEnabled;
 	uint32_t contAddr;
 	uint32_t pml4tAddr;
-	uint16_t nxEnabled;
 } __attribute__((packed));
 
 
-extern void smpbootStart(void);
 extern char smpboot16start;
 extern char smpboot16end;
 
+extern void smpbootStart(void);
 extern char VMEM_OFFSET;
 extern bool nxEnabled;
 extern char PML4T;
+
+uintptr_t physLapicBase;
+volatile uint32_t *lapicBase;
+size_t cpuInfoSize; //used for AP boot in asm
+void *apExcStacks;
 
 static int getCPUInfo(unsigned int apicID) {
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
@@ -37,12 +41,15 @@ static int getCPUInfo(unsigned int apicID) {
 }
 
 void lapicInit(void) {
+	//enable LAPIC
 	uint64_t val = rdmsr(0x1B);
 	val |= (1 << 11); //set APIC enable bit
 	wrmsr(0x1B, val);
-	uintptr_t base = val & ~0xFFF;
-	volatile uint32_t *lapicRegs = ioremap(base, PAGE_SIZE);
-	uint32_t apicID = lapicRegs[0x20 / 4] >> 24;
+	physLapicBase = val & ~0xFFF;
+	lapicBase = ioremap(physLapicBase, PAGE_SIZE);
+	cpuInfoSize = sizeof(struct cpuInfo);
+
+	uint32_t apicID = lapicBase[0x20 / 4] >> 24;
 	int index = getCPUInfo(apicID);
 	if (index < 0) {
 		sprint("APIC ID is not present\n");
@@ -50,8 +57,7 @@ void lapicInit(void) {
 	}
 	struct cpuInfo *info = &(cpuInfos[index]);
 	acquireSpinlock(&(info->lock));
-	info->lapicBase = lapicRegs;
-	lapicRegs[0xF0 / 4] = 0x1FF; //set spurious register to vector 0xFF (points to empty isr)
+	lapicBase[0xF0 / 4] = 0x1FF; //set spurious register to vector 0xFF (points to empty isr)
 
 	tssGdtInit(info);
 	wrmsr(0xC0000101, (uint64_t)info);
@@ -59,26 +65,37 @@ void lapicInit(void) {
 }
 
 void ackIRQ(void) {
-	uint32_t *lapicBase = (uint32_t*)pcpuRead(PCPU_LAPIC_BASE);
 	lapicBase[0xB0 / 4] = 0;
 }
 
 void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type) {
 	asm volatile ("cli");
-	uint32_t *lapicBase = (uint32_t*)pcpuRead(PCPU_LAPIC_BASE);
 	lapicBase[0x310 / 4] = destination << 24;
 	lapicBase[0x300 / 4] = vec | ((type & 7) << 8) | (1 << 14);
 	asm volatile ("sti");
 }
 
 void lapicDoSMPBoot(void) {
-	uint32_t currentAPIC = pcpuRead(PCPU_APIC_ID);
+	if (nrofCPUs < 2) {
+		return;
+	}
+	//Allocate exception stacks for all APs
+	apExcStacks = allocKPages((nrofCPUs - 1) * PAGE_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
+	//Write to them to prevent lazy allocation
+	for (unsigned int i = 0; i < nrofCPUs - 1; i++) {
+		((uint32_t *)apExcStacks)[i * PAGE_SIZE / 4] = 0;
+	}
+
+	//Prepare smp boot image
 	volatile struct smpbootInfo *info = (struct smpbootInfo *)0xFFFFFFFF80070000;
 	size_t s = (size_t)(&smpboot16end) - (size_t)(&smpboot16start);
 	memcpy(info, &smpboot16start, s);
 	info->contAddr = (uint32_t)((uintptr_t)&smpbootStart - (uintptr_t)&VMEM_OFFSET);
 	info->pml4tAddr = (uint32_t)((uintptr_t)&PML4T - (uintptr_t)&VMEM_OFFSET);
 	info->nxEnabled = nxEnabled;
+
+	//Now boot the APs
+	uint32_t currentAPIC = pcpuRead(PCPU_APIC_ID);
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
 		if (cpuInfos[i].apicID == currentAPIC) {
 			continue; //ignore this cpu

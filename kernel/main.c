@@ -15,7 +15,7 @@ uintptr_t __stack_chk_guard;
 
 thread_t mainThread;
 
-extern void lapicDoSMPBoot(void *arg);
+extern void *lapicDoSMPBoot(void *arg);
 
 void kmain(void) {
 	initInterrupts();

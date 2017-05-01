@@ -12,8 +12,8 @@ void semWait(semaphore_t *semaphore) {
 	thread_t curThread = getCurrentThread();
 	acquireSpinlock(&curThread->lock);
 	acquireSpinlock(&semaphore->lock);
-	if (semaphore->value != 0) {
-		semaphore->value -= 1;
+	semaphore->value -= 1;
+	if (semaphore->value >= 0) {
 		releaseSpinlock(&semaphore->lock);
 		releaseSpinlock(&curThread->lock);
 		return;
