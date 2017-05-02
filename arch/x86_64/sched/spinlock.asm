@@ -3,11 +3,6 @@ global releaseSpinlock:function
 
 SECTION .text
 
-spinlockSpin:
-	pause
-	test [rdi], dword 1
-	jnz spinlockSpin
-
 acquireSpinlock:
 	pushf
 	cli

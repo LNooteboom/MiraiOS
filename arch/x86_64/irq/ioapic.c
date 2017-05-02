@@ -32,7 +32,7 @@ static struct isaOverride *isaOverrides = NULL;
 unsigned int nrofIOApics = 0;
 struct ioApicInfo *ioApicInfos = NULL;
 
-static interrupt_t gsiToVec[256];
+/*static*/ interrupt_t gsiToVec[256];
 
 static struct ioApicInfo *findApic(unsigned int irq) {
 	for (unsigned int i = 0; i < nrofIOApics; i++) {
@@ -82,6 +82,7 @@ int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags) {
 	gsiToVec[irq] = vec;
 
 	struct ioApicInfo *ioApic = findApic(irq);
+	hexprintln(irq);
 	if (!ioApic) {
 		sprint("Could not find APIC for irq: ");
 		hexprintln(irq);

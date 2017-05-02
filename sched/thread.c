@@ -114,8 +114,9 @@ void kthreadJoin(thread_t thread, void **returnValue) {
 		acquireSpinlock(&curThread->lock);
 		acquireSpinlock(&thread->lock);
 	}
-
-	*returnValue = thread->returnValue;
+	if (returnValue) {
+		*returnValue = thread->returnValue;
+	}
 	releaseSpinlock(&thread->lock);
 	releaseSpinlock(&curThread->lock);
 	deallocThread(thread);

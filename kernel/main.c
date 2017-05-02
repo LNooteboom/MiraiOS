@@ -17,6 +17,10 @@ thread_t mainThread;
 
 extern void *lapicDoSMPBoot(void *arg);
 
+static void *test(void* arg) {
+	sprint(arg);
+}
+
 void kmain(void) {
 	initInterrupts();
 	vgaInit();
@@ -30,11 +34,14 @@ void kmain(void) {
 
 	jiffyInit();
 
-	//thread_t smpThread;
-	kthreadCreate(NULL, lapicDoSMPBoot, NULL, THREAD_FLAG_RT | THREAD_FLAG_DETACHED);
+	thread_t smpThread;
+	kthreadCreate(&smpThread, lapicDoSMPBoot, NULL, THREAD_FLAG_RT);
+	kthreadJoin(smpThread, NULL);
+	kthreadCreate(NULL, test, "12345", THREAD_FLAG_DETACHED);
+	kthreadCreate(NULL, test, "67890", THREAD_FLAG_DETACHED);
 
 	sprint("Init complete.\n");
-	
+	//while(1);
 	kthreadExit(NULL);
 }
 

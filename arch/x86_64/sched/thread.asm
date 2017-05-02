@@ -81,11 +81,12 @@ kthreadExit:
 	lea rdi, [rax + 0x14]
 	call acquireSpinlock
 
-	xor rdi, rdi
-	call setCurrentThread
+	;xor rdi, rdi
+	;call setCurrentThread
+	xchg bx, bx
 
 	mov [r15 + 8], r14 ;set return value
-	mov [r15 + 16], dword 0 ;set threadstate to FINISHED
+	mov [r15 + 0x10], dword 0 ;set threadstate to FINISHED
 
 	mov eax, [r15 + 0x18]
 	test eax, eax
@@ -110,19 +111,24 @@ jiffyIrq:
 
 	call getCurrentThread
 	push rax
-	test rax, rax
-	jz .noLock
-	cmp [rax + 0x10], dword 1
-	jne .noLock
-		lea rdi, [rax + 0x14]
-		call acquireSpinlock
-	.noLock:
-	mov rdi, [rsp]
+	mov rdi, rax
 	call sleepSkipTime
-	mov esi, eax
+	mov rdx, [rsp]
+	push rax
+	cmp [rdx + 0x10], dword 1
+	je .noreturn
+		add rsp, 16
+		jmp .return
+	.noreturn:
+	mov rdi, [rsp + 8]
+	lea rdi, [rdi + 0x14]
+	call acquireSpinlock
+	;mov rdi, [rsp]
+	;call sleepSkipTime
+	;mov esi, eax
+
+	pop rsi
 	mov rdi, [rsp]
-	test rdi, rdi
-	jz .noThread
 	call kthreadSwitch
 	pop rdx
 
@@ -157,17 +163,12 @@ jiffyIrq:
 		push rdx
 		lea rdi, [rax + 0x14]
 		call releaseSpinlock
-		.noThread:
 		pop rdx
 	.noSwitch:
-	test rdx, rdx
-	jz .noReleaseOld
-	cmp [rdx + 0x10], dword 1
-	jne .noReleaseOld
-		;release spinlock on old thread
-		lea rdi, [rdx + 0x14]
-		call releaseSpinlock
-	.noReleaseOld:
+	;release spinlock on old thread
+	lea rdi, [rdx + 0x14]
+	call releaseSpinlock
+	.return:
 
 	call ackIRQ
 	;Restore mandatory registers
@@ -252,12 +253,26 @@ nextThread: ;r15 = old thread
 		jmp nextThread
 	.load:
 
-	mov rsp, [r14] ;switch to new stack
+	cmp r14, r15
+	je .sameThread
+		lea rdi, [r14 + 0x14]
+		call acquireSpinlock
+	.sameThread:
 
-	mov rdi, r14
-	call setCurrentThread
+	mov [r14 + 0x10], dword 1 ;set threadstate to RUNNING
 
-	mov r13d, [r15 + 0x18] ;get thread detached
+	cmp r14, r15
+	je .sameThread2
+		mov rsp, [r14] ;switch to new stack
+
+		mov rdi, r14
+		call setCurrentThread
+
+		lea rdi, [r14 + 0x14]
+		call releaseSpinlock
+	.sameThread2:
+
+	mov r13d, [r15 + 0x18] ;get old thread detached
 	lea rdi, [r15 + 0x14]
 	call releaseSpinlock ;release spinlock on old thread
 

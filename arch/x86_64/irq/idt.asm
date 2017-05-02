@@ -2,6 +2,8 @@ global initIDT:function
 global routeInterrupt:function
 global unrouteInterrupt:function
 
+global idtr:data
+
 NROF_IDT_ENTRIES	equ 0x100
 BYTES_PER_IDT_ENTRY	equ 0x10
 

@@ -60,7 +60,7 @@ void lapicInit(void) {
 	lapicBase[0xF0 / 4] = 0x1FF; //set spurious register to vector 0xFF (points to empty isr)
 
 	tssGdtInit(info);
-	wrmsr(0xC0000101, (uint64_t)info);
+	wrmsr(0xC0000101, (uint64_t)info); //set GS.base to cpuinfo
 	releaseSpinlock(&(info->lock));
 }
 
@@ -73,6 +73,13 @@ void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type) {
 	lapicBase[0x310 / 4] = destination << 24;
 	lapicBase[0x300 / 4] = vec | ((type & 7) << 8) | (1 << 14);
 	asm volatile ("sti");
+}
+
+static void *emptyThread(void* arg) {
+	//do nothing
+	asm("xchg bx, bx");
+	asm("nop");
+	return NULL;
 }
 
 void lapicDoSMPBoot(void) {
@@ -105,11 +112,13 @@ void lapicDoSMPBoot(void) {
 		sprint("...\n");
 		
 		kthreadSleep(1); //align to milliseconds for maximum timing precision
+		cprint('f');
 		lapicSendIPI(cpuInfos[i].apicID, 0, IPI_INIT); //send INIT IPI
 		kthreadSleep(10);
 		lapicSendIPI(cpuInfos[i].apicID, 0x70, IPI_START); //send SIPI
 
-		//while (info->startedUpFlag == 0);
-		//sprint("Success!\n");
+		//kthreadSleep(10);
+		//kthreadCreate(NULL, emptyThread, NULL, THREAD_FLAG_DETACHED); //create empty thread for this cpu
 	}
+	cprint('e');
 }
