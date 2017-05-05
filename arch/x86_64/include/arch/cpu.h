@@ -6,8 +6,10 @@
 #include <sched/thread.h>
 
 //pcpu Addresses
-#define PCPU_THREAD		0
-#define PCPU_APIC_ID	8
+#define PCPU_THREAD		0x00
+#define PCPU_EXCSTACK	0x08
+#define PCPU_APIC_ID	0x10
+#define PCPU_INDEX		0x14
 
 #define NROF_GDT_ENTRIES 9
 
@@ -62,7 +64,9 @@ struct cpuGDTR {
 
 struct cpuInfo {
 	thread_t currentThread;
+	void *excStackTop;
 	uint32_t apicID;
+	uint32_t cpuInfosIndex;
 	
 	spinlock_t lock;
 

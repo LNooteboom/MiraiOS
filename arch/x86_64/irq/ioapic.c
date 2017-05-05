@@ -82,7 +82,6 @@ int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags) {
 	gsiToVec[irq] = vec;
 
 	struct ioApicInfo *ioApic = findApic(irq);
-	hexprintln(irq);
 	if (!ioApic) {
 		sprint("Could not find APIC for irq: ");
 		hexprintln(irq);

@@ -83,7 +83,6 @@ kthreadExit:
 
 	;xor rdi, rdi
 	;call setCurrentThread
-	xchg bx, bx
 
 	mov [r15 + 8], r14 ;set return value
 	mov [r15 + 0x10], dword 0 ;set threadstate to FINISHED
@@ -93,6 +92,16 @@ kthreadExit:
 	jnz nextThread ;don't free joined if thread is detached
 		mov rdi, r15
 		call kthreadFreeJoined
+
+		;switch to exception stack
+		mov rsp, [gs:0x08]
+		mov rbp, [gs:0x08]
+
+		and [r15 + 0x14], dword ~2
+		lea rdi, [r15 + 0x14]
+		call releaseSpinlock
+
+		xor r15d, r15d
 		jmp nextThread
 	
 
@@ -115,8 +124,11 @@ jiffyIrq:
 	call sleepSkipTime
 	mov rdx, [rsp]
 	push rax
+	test rdx, rdx
+	jz .prereturn
 	cmp [rdx + 0x10], dword 1
 	je .noreturn
+		.prereturn:
 		add rsp, 16
 		jmp .return
 	.noreturn:
@@ -271,6 +283,9 @@ nextThread: ;r15 = old thread
 		lea rdi, [r14 + 0x14]
 		call releaseSpinlock
 	.sameThread2:
+
+	test r15, r15
+	jz .notDetached
 
 	mov r13d, [r15 + 0x18] ;get old thread detached
 	lea rdi, [r15 + 0x14]

@@ -29,7 +29,7 @@ extern char PML4T;
 uintptr_t physLapicBase;
 volatile uint32_t *lapicBase;
 size_t cpuInfoSize; //used for AP boot in asm
-void *apExcStacks;
+//void *apExcStacks;
 
 static int getCPUInfo(unsigned int apicID) {
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
@@ -75,23 +75,16 @@ void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type) {
 	asm volatile ("sti");
 }
 
-static void *emptyThread(void* arg) {
-	//do nothing
-	asm("xchg bx, bx");
-	asm("nop");
-	return NULL;
-}
-
 void lapicDoSMPBoot(void) {
 	if (nrofCPUs < 2) {
 		return;
 	}
 	//Allocate exception stacks for all APs
-	apExcStacks = allocKPages((nrofCPUs - 1) * PAGE_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
+	//apExcStacks = allocKPages((nrofCPUs - 1) * PAGE_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
 	//Write to them to prevent lazy allocation
-	for (unsigned int i = 0; i < nrofCPUs - 1; i++) {
-		((uint32_t *)apExcStacks)[i * PAGE_SIZE / 4] = 0;
-	}
+	//for (unsigned int i = 0; i < nrofCPUs - 1; i++) {
+	//	((uint32_t *)apExcStacks)[i * PAGE_SIZE / 4] = 0;
+	//}
 
 	//Prepare smp boot image
 	volatile struct smpbootInfo *info = (struct smpbootInfo *)0xFFFFFFFF80070000;
@@ -112,7 +105,6 @@ void lapicDoSMPBoot(void) {
 		sprint("...\n");
 		
 		kthreadSleep(1); //align to milliseconds for maximum timing precision
-		cprint('f');
 		lapicSendIPI(cpuInfos[i].apicID, 0, IPI_INIT); //send INIT IPI
 		kthreadSleep(10);
 		lapicSendIPI(cpuInfos[i].apicID, 0x70, IPI_START); //send SIPI
@@ -120,5 +112,4 @@ void lapicDoSMPBoot(void) {
 		//kthreadSleep(10);
 		//kthreadCreate(NULL, emptyThread, NULL, THREAD_FLAG_DETACHED); //create empty thread for this cpu
 	}
-	cprint('e');
 }

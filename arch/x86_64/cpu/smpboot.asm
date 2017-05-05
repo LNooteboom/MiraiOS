@@ -9,7 +9,6 @@ extern cpuInfoSize
 extern cpuInfos
 extern nrofCPUs
 extern initStackEnd
-extern apExcStacks
 extern idtr
 extern tssGdtInit
 extern acquireSpinlock
@@ -37,7 +36,7 @@ smpbootStart:
 	xor ecx, ecx
 	mov rdi, [cpuInfoSize]
 	.loop:
-		cmp [rax + 8], edx ;compare this cpu's apic id
+		cmp [rax + 16], edx ;compare this cpu's apic id
 		je .end
 		
 		inc ecx
@@ -49,16 +48,10 @@ smpbootStart:
 	.end:
 	;pointer to cpuinfo is in rax, index+1 in ecx
 	dec ecx
-	jnz .highExcStack
-		mov rsp, initStackEnd
-		mov rbp, initStackEnd
-		jmp .end2
-	.highExcStack:
-		mov rsp, [apExcStacks]
-		shl rcx, 12 ;Multiply index to page size
-		add rsp, rcx
-		mov rbp, rsp
-	.end2:
+
+	;get exception stack
+	mov rsp, [rax + 0x08]
+	mov rbp, [rax + 0x08]
 
 	;load idt
 	lidt [idtr]
@@ -111,7 +104,6 @@ smpbootStart:
 	mov r14, [rsp + 0x08]
 	mov r15, [rsp]
 	add rsp, 0x78
-	xchg bx, bx
 	iretq ;will likely set irq flag
 
 	.error:

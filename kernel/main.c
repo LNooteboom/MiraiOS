@@ -18,7 +18,9 @@ thread_t mainThread;
 extern void *lapicDoSMPBoot(void *arg);
 
 static void *test(void* arg) {
-	sprint(arg);
+	//sprint(arg);
+	cprint('g');
+	//kthreadSleep(10);
 }
 
 void kmain(void) {
@@ -37,8 +39,12 @@ void kmain(void) {
 	thread_t smpThread;
 	kthreadCreate(&smpThread, lapicDoSMPBoot, NULL, THREAD_FLAG_RT);
 	kthreadJoin(smpThread, NULL);
-	kthreadCreate(NULL, test, "12345", THREAD_FLAG_DETACHED);
-	kthreadCreate(NULL, test, "67890", THREAD_FLAG_DETACHED);
+	thread_t testThread1;
+	thread_t testThread2;
+	kthreadCreate(&testThread1, test, "12345", THREAD_FLAG_DETACHED);
+	kthreadCreate(&testThread2, test, "67890", THREAD_FLAG_DETACHED);
+	//hexprintln(testThread1);
+	//hexprintln(testThread2);
 
 	sprint("Init complete.\n");
 	//while(1);

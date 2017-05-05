@@ -20,6 +20,8 @@ void semWait(semaphore_t *semaphore) {
 	}
 	threadQueuePush(&semaphore->queue, curThread);
 	releaseSpinlock(&semaphore->lock);
+
+	curThread->state = THREADSTATE_LOCKWAIT;
 	kthreadStop();
 }
 
