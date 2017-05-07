@@ -2,12 +2,19 @@
 
 #include <stdint.h>
 #include <drivers/vga.h>
+#include <sched/spinlock.h>
+
+static spinlock_t printLock;
 
 void cprint(char c) {
+	acquireSpinlock(&printLock);
 	vgaCPrint(c);
+	releaseSpinlock(&printLock);
 }
 void sprint(const char *text) {
+	acquireSpinlock(&printLock);
 	vgaSPrint(text);
+	releaseSpinlock(&printLock);
 }
 
 void hexprint(uint32_t value) {

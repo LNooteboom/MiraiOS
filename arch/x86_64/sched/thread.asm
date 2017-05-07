@@ -11,6 +11,9 @@ extern readyQueuePop
 extern sleepSkipTime
 extern deallocThread
 
+extern jiffyVec
+extern lapicSendIPIToAll
+
 global kthreadExit:function
 global kthreadInit:function
 global jiffyIrq:function
@@ -102,6 +105,8 @@ kthreadExit:
 		call releaseSpinlock
 
 		xor r15d, r15d
+		xor edi, edi
+		call setCurrentThread
 		jmp nextThread
 	
 
@@ -182,7 +187,17 @@ jiffyIrq:
 	call releaseSpinlock
 	.return:
 
+	xchg bx, bx
+
 	call ackIRQ
+
+	cmp [gs:0x14], dword 0
+	jne .noIPI
+		mov edi, [jiffyVec]
+		xor esi, esi
+		call lapicSendIPIToAll
+	.noIPI:
+
 	;Restore mandatory registers
 	mov rax, [rsp + 0x40]
 	mov rcx, [rsp + 0x38]
@@ -251,6 +266,19 @@ kthreadStop:
 
 	mov [rax], rsp ;save rsp
 	mov r15, rax
+
+
+	;switch to exception stack
+	mov rsp, [gs:0x08]
+	mov rbp, [gs:0x08]
+
+	and [r15 + 0x14], dword ~2
+	lea rdi, [r15 + 0x14]
+	call releaseSpinlock
+
+	xor r15d, r15d
+	xor edi, edi
+	call setCurrentThread
 
 nextThread: ;r15 = old thread
 	call readyQueuePop

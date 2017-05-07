@@ -32,6 +32,7 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 	}
 
 	thrd->state = THREADSTATE_SCHEDWAIT;
+	thrd->lock = 0;
 
 	if (flags & THREAD_FLAG_RT) {
 		thrd->priority = 0;
@@ -64,6 +65,7 @@ int kthreadCreateFromMain(thread_t *thread) {
 
 	thrd->state = THREADSTATE_RUNNING;
 	thrd->priority = 1;
+	thrd->lock = 0;
 
 	thrd->detached = true;
 	thrd->fixedPriority = true;

@@ -1,20 +1,28 @@
 global acquireSpinlock:function
 global releaseSpinlock:function
 
+extern sprint
+extern hexprintln64
+
 SECTION .text
 
 acquireSpinlock:
 	pushf
 	cli
 
+	xor ecx, ecx
+
 	.lock:
 	lock bts dword [rdi], 0
 	jnc .noSpin
 	.spin:
+		inc ecx
 		pause
 		test [rdi], dword 1
-		jnz .spin
-		jmp .lock
+		jz .lock
+		cmp ecx, 1000000
+		jae .error
+		jmp .spin
 
 	.noSpin:
 
@@ -29,6 +37,14 @@ acquireSpinlock:
 	add rsp, 8
 	ret
 
+.error:
+	mov rdi, spinlockStuckMsg
+	call sprint
+	mov rdi, [rsp + 8]
+	call hexprintln64
+	cli
+	hlt
+
 releaseSpinlock:
 	xor eax, eax
 	xchg [rdi], eax
@@ -37,3 +53,7 @@ releaseSpinlock:
 		sti
 	.noIF:
 	ret
+
+SECTION .rodata
+
+spinlockStuckMsg: db 'Spinlock timed out.', 10, 'Ret addr: ', 0

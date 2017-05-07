@@ -75,6 +75,13 @@ void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type) {
 	asm volatile ("sti");
 }
 
+void lapicSendIPIToAll(uint8_t vec, enum ipiTypes type) {
+	asm volatile ("cli");
+	lapicBase[0x310 / 4] = 0xFF << 24;
+	lapicBase[0x300 / 4] = vec | ((type & 7) << 8) | (1 << 14) | (3 << 18);
+	asm volatile ("sti");
+}
+
 void lapicDoSMPBoot(void) {
 	if (nrofCPUs < 2) {
 		return;

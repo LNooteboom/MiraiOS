@@ -11,6 +11,7 @@ extern void jiffyIrq(void);
 
 uint64_t jiffyCounter;
 struct jiffyTimer *jiffyTimer;
+int jiffyVec;
 
 /*
 void jiffyIrq(interruptFrame_t *frame) {
@@ -25,7 +26,7 @@ int jiffyInit(void) {
 	jiffyTimer = kmalloc(sizeof(struct jiffyTimer));
 	i8253Init(jiffyTimer);
 	
-	routeHWIRQ(jiffyTimer->irq, jiffyIrq, IRQ_FLAG_ISA);
+	jiffyVec = routeHWIRQ(jiffyTimer->irq, jiffyIrq, IRQ_FLAG_ISA);
 	jiffyTimer->setFreq(JIFFY_HZ);
 	jiffyTimer->setState(true);
 	return 0;

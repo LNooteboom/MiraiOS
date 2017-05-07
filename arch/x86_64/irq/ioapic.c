@@ -85,7 +85,7 @@ int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags) {
 	if (!ioApic) {
 		sprint("Could not find APIC for irq: ");
 		hexprintln(irq);
-		while(1);
+		return 0;
 	}
 
 	acquireSpinlock(&(ioApic->lock));
@@ -106,7 +106,7 @@ int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags) {
 	*(ioApic->indexPort) = index;
 	*(ioApic->dataPort) = value >> 32;
 	releaseSpinlock(&(ioApic->lock));
-	return 0;
+	return vec;
 }
 
 void unrouteHWIRQ(unsigned int irq, bool isa) {

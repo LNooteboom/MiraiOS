@@ -61,6 +61,11 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 	}
 
 	if (madtHdr->flags & 1) {
+		//disable pit
+		outb(0x43, 0x30);
+		outb(0x40, 0x00);
+		outb(0x40, 0x00);
+
 		//disable legacy PICs
 		outb(0x20, 0x11);
 		ioWait();
