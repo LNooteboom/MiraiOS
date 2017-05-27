@@ -76,6 +76,7 @@ struct cpuInfo {
 };
 
 extern unsigned int nrofCPUs;
+extern unsigned int nrofActiveCPUs;
 extern struct cpuInfo *cpuInfos;
 
 /*

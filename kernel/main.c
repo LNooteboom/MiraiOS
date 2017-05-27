@@ -17,6 +17,10 @@ thread_t mainThread;
 
 extern void *lapicDoSMPBoot(void *arg);
 
+void test(void) {
+	sprint("lol");
+}
+
 void kmain(void) {
 	initInterrupts();
 	vgaInit();
@@ -33,6 +37,8 @@ void kmain(void) {
 	thread_t smpThread;
 	kthreadCreate(&smpThread, lapicDoSMPBoot, NULL, THREAD_FLAG_RT);
 	kthreadJoin(smpThread, NULL);
+	kthreadCreate(NULL, test, NULL, 0);
+	kthreadCreate(NULL, test, NULL, 0);
 
 	sprint("Init complete.\n");
 	kthreadExit(NULL);

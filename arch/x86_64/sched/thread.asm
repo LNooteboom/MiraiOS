@@ -140,9 +140,6 @@ jiffyIrq:
 	mov rdi, [rsp + 8]
 	lea rdi, [rdi + 0x14]
 	call acquireSpinlock
-	;mov rdi, [rsp]
-	;call sleepSkipTime
-	;mov esi, eax
 
 	pop rsi
 	mov rdi, [rsp]
@@ -151,20 +148,17 @@ jiffyIrq:
 
 	cmp rax, rdx
 	je .noSwitch
-		test rdx, rdx
-		jz .noSave ;skip if this cpu wasn't busy
-			;task switch occured
-			;save optional registers
-			sub rsp, 0x30
-			mov [rsp + 0x28], rbx
-			mov [rsp + 0x20], rbp
-			mov [rsp + 0x18], r12
-			mov [rsp + 0x10], r13
-			mov [rsp + 0x08], r14
-			mov [rsp], r15
-			;save rsp
-			mov [rdx], rsp
-		.noSave:
+		;task switch occured
+		;save optional registers
+		sub rsp, 0x30
+		mov [rsp + 0x28], rbx
+		mov [rsp + 0x20], rbp
+		mov [rsp + 0x18], r12
+		mov [rsp + 0x10], r13
+		mov [rsp + 0x08], r14
+		mov [rsp], r15
+		;save rsp
+		mov [rdx], rsp
 		;get new rsp
 		mov rsp, [rax]
 		;restore optional registers
@@ -187,7 +181,7 @@ jiffyIrq:
 	call releaseSpinlock
 	.return:
 
-	xchg bx, bx
+	;xchg bx, bx
 
 	call ackIRQ
 

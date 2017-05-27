@@ -186,8 +186,7 @@ detectLongMode:
 	test edx, 1 << 29
 	jz .noLongMode
 
-	nop
-	ret
+	repz ret
 
 	.noLongMode:
 		mov esi, noLongModeMsg

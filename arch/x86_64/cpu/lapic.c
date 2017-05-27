@@ -69,17 +69,17 @@ void ackIRQ(void) {
 }
 
 void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type) {
-	asm volatile ("cli");
+	//asm volatile ("cli");
 	lapicBase[0x310 / 4] = destination << 24;
 	lapicBase[0x300 / 4] = vec | ((type & 7) << 8) | (1 << 14);
-	asm volatile ("sti");
+	//asm volatile ("sti");
 }
 
 void lapicSendIPIToAll(uint8_t vec, enum ipiTypes type) {
-	asm volatile ("cli");
+	//asm volatile ("cli");
 	lapicBase[0x310 / 4] = 0xFF << 24;
 	lapicBase[0x300 / 4] = vec | ((type & 7) << 8) | (1 << 14) | (3 << 18);
-	asm volatile ("sti");
+	//asm volatile ("sti");
 }
 
 void lapicDoSMPBoot(void) {

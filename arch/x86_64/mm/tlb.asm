@@ -1,0 +1,117 @@
+TLB_INVAL_IRQ_NUM:	equ 0xC0
+
+global tlbInit:function
+global tlbInvalidateGlobal:function
+global tlbInvalidateLocal:function
+
+extern routeInterrupt
+extern acquireSpinlock
+extern releaseSpinlock
+extern ackIRQ
+extern PAGE_SIZE
+extern nrofActiveCPUs
+extern lapicSendIPIToAll
+
+SECTION .text
+
+tlbInit:
+	mov rdi, tlbInvalIrq
+	mov esi, TLB_INVAL_IRQ_NUM
+	xor edx, edx
+	call routeInterrupt
+	ret
+
+tlbInvalidateGlobal: ;(void *base, uint64_t numPages) returns void
+	push rbx
+	push r12
+	pushfq
+	mov rbx, rdi
+	mov r12, rsi
+
+	call tlbInvalidateLocal
+
+	.lock:
+	cli
+	lock bts dword [tlbInvalLock], 0
+	jnc .noSpin
+		sti
+		.spin:
+		pause
+		test [tlbInvalLock], dword 1
+		jz .lock
+		jmp .spin
+	.noSpin:
+
+	mov [tlbInvalCPUCount], dword 1
+
+	mov [tlbInvalNumPages], r12
+	mov [tlbInvalStart], rbx
+
+	;Send tlb ipi
+	mov edi, TLB_INVAL_IRQ_NUM
+	xor esi, esi
+	call lapicSendIPIToAll
+
+	;wait until all CPUs finished
+	mov eax, [nrofActiveCPUs]
+	.wait:
+		pause
+		cmp [tlbInvalCPUCount], eax
+		jne .wait
+
+	mov [tlbInvalLock], dword 0
+
+	popfq
+	pop r12
+	pop rbx
+	ret
+
+tlbInvalIrq:
+	sub rsp, 0x48
+	mov [rsp + 0x40], rax
+	mov [rsp + 0x38], rcx
+	mov [rsp + 0x30], rdx
+	mov [rsp + 0x28], rdi
+	mov [rsp + 0x20], rsi
+	mov [rsp + 0x18], r8
+	mov [rsp + 0x10], r9
+	mov [rsp + 0x08], r10
+	mov [rsp], r11
+
+	mov rsi, [tlbInvalNumPages]
+	mov rdi, [tlbInvalStart]
+	call tlbInvalidateLocal
+
+	lock inc dword [tlbInvalCPUCount]
+	call ackIRQ
+	mov rax, [rsp + 0x40]
+	mov rcx, [rsp + 0x38]
+	mov rdx, [rsp + 0x30]
+	mov rdi, [rsp + 0x28]
+	mov rsi, [rsp + 0x20]
+	mov r8,  [rsp + 0x18]
+	mov r9,  [rsp + 0x10]
+	mov r10, [rsp + 0x08]
+	mov r11, [rsp]
+	add rsp, 0x48
+	iretq
+
+tlbInvalidateLocal: ;(void *base, uint64_t numPages)
+	inc rsi
+	jmp .chk
+	.start:
+		invlpg [rdi]
+		add rdi, PAGE_SIZE
+		.chk:
+		dec rsi
+		jne .start
+	repz ret
+
+SECTION .bss
+
+tlbInvalLock:		resd 1
+tlbInvalCPUCount:	resd 1
+
+ALIGNB 8
+tlbInvalStart:		resq 1
+tlbInvalNumPages:	resq 1

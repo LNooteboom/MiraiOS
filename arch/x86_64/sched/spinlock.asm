@@ -8,36 +8,41 @@ SECTION .text
 
 acquireSpinlock:
 	pushf
-	cli
 
 	xor ecx, ecx
+	pop rdx
 
 	.lock:
+	cli
 	lock bts dword [rdi], 0
 	jnc .noSpin
-	.spin:
+		test edx, (1 << 9)
+		jz .spin
+		sti
+
+		.spin:
 		inc ecx
 		pause
 		test [rdi], dword 1
 		jz .lock
-		cmp ecx, 1000000
+		cmp ecx, 100000
 		jae .error
 		jmp .spin
 
 	.noSpin:
 
 	;We now have the lock, read IF from stack
-	test [rsp], dword (1 << 9)
+	test edx, (1 << 9)
 	jz .noIF
 		or [rdi], dword 2
 		jmp .end
 	.noIF:
 		and [rdi], dword ~2
 	.end:
-	add rsp, 8
 	ret
 
 .error:
+	xchg bx, bx
 	mov rdi, spinlockStuckMsg
 	call sprint
 	mov rdi, [rsp + 8]

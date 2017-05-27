@@ -104,7 +104,6 @@ void deallocPages(void *addr, size_t size) {
 			physPage_t page = *entry & PAGE_MASK;
 			deallocPhysPage(page);
 		}
-		//*entry = 0;
 		mmUnmapPage(*entry);
 	}
 }

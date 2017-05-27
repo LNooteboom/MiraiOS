@@ -8,6 +8,7 @@ extern lapicBase
 extern cpuInfoSize
 extern cpuInfos
 extern nrofCPUs
+extern nrofActiveCPUs
 extern initStackEnd
 extern idtr
 extern tssGdtInit
@@ -19,6 +20,14 @@ extern readyQueuePop
 SECTION .text
 
 smpbootStart:
+	;set segment regs
+	mov eax, 0x10
+	mov ds, ax
+	mov es, ax
+	mov ss, ax
+	mov fs, ax
+	mov gs, ax
+
 	;get APIC ID
 	mov eax, [physLapicBase]
 	mov edx, [physLapicBase + 4]
@@ -68,11 +77,19 @@ smpbootStart:
 	shr rdx, 32
 	wrmsr ;set GS.base to CPUInfo
 
+	xor edi, edi
+	call setCurrentThread
+	;increment nrof active cpus
+	lock inc dword [nrofActiveCPUs]
+	;sti
+
 	.loadThread:
 	call readyQueuePop
 	test rax, rax
 	jnz .threadLoaded
-		pause
+		sti
+		hlt
+		cli
 		jmp .loadThread
 	.threadLoaded:
 	mov r15, rax ;15 now contains current thread
