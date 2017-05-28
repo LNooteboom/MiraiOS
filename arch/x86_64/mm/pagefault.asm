@@ -41,20 +41,20 @@ excPF:
         mov bl, NROF_PAGE_LEVELS - 1
         .L1:
             mov rdi, cr2
-            movzx si, bl
+            movzx esi, bl
             call mmGetEntry
             ;rax contains pointer to pte
             mov r12, rax
             mov rax, [rax]
             test al, 0x01 ;present flag
             jnz .L2
-                test ax, (1 << 9) ;inuse flag
+                test eax, (1 << 9) ;inuse flag
                 jz .L0 ;give error if not in use
                 cmp bl, 0
                 jne .L3
-                    test ax, (1 << 10) ;clean flag
+                    test eax, (1 << 10) ;clean flag
                     jnz .L4
-                        call allocCleanPhysPage
+						call allocCleanPhysPage
                         jmp .L7
                     .L4:
                         call allocPhysPage
@@ -109,6 +109,7 @@ excPF:
     .L0:
 	add rbp, 16
 	mov rsp, rbp
+
     ;print error message
     mov rdi, PFmsg
     call sprint

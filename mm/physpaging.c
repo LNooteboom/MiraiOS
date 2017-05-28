@@ -8,6 +8,10 @@
 #include <print.h>
 #include <mm/memset.h>
 
+#include <arch/tlb.h> //evil!
+
+//extern uint64_t *mmGetEntry(uintptr_t addr, char level);
+
 #define PAGE_STACK_LENGTH		(PAGE_SIZE / 8 - 1)
 
 typedef physPage_t stackEntry_t;
@@ -48,6 +52,9 @@ static stackEntry_t popPage(struct pageStackInfo *pages) {
 		if (pages->stack->prevStack) {
 			//set new page stack
 			mmMapPage((uintptr_t)pages->stack, pages->stack->prevStack, PAGE_FLAG_WRITE);
+			//invalidate tlb
+			tlbInvalidateGlobal(pages->stack, 1);
+
 			pages->sp = PAGE_STACK_LENGTH - 1;
 		} else {
 			pages->sp = -2;
@@ -73,6 +80,9 @@ static void pushPage(struct pageStackInfo *pages, stackEntry_t newPage) {
 			oldStack = mmGetPageEntry((uintptr_t)pages->stack);
 		}
 		mmMapPage((uintptr_t)pages->stack, newPage, PAGE_FLAG_WRITE);
+		//invalidate tlb
+		tlbInvalidateGlobal(pages->stack, 1);
+
 		pages->stack->prevStack = oldStack;
 		pages->sp = -1;
 	}
@@ -86,12 +96,12 @@ returns the first small page and pushes the rest on the page stack
 returns the first page != 0 if successful
 */
 static physPage_t splitLargePage(struct pageStackInfo *largePages, struct pageStackInfo *smallPages) {
-	physPage_t largePage = popPage(largePages);
+	physPage_t largePage = popPage(&largePages);
 	if (!largePage) {
 		return 0;
 	}
 	for (physPage_t i = PAGE_SIZE; i < (LARGE_PAGE_SIZE); i += PAGE_SIZE) {
-		pushPage(smallPages, largePage + i);
+		pushPage(&smallPages, largePage + i);
 	}
 	return largePage;
 }
@@ -99,6 +109,7 @@ static physPage_t splitLargePage(struct pageStackInfo *largePages, struct pageSt
 static void cleanSmallPage(physPage_t page) {
 	acquireSpinlock(&freeBufferSmallLock);
 	mmMapPage(freeBufferSmall, page, PAGE_FLAG_WRITE);
+	tlbInvalidateLocal((void*)freeBufferSmall, 1);
 	memset((void*)freeBufferSmall, 0, PAGE_SIZE);
 	releaseSpinlock(&freeBufferSmallLock);
 }
@@ -178,6 +189,7 @@ physPage_t allocLargeCleanPhysPage(void) {
 		} else {
 			acquireSpinlock(&freeBufferLargeLock);
 			mmMapLargePage(freeBufferLarge, page, PAGE_FLAG_WRITE);
+			tlbInvalidateLocal((void*)freeBufferLarge, LARGE_PAGE_SIZE / PAGE_SIZE);
 			memset((void*)freeBufferLarge, 0, LARGE_PAGE_SIZE);
 			releaseSpinlock(&freeBufferLargeLock);
 		}

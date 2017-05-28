@@ -9,6 +9,7 @@
 #include <sched/sleep.h>
 #include <arch/msr.h>
 #include <mm/memset.h>
+#include <arch/tlb.h>
 
 struct smpbootInfo {
 	uint16_t jump;
@@ -86,12 +87,6 @@ void lapicDoSMPBoot(void) {
 	if (nrofCPUs < 2) {
 		return;
 	}
-	//Allocate exception stacks for all APs
-	//apExcStacks = allocKPages((nrofCPUs - 1) * PAGE_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
-	//Write to them to prevent lazy allocation
-	//for (unsigned int i = 0; i < nrofCPUs - 1; i++) {
-	//	((uint32_t *)apExcStacks)[i * PAGE_SIZE / 4] = 0;
-	//}
 
 	//Prepare smp boot image
 	volatile struct smpbootInfo *info = (struct smpbootInfo *)0xFFFFFFFF80070000;
@@ -119,4 +114,5 @@ void lapicDoSMPBoot(void) {
 		//kthreadSleep(10);
 		//kthreadCreate(NULL, emptyThread, NULL, THREAD_FLAG_DETACHED); //create empty thread for this cpu
 	}
+	tlbReloadCR3();
 }

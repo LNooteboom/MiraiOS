@@ -3,6 +3,7 @@ TLB_INVAL_IRQ_NUM:	equ 0xC0
 global tlbInit:function
 global tlbInvalidateGlobal:function
 global tlbInvalidateLocal:function
+global tlbReloadCR3:function
 
 extern routeInterrupt
 extern acquireSpinlock
@@ -66,6 +67,39 @@ tlbInvalidateGlobal: ;(void *base, uint64_t numPages) returns void
 	pop rbx
 	ret
 
+tlbReloadCR3:
+	mov rax, cr3
+	mov cr3, rax
+
+	.lock:
+	cli
+	lock bts dword [tlbInvalLock], 0
+	jnc .noSpin
+		sti
+		.spin:
+		pause
+		test [tlbInvalLock], dword 1
+		jz .lock
+		jmp .spin
+	.noSpin:
+
+	mov [tlbDoReloadCR3], dword 1
+
+	;Send tlb ipi
+	mov edi, TLB_INVAL_IRQ_NUM
+	xor esi, esi
+	call lapicSendIPIToAll
+
+	;wait until all CPUs finished
+	mov eax, [nrofActiveCPUs]
+	.wait:
+		pause
+		cmp [tlbInvalCPUCount], eax
+		jne .wait
+
+	mov [tlbInvalLock], dword 0
+	ret
+
 tlbInvalIrq:
 	sub rsp, 0x48
 	mov [rsp + 0x40], rax
@@ -78,10 +112,14 @@ tlbInvalIrq:
 	mov [rsp + 0x08], r10
 	mov [rsp], r11
 
+	cmp [tlbDoReloadCR3], dword 0
+	jne .reloadCR3
+
 	mov rsi, [tlbInvalNumPages]
 	mov rdi, [tlbInvalStart]
 	call tlbInvalidateLocal
 
+	.exit:
 	lock inc dword [tlbInvalCPUCount]
 	call ackIRQ
 	mov rax, [rsp + 0x40]
@@ -96,6 +134,11 @@ tlbInvalIrq:
 	add rsp, 0x48
 	iretq
 
+	.reloadCR3:
+	mov rax, cr3
+	mov cr3, rax
+	jmp .exit
+
 tlbInvalidateLocal: ;(void *base, uint64_t numPages)
 	inc rsi
 	jmp .chk
@@ -108,6 +151,9 @@ tlbInvalidateLocal: ;(void *base, uint64_t numPages)
 	repz ret
 
 SECTION .bss
+
+ALIGNB 4
+tlbDoReloadCR3:		resd 1
 
 tlbInvalLock:		resd 1
 tlbInvalCPUCount:	resd 1

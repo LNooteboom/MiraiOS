@@ -7,6 +7,7 @@
 #include <mm/pagemap.h>
 #include <sched/spinlock.h>
 #include <mm/physpaging.h>
+#include <arch/tlb.h>
 #include "map.h"
 
 #define KERNEL_VMEM_END 0xFFFFFFFFC0000000
@@ -104,8 +105,10 @@ void deallocPages(void *addr, size_t size) {
 			physPage_t page = *entry & PAGE_MASK;
 			deallocPhysPage(page);
 		}
-		mmUnmapPage(*entry);
+		mmUnmapPage(addr + i * PAGE_SIZE);
 	}
+	//TODO: Check if TLB inval is actually needed
+	tlbInvalidateGlobal(addr, nrofPages);
 }
 
 void *ioremap(uintptr_t paddr, size_t size) {
@@ -134,4 +137,5 @@ void iounmap(void *addr, size_t size) {
 	for (unsigned int i = 0; i < nrofPages; i++) {
 		mmUnmapPage((uintptr_t)addr + (i * PAGE_SIZE));
 	}
+	tlbInvalidateGlobal(addr, nrofPages);
 }

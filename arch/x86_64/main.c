@@ -5,6 +5,7 @@
 #include <arch/acpi.h>
 #include <arch/cpu.h>
 #include <arch/ioapic.h>
+#include <arch/tlb.h>
 
 unsigned int nrofCPUs = 0;
 unsigned int nrofActiveCPUs = 1;

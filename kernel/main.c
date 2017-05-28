@@ -18,7 +18,15 @@ thread_t mainThread;
 extern void *lapicDoSMPBoot(void *arg);
 
 void test(void) {
-	sprint("lol");
+	//sprint("lol");
+	cprint('a');
+	cprint('b');
+	cprint('c');
+	cprint('d');
+	cprint('e');
+	cprint('f');
+	cprint('g');
+	cprint('h');
 }
 
 void kmain(void) {
@@ -41,6 +49,7 @@ void kmain(void) {
 	kthreadCreate(NULL, test, NULL, 0);
 
 	sprint("Init complete.\n");
+	asm ("xchg bx, bx");
 	kthreadExit(NULL);
 }
 

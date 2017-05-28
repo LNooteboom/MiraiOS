@@ -20,6 +20,11 @@ extern readyQueuePop
 SECTION .text
 
 smpbootStart:
+	;jump to high address
+	mov rax, .start
+	jmp rax
+
+	.start:
 	;set segment regs
 	mov eax, 0x10
 	mov ds, ax
