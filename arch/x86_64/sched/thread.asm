@@ -181,8 +181,6 @@ jiffyIrq:
 	call releaseSpinlock
 	.return:
 
-	;xchg bx, bx
-
 	call ackIRQ
 
 	cmp [gs:0x14], dword 0
@@ -324,7 +322,6 @@ nextThread: ;r15 = old thread
 			call deallocThread
 	.notDetached:
 
-	;xchg bx, bx
 	;Restore registers
 	mov rax, [rsp + 0x70]
 	mov rcx, [rsp + 0x68]

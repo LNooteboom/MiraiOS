@@ -4,7 +4,7 @@
 #include <drivers/vga.h>
 #include <sched/spinlock.h>
 
-spinlock_t printLock = 0;
+static spinlock_t printLock = 0;
 
 void cprint(char c) {
 	acquireSpinlock(&printLock);

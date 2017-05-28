@@ -49,7 +49,6 @@ void kmain(void) {
 	kthreadCreate(NULL, test, NULL, 0);
 
 	sprint("Init complete.\n");
-	asm ("xchg bx, bx");
 	kthreadExit(NULL);
 }
 

@@ -111,8 +111,6 @@ void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
 					base = physBssEnd;
 				}
 				for (size_t i = 0; i < size; i += PAGE_SIZE) {
-					//hexprintln64(base);
-					//asm("xchg bx, bx");
 					if ( !(base & (LARGEPAGE_SIZE - 1)) && size >= PAGE_SIZE) {
 						//There is a better way to do this, but right now this is the simplest solution
 						deallocLargePhysPage(base);

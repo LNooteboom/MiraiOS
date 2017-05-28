@@ -109,7 +109,6 @@ static void heapFree(void *addr, memArea_t *heap, size_t heapSize) {
 }
 
 void *kmalloc(size_t size) {
-	//asm volatile ("xchg bx, bx");
 	if (size == 0) {
 		return NULL;
 	}

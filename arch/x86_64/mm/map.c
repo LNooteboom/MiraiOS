@@ -17,11 +17,6 @@ static const uintptr_t pageLevelBase[NROF_PAGE_LEVELS] = {
 	0xFFFFFF7FBFDFE000	//PML4T
 };
 
-/*static inline void invalidateTLB(uintptr_t page) {
-	//asm("invlpg [%0]": :"r"(page));
-	tlbInvalidateGlobal(page, 1);
-}*/
-
 /*
 Finds the entry in the page table at a specified level and sets it to a specified value.
 */
@@ -30,7 +25,6 @@ void mmSetPageEntry(uintptr_t addr, uint8_t level, pte_t entry) {
 	addr = (addr >> (PAGE_BIT_WIDTH * (level + 1)) & PE_MASK) | pageLevelBase[level];
 	pte_t *entryPtr = (pte_t*)addr;
 	*entryPtr = entry;
-	//invalidateTLB(addr);
 }
 
 /*
@@ -79,7 +73,6 @@ void mmMapPage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
 	}
 	pte_t entry = paddr | flags | PAGE_FLAG_PRESENT | PAGE_FLAG_INUSE;
 	mmSetPageEntry(vaddr, 0, entry);
-	//invalidateTLB(vaddr);
 	return;
 }
 
@@ -102,7 +95,6 @@ void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
 	}
 	pte_t entry = paddr | flags | PAGE_FLAG_PRESENT | PAGE_FLAG_INUSE | PAGE_FLAG_SIZE;
 	mmSetPageEntry(vaddr, 1, entry);
-	//invalidateTLB(vaddr);
 	return;
 }
 
