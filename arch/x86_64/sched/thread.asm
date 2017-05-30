@@ -17,6 +17,7 @@ extern lapicSendIPIToAll
 global kthreadExit:function
 global kthreadInit:function
 global jiffyIrq:function
+global reschedIPI:function
 global migrateMainStack:function
 global kthreadStop:function
 
@@ -185,10 +186,88 @@ jiffyIrq:
 
 	cmp [gs:0x14], dword 0
 	jne .noIPI
-		mov edi, [jiffyVec]
+		mov edi, 0xC1
 		xor esi, esi
 		call lapicSendIPIToAll
 	.noIPI:
+
+	;Restore mandatory registers
+	mov rax, [rsp + 0x40]
+	mov rcx, [rsp + 0x38]
+	mov rdx, [rsp + 0x30]
+	mov rdi, [rsp + 0x28]
+	mov rsi, [rsp + 0x20]
+	mov r8,  [rsp + 0x18]
+	mov r9,  [rsp + 0x10]
+	mov r10, [rsp + 0x08]
+	mov r11, [rsp]
+	add rsp, 0x48
+	iretq
+
+reschedIPI:
+	;save mandatory registers
+	sub rsp, 0x48
+	mov [rsp + 0x40], rax
+	mov [rsp + 0x38], rcx
+	mov [rsp + 0x30], rdx
+	mov [rsp + 0x28], rdi
+	mov [rsp + 0x20], rsi
+	mov [rsp + 0x18], r8
+	mov [rsp + 0x10], r9
+	mov [rsp + 0x08], r10
+	mov [rsp], r11
+
+	;get current thread
+	mov rax, [gs:0]
+	test rax, rax
+	jz .return
+	cmp [rax + 0x10], dword 1
+	je .return
+	
+	lea rdi, [rax + 0x14]
+	call acquireSpinlock
+
+	mov esi, 1
+	mov rdi, [gs:0]
+	call kthreadSwitch
+
+	mov rdx, [gs:0]
+	cmp rax, rdx
+	je .noSwitch
+		;task switch occured
+		;save optional registers
+		sub rsp, 0x30
+		mov [rsp + 0x28], rbx
+		mov [rsp + 0x20], rbp
+		mov [rsp + 0x18], r12
+		mov [rsp + 0x10], r13
+		mov [rsp + 0x08], r14
+		mov [rsp], r15
+		;save rsp
+		mov [rdx], rsp
+		;get new rsp
+		mov rsp, [rax]
+		;restore optional registers
+		mov rbx, [rsp + 0x28]
+		mov rbp, [rsp + 0x20]
+		mov r12, [rsp + 0x18]
+		mov r13, [rsp + 0x10]
+		mov r14, [rsp + 0x08]
+		mov r15, [rsp]
+		add rsp, 0x30
+
+		;release spinlock on new thread
+		push rdx
+		lea rdi, [rax + 0x14]
+		call releaseSpinlock
+		pop rdx
+	.noSwitch:
+	;release spinlock on old thread
+	lea rdi, [rdx + 0x14]
+	call releaseSpinlock
+	.return:
+
+	call ackIRQ
 
 	;Restore mandatory registers
 	mov rax, [rsp + 0x40]

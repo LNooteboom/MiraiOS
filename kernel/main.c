@@ -17,16 +17,9 @@ thread_t mainThread;
 
 extern void *lapicDoSMPBoot(void *arg);
 
-void test(void) {
-	//sprint("lol");
-	cprint('a');
-	cprint('b');
-	cprint('c');
-	cprint('d');
-	cprint('e');
-	cprint('f');
-	cprint('g');
-	cprint('h');
+void *test(__attribute__((unused)) void *arg) {
+	sprint("lol");
+	return NULL;
 }
 
 void kmain(void) {

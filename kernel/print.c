@@ -53,6 +53,9 @@ void hexprintln64(uint64_t value) {
 }
 
 void decprint(int32_t value) {
+	if (value == 0) {
+		cprint('0');
+	}
 	char buffer[10];
 	if (value < 0) {
 		value = -value;

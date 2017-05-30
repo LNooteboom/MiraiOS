@@ -112,7 +112,6 @@ void mmSetPageFlags(uintptr_t vaddr, pageFlags_t flags) {
 			*entry = page | PAGE_FLAG_PRESENT | flags;
 		}
 	}
-	pte_t entry = flags;
 	*mmGetEntry(vaddr, 0) = flags;
 }
 

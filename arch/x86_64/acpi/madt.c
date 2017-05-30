@@ -86,7 +86,6 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 
 		outb(0xa1, 0xff);
 		outb(0x21, 0xff);
-		//outb(0x20, 0x20);
 		ACPI_LOG("Legacy PICs disabled.\n");
 	}
 
@@ -99,14 +98,14 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		if (recHeader->entryType == 0) {
 			struct LAPIC *rec = (struct LAPIC*)recHeader;
 			ACPI_LOG("Found local APIC ID: ");
-			hexprintln(rec->apicID);
+			decprintln(rec->apicID);
 			if (nrofCPUs < APIC_BUFFER_SIZE) {
 				apicIDs[nrofCPUs++] = rec->apicID;
 			}
 		} else if (recHeader->entryType == 1) {
 			struct IOAPIC *rec = (struct IOAPIC*)recHeader;
 			ACPI_LOG("Found IO APIC ID: ");
-			hexprintln(rec->id);
+			decprintln(rec->id);
 			struct ioApicInfo *oldInfos = ioApicInfos;
 			ioApicInfos = krealloc(ioApicInfos, (nrofIOApics + 1) * sizeof(struct ioApicInfo));
 			if (ioApicInfos) {
@@ -138,7 +137,7 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		cpuInfos[i].currentThread = NULL;
 		cpuInfos[i].apicID = apicIDs[i];
 		cpuInfos[i].cpuInfosIndex = i;
-		cpuInfos[i].excStackTop = (void*)((uintptr_t)allocKPages(PAGE_SIZE, PAGE_FLAG_INUSE) + PAGE_SIZE);
+		cpuInfos[i].excStackTop = (void*)((uintptr_t)allocKPages(PAGE_SIZE * 2, PAGE_FLAG_INUSE) + PAGE_SIZE * 2);
 		*((uint32_t*)(cpuInfos[i].excStackTop) - 4) = 0; //prealloc exception stack
 	}
 }

@@ -95,13 +95,13 @@ Divides a large page into smaller pages
 returns the first small page and pushes the rest on the page stack
 returns the first page != 0 if successful
 */
-static physPage_t splitLargePage(struct pageStackInfo *largePages, struct pageStackInfo *smallPages) {
-	physPage_t largePage = popPage(&largePages);
+static physPage_t splitLargePage(struct pageStackInfo *_largePages, struct pageStackInfo *_smallPages) {
+	physPage_t largePage = popPage(_largePages);
 	if (!largePage) {
 		return 0;
 	}
 	for (physPage_t i = PAGE_SIZE; i < (LARGE_PAGE_SIZE); i += PAGE_SIZE) {
-		pushPage(&smallPages, largePage + i);
+		pushPage(_smallPages, largePage + i);
 	}
 	return largePage;
 }

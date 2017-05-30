@@ -105,7 +105,7 @@ void deallocPages(void *addr, size_t size) {
 			physPage_t page = *entry & PAGE_MASK;
 			deallocPhysPage(page);
 		}
-		mmUnmapPage(addr + i * PAGE_SIZE);
+		mmUnmapPage((uintptr_t)(addr) + i * PAGE_SIZE);
 	}
 	//TODO: Check if TLB inval is actually needed
 	tlbInvalidateGlobal(addr, nrofPages);

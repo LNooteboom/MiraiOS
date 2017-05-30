@@ -45,8 +45,6 @@ static void *heapAlloc(size_t size, memArea_t *heap, size_t heapSize) {
 	memArea_t *newHeader = heap;
 	bool foundMem = false;
 	while ( (uintptr_t)(newHeader) < (uintptr_t)(heap) + heapSize){
-		//hexprint64(*newHeader);
-		//cprint('-');
 		if ( !(*newHeader & AREA_INUSE) && *newHeader >= totalSize) {
 			foundMem = true;
 			break;
@@ -120,29 +118,37 @@ void *kmalloc(size_t size) {
 	void *retVal = heapAlloc(size, heapStart, heapSize);
 	if (!retVal) {
 		//allocate more heap space
-		uintptr_t newPage = (uintptr_t)(heapStart) + heapSize;
-		if (newPage >= VHEAPLIMIT) {
-			releaseSpinlock(&heapLock);
+		size_t totalSize = size + sizeof(memArea_t) * 2;
+		uintptr_t newArea = (uintptr_t)heapStart + heapSize;
+		memArea_t *lastEntry = (memArea_t *)newArea - 2;
+		size_t lastAreaSize = 0;
+		if (!(*lastEntry & AREA_INUSE)) {
+			lastAreaSize = *lastEntry;
+		}
+		if (lastAreaSize >= totalSize) {
+			sprint("heapAlloc error!");
 			return NULL;
 		}
-		allocPageAt((void*)newPage, PAGE_SIZE, PAGE_FLAG_INUSE | PAGE_FLAG_WRITE);
+		size_t remainingSize = totalSize - lastAreaSize;
+		uint32_t nrofPages = remainingSize / PAGE_SIZE;
+		if (remainingSize % PAGE_SIZE) {
+			nrofPages++;
+		}
+		allocPageAt((void *)newArea, remainingSize, PAGE_FLAG_INUSE | PAGE_FLAG_WRITE);
 
-		//merge it with the heap
-		size_t newSize = heapSize + PAGE_SIZE;
-		memArea_t *oldFooter = (memArea_t*)(newPage - (sizeof(memArea_t) * 2));
-		memArea_t *newFooter = (memArea_t*)(newPage + PAGE_SIZE - (sizeof(memArea_t) * 2));
-		memArea_t *header;
-		if (*oldFooter & AREA_INUSE) {
-			header = (memArea_t*)(newPage - sizeof(memArea_t));
-			*header = PAGE_SIZE;
-			*newFooter = *header;
+		size_t newHeapSize = heapSize + nrofPages * PAGE_SIZE;
+		memArea_t *newFooter = (memArea_t *)((uintptr_t)heapStart + newHeapSize) - 2;
+		if (*lastEntry & AREA_INUSE) {
+			memArea_t *newHeader = (memArea_t *)newArea - 1;
+			*newHeader = nrofPages * PAGE_SIZE;
+			*newFooter = nrofPages * PAGE_SIZE;
 		} else {
 			//area is free, merge it
-			header = getHeaderFromFooter(oldFooter);
-			*header += PAGE_SIZE + sizeof(memArea_t);
-			*newFooter = *header;
+			memArea_t *newHeader = getHeaderFromFooter(lastEntry);
+			*newHeader += nrofPages * PAGE_SIZE;
+			*newFooter = *newHeader;
 		}
-		heapSize = newSize;
+		heapSize = newHeapSize;
 		//try again
 		retVal = heapAlloc(size, heapStart, heapSize);
 	}
@@ -220,7 +226,7 @@ void *krealloc(void *addr, size_t newSize) {
 	//split needed
 	memArea_t *newFooter = getFooterFromHeader(curHeader);
 	*newFooter = *curHeader;
-	*nextFooter -= newSize;
+	*nextFooter -= newSize - oldSize;
 	*(newFooter + 1) = *nextFooter;
 	releaseSpinlock(&heapLock);
 	return addr;

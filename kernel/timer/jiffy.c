@@ -7,7 +7,10 @@
 #include <print.h>
 #include <drivers/timer/i8253.h>
 
+#define RESCHED_VEC 0xC1
+
 extern void jiffyIrq(void);
+extern void reschedIPI(void);
 
 uint64_t jiffyCounter;
 struct jiffyTimer *jiffyTimer;
@@ -27,6 +30,7 @@ int jiffyInit(void) {
 	i8253Init(jiffyTimer);
 	
 	jiffyVec = routeHWIRQ(jiffyTimer->irq, jiffyIrq, IRQ_FLAG_ISA);
+	routeInterrupt(reschedIPI, RESCHED_VEC, 0);
 	jiffyTimer->setFreq(JIFFY_HZ);
 	jiffyTimer->setState(true);
 	return 0;
