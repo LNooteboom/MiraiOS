@@ -22,7 +22,11 @@ void vgaCPrint(char c) {
 	vgaMem[cursor * 2 + 1] = currentAttrib;
 
 	cursor++;
-	vgaSetCursor(cursor);
+	if (cursor > vgaScreenHeight * vgaScreenWidth && cursor % vgaScreenWidth == 0) {
+		scroll += vgaScreenWidth;
+		vgaSetStart(scroll);
+	}
+	vgaSetCursor(cursor - scroll * vgaScreenWidth);
 }
 void vgaSPrint(const char *text) {
 	while (*text) {

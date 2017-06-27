@@ -71,7 +71,7 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		ioWait();
 		outb(0xa0, 0x11);
 		ioWait();
-		outb(0x21, 16);
+		outb(0x21, 0xF0);
 		ioWait();
 		outb(0xa1, 24);
 		ioWait();

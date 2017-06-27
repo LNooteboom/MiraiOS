@@ -40,6 +40,7 @@ struct threadInfo {
 	bool fixedPriority;
 	struct threadInfo *joinFirst;
 	struct threadInfo *joinLast;
+	int nrofJoinThreads;
 };
 
 typedef struct threadInfo *thread_t;

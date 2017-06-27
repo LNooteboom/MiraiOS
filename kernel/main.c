@@ -17,8 +17,9 @@ thread_t mainThread;
 
 extern void *lapicDoSMPBoot(void *arg);
 
-void *test(__attribute__((unused)) void *arg) {
-	sprint("lol");
+void *test(void *arg) {
+	//asm("xchg bx, bx");
+	sprint(arg);
 	return NULL;
 }
 
@@ -38,8 +39,8 @@ void kmain(void) {
 	thread_t smpThread;
 	kthreadCreate(&smpThread, lapicDoSMPBoot, NULL, THREAD_FLAG_RT);
 	kthreadJoin(smpThread, NULL);
-	kthreadCreate(NULL, test, NULL, 0);
-	kthreadCreate(NULL, test, NULL, 0);
+	kthreadCreate(NULL, test, "Thread 1!\n", 0);
+	kthreadCreate(NULL, test, "Thread 2!\n", 0);
 
 	sprint("Init complete.\n");
 	kthreadExit(NULL);

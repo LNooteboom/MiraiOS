@@ -35,12 +35,20 @@ initExceptions:
         jmp .start
     .end:
 
-	;map spurious irq vector
-	mov rdi, undefinedInterrupt
-	mov esi, 0xff
-	xor edx, edx
-	call routeInterrupt
-
+	;map spurious irq vectors
+	;mov rdi, undefinedInterrupt
+	;mov esi, 0xFF
+	;xor edx, edx
+	;call routeInterrupt
+	mov r12d, 0xF0
+	.start2:
+		mov rdi, undefinedInterrupt
+		xor edx, edx
+		mov esi, r12d
+		call routeInterrupt
+		inc r12
+		cmp r12d, 0x100
+		jne .start2
 
     mov r12, [rbp-16]
     mov rbx, [rbp-8]
