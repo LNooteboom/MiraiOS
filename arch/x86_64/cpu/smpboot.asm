@@ -50,7 +50,7 @@ smpbootStart:
 	xor ecx, ecx
 	mov rdi, [cpuInfoSize]
 	.loop:
-		cmp [rax + 16], edx ;compare this cpu's apic id
+		cmp [rax + 24], edx ;compare this cpu's apic id
 		je .end
 		
 		inc ecx
@@ -64,8 +64,8 @@ smpbootStart:
 	dec ecx
 
 	;get exception stack
-	mov rsp, [rax + 0x08]
-	mov rbp, [rax + 0x08]
+	mov rsp, [rax + 0x10]
+	mov rbp, [rax + 0x10]
 
 	;load idt
 	lidt [idtr]

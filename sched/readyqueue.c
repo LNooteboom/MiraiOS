@@ -58,8 +58,11 @@ thread_t readyQueuePop(void) {
 	}
 
 	struct cpuInfo *busiestCPU = NULL;
-	uint32_t load = ~0;
+	uint32_t load = 0;
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
+		if (&cpuInfos[i] == thisCPU) {
+			continue;
+		}
 		acquireSpinlock(&cpuInfos[i].readyListLock);
 		if (cpuInfos[i].threadLoad != 0 && cpuInfos[i].threadLoad > load) {
 			busiestCPU = &cpuInfos[i];
