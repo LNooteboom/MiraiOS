@@ -29,10 +29,10 @@ void tssGdtInit(struct cpuInfo *info) {
 
 void tssSetIST(int ist, void *addr) {
 	struct cpuInfo *cpuInfoNull = NULL;
-	pcpuWrite((uint64_t)(&cpuInfoNull->tss.ist[ist - 1]), (uint64_t)addr);
+	doPcpuWrite64((uint64_t)(&cpuInfoNull->tss.ist[ist - 1]), (uint64_t)addr);
 }
 
 void tssSetRSP0(void *rsp) {
 	struct cpuInfo *cpuInfoNull = NULL;
-	pcpuWrite((uint64_t)(&cpuInfoNull->tss.rsp[0]), (uint64_t)rsp);
+	doPcpuWrite64((uint64_t)(&cpuInfoNull->tss.rsp[0]), (uint64_t)rsp);
 }

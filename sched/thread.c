@@ -7,6 +7,7 @@
 #include <stdbool.h>
 
 #include <mm/pagemap.h>
+#include <arch/cpu.h>
 
 #define THREAD_STACK_SIZE	0x2000
 
@@ -44,6 +45,7 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 
 	thrd->detached = flags & THREAD_FLAG_DETACHED;
 	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
+	thrd->cpuAffinity = pcpuRead32(cpuInfosIndex);
 
 	kthreadInit(thrd, start, arg);
 
@@ -70,6 +72,8 @@ int kthreadCreateFromMain(thread_t *thread) {
 	thrd->detached = true;
 	thrd->fixedPriority = true;
 	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
+
+	setCPUThreadLoad(1 << (NROF_QUEUE_PRIORITIES - 1));
 
 	setCurrentThread(thrd);
 	

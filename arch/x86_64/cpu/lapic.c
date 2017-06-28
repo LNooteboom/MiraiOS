@@ -97,7 +97,7 @@ void lapicDoSMPBoot(void) {
 	info->nxEnabled = nxEnabled;
 
 	//Now boot the APs
-	uint32_t currentAPIC = pcpuRead(PCPU_APIC_ID);
+	uint32_t currentAPIC = pcpuRead32(apicID);
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
 		if (cpuInfos[i].apicID == currentAPIC) {
 			continue; //ignore this cpu

@@ -85,9 +85,6 @@ kthreadExit:
 	lea rdi, [rax + 0x14]
 	call acquireSpinlock
 
-	;xor rdi, rdi
-	;call setCurrentThread
-
 	mov [r15 + 8], r14 ;set return value
 	mov [r15 + 0x10], dword 0 ;set threadstate to FINISHED
 
@@ -98,8 +95,8 @@ kthreadExit:
 		call kthreadFreeJoined
 
 		;switch to exception stack
-		mov rsp, [gs:0x08]
-		mov rbp, [gs:0x08]
+		mov rsp, [gs:0x10]
+		mov rbp, [gs:0x10]
 
 		and [r15 + 0x14], dword ~2
 		lea rdi, [r15 + 0x14]
@@ -218,7 +215,7 @@ reschedIPI:
 	mov [rsp], r11
 
 	;get current thread
-	mov rax, [gs:0]
+	mov rax, [gs:8]
 	test rax, rax
 	jz .return
 	cmp [rax + 0x10], dword 1
@@ -228,10 +225,10 @@ reschedIPI:
 	call acquireSpinlock
 
 	mov esi, 1
-	mov rdi, [gs:0]
+	mov rdi, [gs:8]
 	call kthreadSwitch
 
-	mov rdx, [gs:0]
+	mov rdx, [gs:8]
 	cmp rax, rdx
 	je .noSwitch
 		;task switch occured
@@ -340,8 +337,8 @@ kthreadStop:
 
 
 	;switch to exception stack
-	mov rsp, [gs:0x08]
-	mov rbp, [gs:0x08]
+	mov rsp, [gs:0x10]
+	mov rbp, [gs:0x10]
 
 	and [r15 + 0x14], dword ~2
 	lea rdi, [r15 + 0x14]

@@ -51,6 +51,7 @@ acquireSpinlock:
 
 releaseSpinlock:
 	xor eax, eax
+	mfence
 	xchg [rdi], eax
 	test eax, 2
 	jz .noIF

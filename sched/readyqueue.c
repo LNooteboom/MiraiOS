@@ -1,11 +1,13 @@
 #include <sched/readyqueue.h>
 
+#include <arch/cpu.h>
 #include <sched/queue.h>
 #include <sched/thread.h>
 #include <stdint.h>
+#include <stddef.h>
 
-static struct threadInfoQueue readyList[NROF_QUEUE_PRIORITIES];
-spinlock_t readyListLock;
+//static struct threadInfoQueue readyList[NROF_QUEUE_PRIORITIES];
+//spinlock_t readyListLock;
 
 static void calcNewPriority(thread_t thread) {
 	int timeslice = TIMESLICE_BASE << thread->priority;
@@ -29,56 +31,78 @@ static void calcNewPriority(thread_t thread) {
 	}
 }
 
-thread_t readyQueuePop(void) {
+static thread_t getThreadFromCPU(struct cpuInfo *cpu) {
+	//sprint("pop");
 	thread_t ret;
-	acquireSpinlock(&readyListLock);
+	//acquireSpinlock(&cpu->readyListLock);
 	for (int i = 0; i < NROF_QUEUE_PRIORITIES; i++) {
-		ret = threadQueuePop(&readyList[i]);
+		ret = threadQueuePop(&cpu->readyList[i]);
 		if (ret) {
+			cpu->nrofReadyThreads--;
 			ret->jiffiesRemaining = TIMESLICE_BASE << i;
 			break;
 		}
 	}
-	releaseSpinlock(&readyListLock);
+	//releaseSpinlock(&cpu->readyListLock);
 	return ret;
+}
+
+thread_t readyQueuePop(void) {
+	//try this cpu first
+	struct cpuInfo *thisCPU = (struct cpuInfo*)pcpuRead64(addr);
+	acquireSpinlock(&thisCPU->readyListLock);
+	thread_t ret = getThreadFromCPU(thisCPU);
+	releaseSpinlock(&thisCPU->readyListLock);
+	if (ret || nrofActiveCPUs < 2) {
+		return ret;
+	}
+
+	struct cpuInfo *busiestCPU = NULL;
+	uint32_t load = ~0;
+	for (unsigned int i = 0; i < nrofCPUs; i++) {
+		acquireSpinlock(&cpuInfos[i].readyListLock);
+		if (cpuInfos[i].threadLoad != 0 && cpuInfos[i].threadLoad > load) {
+			busiestCPU = &cpuInfos[i];
+			load = cpuInfos[i].threadLoad;
+		}
+		releaseSpinlock(&cpuInfos[i].readyListLock);
+	}
+	if (busiestCPU) {
+		acquireSpinlock(&busiestCPU->readyListLock);
+		ret = getThreadFromCPU(busiestCPU);
+		releaseSpinlock(&busiestCPU->readyListLock);
+		return ret;
+	}
+	return NULL;
 }
 
 void readyQueuePush(thread_t thread) {
 	calcNewPriority(thread);
-	acquireSpinlock(&readyListLock);
-	threadQueuePush(&readyList[thread->priority], thread);
-	releaseSpinlock(&readyListLock);
-}
+	int priority = thread->priority;
+	uint32_t cpuIndex = thread->cpuAffinity;
 
-void readyQueuePushFront(thread_t thread) {
-	//Use the same priority
-	acquireSpinlock(&readyListLock);
-	threadQueuePushFront(&readyList[thread->priority], thread);
-	releaseSpinlock(&readyListLock);
+	acquireSpinlock(&cpuInfos[cpuIndex].readyListLock);
+	cpuInfos[cpuIndex].threadLoad += NROF_QUEUE_PRIORITIES - priority;
+	cpuInfos[cpuIndex].nrofReadyThreads++;
+	threadQueuePush(&cpuInfos[cpuIndex].readyList[priority], thread);
+	releaseSpinlock(&cpuInfos[cpuIndex].readyListLock);
 }
 
 thread_t readyQueueExchange(thread_t thread, bool front) {
+	struct cpuInfo *thisCPU = (struct cpuInfo*)pcpuRead64(addr);
 	if (front) {
-		acquireSpinlock(&readyListLock);
-		threadQueuePushFront(&readyList[thread->priority], thread);
+		acquireSpinlock(&thisCPU->readyListLock);
+		threadQueuePushFront(&thisCPU->readyList[thread->priority], thread);
 	} else {
+		int oldPriority = thread->priority;
 		calcNewPriority(thread);
-		acquireSpinlock(&readyListLock);
-		threadQueuePush(&readyList[thread->priority], thread);
+		acquireSpinlock(&thisCPU->readyListLock);
+		thisCPU->threadLoad += thread->priority - oldPriority;
+		threadQueuePush(&thisCPU->readyList[thread->priority], thread);
 	}
-
-	thread_t ret;
-	for (int i = 0; i < NROF_QUEUE_PRIORITIES; i++) {
-		ret = threadQueuePop(&readyList[i]);
-		if (ret) {
-			ret->jiffiesRemaining = TIMESLICE_BASE << i;
-			break;
-		}
-	}
-	if (!ret) {
-		ret = thread;
-	}
-	releaseSpinlock(&readyListLock);
+	thisCPU->nrofReadyThreads++;
+	thread_t ret = getThreadFromCPU(thisCPU);
+	releaseSpinlock(&thisCPU->readyListLock);
 	return ret;
 }
 

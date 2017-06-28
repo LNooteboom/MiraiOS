@@ -4,12 +4,13 @@
 #include <stdint.h>
 #include <sched/spinlock.h>
 #include <sched/thread.h>
+#include <sched/readyqueue.h>
+#include <sched/queue.h>
 
-//pcpu Addresses
-#define PCPU_THREAD		0x00
-#define PCPU_EXCSTACK	0x08
-#define PCPU_APIC_ID	0x10
-#define PCPU_INDEX		0x14
+#define pcpuRead64(attr)		doPcpuRead64((uint64_t)(&(( (struct cpuInfo*)0)->attr)))
+#define pcpuRead32(attr)		doPcpuRead32((uint64_t)(&(( (struct cpuInfo*)0)->attr)))
+#define pcpuWrite64(attr, val)	doPcpuWrite64((uint64_t)(&(( (struct cpuInfo*)0)->attr)), val)
+#define pcpuWrite32(attr, val)	doPcpuWrite32((uint64_t)(&(( (struct cpuInfo*)0)->attr)), val)
 
 #define NROF_GDT_ENTRIES 9
 
@@ -22,18 +23,6 @@
 #define GDT_OP_SIZE		(1UL << 54)
 #define GDT_DATA		(1UL << 44)
 #define GDT_CODE		((1UL << 43) | (1UL << 44))
-
-//IPI types
-/*
-#define IPI_FIXED		0
-#define IPI_LOWEST		1
-#define IPI_SMI			2
-#define IPI_RR			3
-#define IPI_NMI			4
-#define IPI_INIT		5
-#define IPI_START		6
-#define IPI_EXT			7
-*/
 
 typedef uint64_t gdtEntry_t;
 
@@ -63,6 +52,7 @@ struct cpuGDTR {
 } __attribute__((packed));
 
 struct cpuInfo {
+	struct cpuInfo *addr;
 	thread_t currentThread;
 	void *excStackTop;
 	uint32_t apicID;
@@ -73,25 +63,22 @@ struct cpuInfo {
 	struct cpuGDTR gdtr;
 	gdtEntry_t gdt[16];
 	struct cpuTSS tss;
+
+	//scheduling information
+	struct threadInfoQueue readyList[NROF_QUEUE_PRIORITIES];
+	spinlock_t readyListLock;
+	uint32_t threadLoad;
+	uint32_t nrofReadyThreads;
 };
 
 extern unsigned int nrofCPUs;
 extern unsigned int nrofActiveCPUs;
 extern struct cpuInfo *cpuInfos;
 
-/*
-static inline uint64_t pcpuRead(uint64_t addr) {
-	uint64_t ret;
-	asm volatile ("mov rax, [gs:rdi]" : "=a"(ret) : "D"(addr));
-	return ret;
-}
-
-static inline void pcpuWrite(uint64_t addr, uint64_t value) {
-	asm volatile ("mov [gs:rdi], rax" : : "D"(addr), "a"(value));
-}
-*/
-uint64_t pcpuRead(uint64_t addr);
-void pcpuWrite(uint64_t addr, uint64_t value);
+uint64_t doPcpuRead64(uint64_t addr);
+uint32_t doPcpuRead32(uint64_t addr);
+void doPcpuWrite64(uint64_t addr, uint64_t value);
+void doPcpuWrite32(uint64_t addr, uint32_t value);
 
 void lapicInit(void);
 void tssGdtInit(struct cpuInfo *info);
