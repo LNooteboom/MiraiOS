@@ -32,9 +32,6 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 		*thread = thrd;
 	}
 
-	thrd->state = THREADSTATE_SCHEDWAIT;
-	thrd->lock = 0;
-
 	if (flags & THREAD_FLAG_RT) {
 		thrd->priority = 0;
 		thrd->fixedPriority = true;
@@ -43,14 +40,22 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 		thrd->fixedPriority = flags & THREAD_FLAG_FIXED_PRIORITY;
 	}
 
+	thrd->returnValue = NULL;
+	thrd->state = THREADSTATE_SCHEDWAIT;
+	thrd->lock = 0;
 	thrd->detached = flags & THREAD_FLAG_DETACHED;
-	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
 	thrd->cpuAffinity = pcpuRead32(cpuInfosIndex);
 
-	kthreadInit(thrd, start, arg);
+	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
+
+	thrd->joinFirst = NULL;
+	thrd->joinLast = NULL;
+	thrd->nrofJoinThreads = 0;
+
+	kthreadInit(thrd, start, arg); //initializes stackpointer
 
 	//now push it to the scheduling queue
-	readyQueuePush(thrd);
+	readyQueuePush(thrd); //initializes nextThread and prevThread
 	
 	return THRD_SUCCESS;
 }
@@ -72,6 +77,10 @@ int kthreadCreateFromMain(thread_t *thread) {
 	thrd->detached = true;
 	thrd->fixedPriority = true;
 	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
+
+	thrd->joinFirst = NULL;
+	thrd->joinLast = NULL;
+	thrd->nrofJoinThreads = 0;
 
 	setCPUThreadLoad(1 << (NROF_QUEUE_PRIORITIES - 1));
 

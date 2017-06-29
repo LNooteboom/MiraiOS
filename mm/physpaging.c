@@ -24,6 +24,7 @@ struct pageStack {
 struct pageStackInfo {
 	struct pageStack *stack;
 	int32_t sp;
+	uint64_t nrofPages;
 	spinlock_t lock;
 };
 
@@ -46,16 +47,20 @@ static stackEntry_t popPage(struct pageStackInfo *pages) {
 		//pop a page off the stack
 		newPage = pages->stack->pages[pages->sp];
 		pages->sp--;
+		pages->nrofPages--;
 	} else if (pages->sp == -1) {
 		//nothing is on the stack, use old stack space	
 		newPage = mmGetPageEntry((uintptr_t)pages->stack);
 		if (pages->stack->prevStack) {
 			//set new page stack
 			mmMapPage((uintptr_t)pages->stack, pages->stack->prevStack, PAGE_FLAG_WRITE);
+			pages->sp = PAGE_STACK_LENGTH - 1;
+			pages->nrofPages--;
+
+			releaseSpinlock(&(pages->lock));
 			//invalidate tlb
 			tlbInvalidateGlobal(pages->stack, 1);
-
-			pages->sp = PAGE_STACK_LENGTH - 1;
+			return newPage | 1;
 		} else {
 			pages->sp = -2;
 		}
@@ -69,6 +74,7 @@ static stackEntry_t popPage(struct pageStackInfo *pages) {
 
 static void pushPage(struct pageStackInfo *pages, stackEntry_t newPage) {
 	acquireSpinlock(&(pages->lock));
+	pages->nrofPages++;
 	if (pages->sp >= -1 && pages->sp < PAGE_STACK_LENGTH - 1) {
 		//just push a new page on the stack
 		pages->sp++;
@@ -204,4 +210,8 @@ void deallocPhysPage(physPage_t page) {
 
 void deallocLargePhysPage(physPage_t page) {
 	pushPage(&largePages, page);
+}
+
+uint64_t getNrofPages(void) {
+	return smallPages.nrofPages + smallCleanPages.nrofPages + largePages.nrofPages * (LARGE_PAGE_SIZE / PAGE_SIZE);
 }

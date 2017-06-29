@@ -54,6 +54,7 @@ thread_t readyQueuePop(void) {
 	thread_t ret = getThreadFromCPU(thisCPU);
 	releaseSpinlock(&thisCPU->readyListLock);
 	if (ret || nrofActiveCPUs < 2) {
+		releaseSpinlock(&thisCPU->readyListLock);
 		return ret;
 	}
 
@@ -64,7 +65,8 @@ thread_t readyQueuePop(void) {
 			continue;
 		}
 		acquireSpinlock(&cpuInfos[i].readyListLock);
-		if (cpuInfos[i].threadLoad != 0 && cpuInfos[i].threadLoad > load) {
+		//cprint('a');
+		if (cpuInfos[i].nrofReadyThreads > 0 && cpuInfos[i].threadLoad > load) {
 			busiestCPU = &cpuInfos[i];
 			load = cpuInfos[i].threadLoad;
 		}
@@ -73,6 +75,12 @@ thread_t readyQueuePop(void) {
 	if (busiestCPU) {
 		acquireSpinlock(&busiestCPU->readyListLock);
 		ret = getThreadFromCPU(busiestCPU);
+		acquireSpinlock(&ret->lock);
+		busiestCPU->threadLoad -= NROF_QUEUE_PRIORITIES - ret->priority;
+		acquireSpinlock(&thisCPU->readyListLock);
+		thisCPU->threadLoad += NROF_QUEUE_PRIORITIES - ret->priority;
+		releaseSpinlock(&thisCPU->readyListLock);
+		releaseSpinlock(&ret->lock);
 		releaseSpinlock(&busiestCPU->readyListLock);
 		return ret;
 	}

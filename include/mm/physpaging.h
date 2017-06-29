@@ -42,4 +42,6 @@ Deallocates a large page
 */
 void deallocLargePhysPage(physPage_t page);
 
+uint64_t getNrofPages(void);
+
 #endif

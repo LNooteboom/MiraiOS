@@ -11,6 +11,8 @@ extern readyQueuePop
 extern sleepSkipTime
 extern deallocThread
 
+extern cprint
+
 extern jiffyVec
 extern lapicSendIPIToAll
 
@@ -51,8 +53,7 @@ SECTION .text
 ;-A8	rsp		r15
 
 kthreadInit:
-	push rbp
-	mov rbp, rsp
+	pushfq
 	
 	mov [rdi - 0x30], rsi	;Point rip to function start
 	mov [rdi - 0x50], rdx	;Put arg in rdi
@@ -64,16 +65,14 @@ kthreadInit:
 	sub rax, 0xA0
 	mov [rdi], rax			;Set stack pointer in threadInfo
 
+	pop rcx
+
 	mov eax, 0x10			;data segment
 	mov edx, 0x08			;code segment
 	mov [rdi - 0x10], rax	;Set ss
 	mov [rdi - 0x28], rdx	;Set cs
 
-	mov rsp, rdi
-	sub rsp, 0x18
-	pushfq					;Set rflags
-
-	leave
+	mov [rdi - 0x20], rcx
 	ret
 
 kthreadReturn:

@@ -25,7 +25,7 @@ acquireSpinlock:
 		pause
 		test [rdi], dword 1
 		jz .lock
-		cmp ecx, 100000
+		cmp ecx, 1000000
 		jae .error
 		jmp .spin
 
@@ -44,7 +44,7 @@ acquireSpinlock:
 .error:
 	mov rdi, spinlockStuckMsg
 	call sprint
-	mov rdi, [rsp + 8]
+	mov rdi, [rsp]
 	call hexprintln64
 	cli
 	hlt

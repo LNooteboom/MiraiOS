@@ -36,11 +36,13 @@ struct threadInfo {
 
 	struct threadInfo *nextThread;
 	struct threadInfo *prevThread;
+
 	int priority;
+	bool fixedPriority;
 	int jiffiesRemaining;
+
 	unsigned long sleepTime;
 	
-	bool fixedPriority;
 	struct threadInfo *joinFirst;
 	struct threadInfo *joinLast;
 	int nrofJoinThreads;

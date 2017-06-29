@@ -30,7 +30,7 @@ extern char PML4T;
 uintptr_t physLapicBase;
 volatile uint32_t *lapicBase;
 size_t cpuInfoSize; //used for AP boot in asm
-//void *apExcStacks;
+volatile bool cpuStartedUp;
 
 static int getCPUInfo(unsigned int apicID) {
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
@@ -105,14 +105,22 @@ void lapicDoSMPBoot(void) {
 		sprint("Starting CPU ");
 		decprint(i);
 		sprint("...\n");
+
+		cpuStartedUp = false;
 		
 		kthreadSleep(1); //align to milliseconds for maximum timing precision
+		//cprint('a');
 		lapicSendIPI(cpuInfos[i].apicID, 0, IPI_INIT); //send INIT IPI
+		//cprint('a');
 		kthreadSleep(10);
+		//cprint('a');
 		lapicSendIPI(cpuInfos[i].apicID, 0x70, IPI_START); //send SIPI
+		//cprint('a');
 
-		//kthreadSleep(10);
-		//kthreadCreate(NULL, emptyThread, NULL, THREAD_FLAG_DETACHED); //create empty thread for this cpu
+		while (!cpuStartedUp) {
+			asm("pause");
+		}
 	}
 	tlbReloadCR3();
+	//cprint('a');
 }

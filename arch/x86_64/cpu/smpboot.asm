@@ -6,6 +6,8 @@ global smpboot16end:data
 extern physLapicBase
 extern lapicBase
 extern cpuInfoSize
+extern cpuStartedUp
+
 extern cpuInfos
 extern nrofCPUs
 extern nrofActiveCPUs
@@ -86,7 +88,8 @@ smpbootStart:
 	call setCurrentThread
 	;increment nrof active cpus
 	lock inc dword [nrofActiveCPUs]
-	;sti
+	;set started up flag
+	mov [cpuStartedUp], dword 1
 
 	.loadThread:
 	call readyQueuePop
