@@ -11,8 +11,6 @@ extern readyQueuePop
 extern sleepSkipTime
 extern deallocThread
 
-extern cprint
-
 extern jiffyVec
 extern lapicSendIPIToAll
 

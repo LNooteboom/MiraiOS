@@ -10,8 +10,6 @@
 
 #include <arch/tlb.h> //evil!
 
-//extern uint64_t *mmGetEntry(uintptr_t addr, char level);
-
 #define PAGE_STACK_LENGTH		(PAGE_SIZE / 8 - 1)
 
 typedef physPage_t stackEntry_t;
@@ -38,8 +36,6 @@ static spinlock_t freeBufferSmallLock;
 static uintptr_t freeBufferLarge;
 static spinlock_t freeBufferLargeLock;
 
-//struct pageStack firstStack[4] __attribute__((aligned(PAGE_SIZE)));
-
 static stackEntry_t popPage(struct pageStackInfo *pages) {
 	stackEntry_t newPage = 0;
 	acquireSpinlock(&(pages->lock));
@@ -49,13 +45,13 @@ static stackEntry_t popPage(struct pageStackInfo *pages) {
 		pages->sp--;
 		pages->nrofPages--;
 	} else if (pages->sp == -1) {
-		//nothing is on the stack, use old stack space	
+		//nothing is on the stack, use old stack space
+		pages->nrofPages--;
 		newPage = mmGetPageEntry((uintptr_t)pages->stack);
 		if (pages->stack->prevStack) {
 			//set new page stack
 			mmMapPage((uintptr_t)pages->stack, pages->stack->prevStack, PAGE_FLAG_WRITE);
 			pages->sp = PAGE_STACK_LENGTH - 1;
-			pages->nrofPages--;
 
 			releaseSpinlock(&(pages->lock));
 			//invalidate tlb

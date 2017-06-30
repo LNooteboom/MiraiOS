@@ -109,18 +109,13 @@ void lapicDoSMPBoot(void) {
 		cpuStartedUp = false;
 		
 		kthreadSleep(1); //align to milliseconds for maximum timing precision
-		//cprint('a');
 		lapicSendIPI(cpuInfos[i].apicID, 0, IPI_INIT); //send INIT IPI
-		//cprint('a');
 		kthreadSleep(10);
-		//cprint('a');
 		lapicSendIPI(cpuInfos[i].apicID, 0x70, IPI_START); //send SIPI
-		//cprint('a');
 
 		while (!cpuStartedUp) {
 			asm("pause");
 		}
 	}
 	tlbReloadCR3();
-	//cprint('a');
 }

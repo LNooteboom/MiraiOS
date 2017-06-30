@@ -73,6 +73,9 @@ void kthreadDetach(void);
 thread_t getCurrentThread(void);
 void setCurrentThread(thread_t thread);
 
+uint32_t getCPUThreadLoad(void);
+void setCPUThreadLoad(uint32_t load);
+
 /*
 Exit the current thread, freeing any joined threads
 */
