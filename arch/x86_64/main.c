@@ -6,6 +6,7 @@
 #include <arch/cpu.h>
 #include <arch/ioapic.h>
 #include <arch/tlb.h>
+#include <sched/smpcall.h>
 
 unsigned int nrofCPUs = 0;
 unsigned int nrofActiveCPUs = 1;
@@ -16,6 +17,7 @@ void archInit(void) {
 	lapicInit();
 	ioApicInit();
 	tlbInit();
+	smpCallInit();
 }
 
 void archFini(void) {

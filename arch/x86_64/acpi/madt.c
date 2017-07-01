@@ -128,8 +128,7 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 	}
 	cpuInfos = kmalloc(nrofCPUs * sizeof(struct cpuInfo));
 	if (!cpuInfos) {
-		sprint("No memory available for cpuInfo!\n");
-		while(1);
+		panic("No memory available for cpuInfos!\n");
 	}
 	
 	memset(cpuInfos, 0, nrofCPUs * sizeof(struct cpuInfo));

@@ -41,10 +41,7 @@ static struct RSDP *findRsdp(void) {
 			searchBase += RSDPTR_BOUNDARY / sizeof(*searchBase);
 		}
 		if (!found) {
-			ACPI_WARN("ERROR: Could not find RSDP!\n");
-			while (true) {
-				asm("hlt");
-			}
+			panic("Could not find RSDP!\n");
 		}
 	}
 	//ACPI_LOG("Found RSDP at: ");

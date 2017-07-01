@@ -1,18 +1,26 @@
+#include <panic.h>
 
-void panic(char *msg, int addr, char errorcode) {
-	currentattrib = 0x1F;
-	vga_set_scroll(0);
-	tty_clear_screen();
-	tty_set_full_screen_attrib(currentattrib);
-	cursorX = 0;
-	cursorY = 0;
-	sprint(msg);
-	newline();
-	sprint("At ");
-	hexprintln(addr);
-	if (errorcode) {
-		sprint("Error code: ");
-		hexprint(errorcode);
-		newline();
-	}
+#include <stdarg.h>
+#include <stddef.h>
+#include <sched/smpcall.h>
+#include <irq.h>
+#include <print.h>
+
+static void die(void *arg) {
+	(void)(arg);
+	localInterruptDisable();
+	asm("hlt");
+}
+
+void __attribute__((noreturn)) panic(const char *fmt, ...) {
+	va_list args;
+
+	va_start(args, fmt);
+	smpCallFunction(die, NULL, false);
+
+	vkprintf(fmt, args);
+
+	va_end(args);
+	
+	die(NULL);
 }

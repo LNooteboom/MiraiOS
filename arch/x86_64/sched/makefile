@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = threadc.o thread.o spinlock.o
+OBJECTS = threadc.o thread.o spinlock.o smpcall.o
 
 all: ${OUTPUT}
 

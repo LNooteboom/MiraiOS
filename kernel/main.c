@@ -8,9 +8,7 @@
 #include <sched/thread.h>
 #include <stddef.h>
 #include <sched/lock.h>
-
-#include <mm/pagemap.h>
-#include <sched/lock.h>
+#include <panic.h>
 #include <mm/physpaging.h>
 
 uintptr_t __stack_chk_guard;
@@ -45,9 +43,5 @@ void kmain(void) {
 }
 
 __attribute__((noreturn)) void __stack_chk_fail(void) {
-	sprint("Stack smash detected!");
-	while (1) {
-		asm("cli");
-		asm("hlt");
-	}
+	panic("Stack smash detected!");
 }

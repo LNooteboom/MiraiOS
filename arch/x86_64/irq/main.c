@@ -8,8 +8,6 @@
 
 #define NROF_BITMAP_IRQS	128
 
-bool irqEnabled = 0;
-
 spinlock_t irqBitmapLock;
 uint32_t irqBitmap[NROF_BITMAP_IRQS / 4];
 

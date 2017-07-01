@@ -55,7 +55,6 @@ void ioApicInit(void) {
 		ioApicInfos[i].gsiLength = (ver >> 16) & 0xFF;
 		releaseSpinlock(&(ioApicInfos[i].lock));
 	}
-	irqEnabled = true;
 	asm("sti");
 }
 

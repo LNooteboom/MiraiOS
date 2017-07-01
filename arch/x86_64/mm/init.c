@@ -32,10 +32,7 @@ static bool checkMmap(struct mmap *mmap, size_t mmapSize) {
 
 void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
 	if (!checkMmap(mmap, mmapSize)) {
-		sprint("Mmap is corrupted");
-		while (true) {
-			asm("hlt");
-		}
+		panic("Mmap is corrupted");
 	}
 
 	uintptr_t physBssEnd = (uintptr_t)&BSS_END_ADDR - (uintptr_t)&VMEM_OFFSET;

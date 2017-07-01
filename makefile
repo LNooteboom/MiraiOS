@@ -5,7 +5,7 @@ export ARCH = x86_64
 
 WARNINGS = "-Wall" "-Wextra"
 NOSTDSTUFF = "-ffreestanding" "-nostdlib" "-nostartfiles" "-fno-pie"
-export CFLAG = ${WARNINGS} ${NOSTDSTUFF} "-O2" "-fstack-protector" "-g" "-I$(PWD)/include/" "-I$(PWD)/arch/${ARCH}/include" "-mcmodel=kernel" "-mno-red-zone" "-masm=intel"
+export CFLAG = ${WARNINGS} ${NOSTDSTUFF} "-std=gnu99" "-O2" "-fstack-protector" "-g" "-I$(PWD)/include/" "-I$(PWD)/arch/${ARCH}/include" "-mcmodel=kernel" "-mno-red-zone" "-masm=intel"
 export CC = ${TARGET}-gcc
 #export CC = gcc
 

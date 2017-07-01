@@ -16,14 +16,6 @@ uint64_t jiffyCounter;
 struct jiffyTimer *jiffyTimer;
 int jiffyVec;
 
-/*
-void jiffyIrq(interruptFrame_t *frame) {
-	jiffyCount++;
-	hexprintln(jiffyCount);
-	hexprintln(0xDEADBEEF);
-	while(1);
-}*/
-
 int jiffyInit(void) {
 	//select PIT for now
 	jiffyTimer = kmalloc(sizeof(struct jiffyTimer));

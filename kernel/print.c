@@ -1,10 +1,56 @@
 #include <print.h>
 
 #include <stdint.h>
+#include <stdarg.h>
 #include <drivers/vga.h>
 #include <sched/spinlock.h>
 
 static spinlock_t printLock = 0;
+
+void vkprintf(const char *fmt, va_list args) {
+	for (const char *c = fmt; *c != 0; c++) {
+		if (*c != '%') {
+			cprint(*c);
+			continue;
+		}
+		c++;
+		switch (*c) {
+			case 0:
+				return;
+			case 'c': {
+				char c2 = va_arg(args, int);
+				cprint(c2);
+				break;
+			}
+			case 'd': {
+				int32_t i = va_arg(args, int32_t);
+				decprint(i);
+				break;
+			}
+			case 's': {
+				char *s = va_arg(args, char *);
+				sprint(s);
+				break;
+			}
+			case 'x': {
+				uint32_t i = va_arg(args, uint32_t);
+				hexprint(i);
+				break;
+			}
+			case '%':
+				cprint('%');
+				break;
+		}
+	}
+	va_end(args);
+}
+
+void kprintf(const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	vkprintf(fmt, args);
+	va_end(args);
+}
 
 void cprint(char c) {
 	acquireSpinlock(&printLock);

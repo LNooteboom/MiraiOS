@@ -11,8 +11,6 @@
 
 typedef uint8_t interrupt_t;
 
-extern bool irqEnabled;
-
 void initInterrupts(void);
 
 int addISAOverride(uint32_t dst, uint16_t src, uint16_t flags);
@@ -30,5 +28,13 @@ interrupt_t allocIrqVec(void);
 void deallocIrqVec(interrupt_t vec);
 
 void ackIRQ(void);
+
+static inline void localInterruptDisable(void) {
+	asm("cli");
+}
+
+static inline void localInterruptEnable(void) {
+	asm("sti");
+}
 
 #endif

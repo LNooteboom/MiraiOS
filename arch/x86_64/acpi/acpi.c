@@ -75,7 +75,6 @@ void acpiInit(void) {
 		}
 	}
 	if (!foundMadt) {
-		sprint("No MADT found!");
-		while(1);
+		panic("No MADT found!\n");
 	}
 }
