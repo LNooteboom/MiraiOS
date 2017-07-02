@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sched/spinlock.h>
-#include <timer.h>
+
+#define JIFFY_HZ	1000
 
 #define THREAD_FLAG_DETACHED		1
 #define THREAD_FLAG_FIXED_PRIORITY	2

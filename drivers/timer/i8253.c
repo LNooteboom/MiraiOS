@@ -1,6 +1,5 @@
 #include <drivers/timer/i8253.h>
 
-#include <timer.h>
 #include <stdint.h>
 #include <io.h>
 
@@ -32,19 +31,4 @@ void i8253State(bool on) {
 		out8(CH0DATA, 0);
 		out8(CH0DATA, 0);
 	}
-}
-
-void i8253Init(struct jiffyTimer *timerInfo) {
-	timerInfo->maxFrequency = clkHz;
-	timerInfo->minFrequency = clkHz / MAXDIV;
-	timerInfo->irq = 0;
-	timerInfo->priority = 0;
-
-	timerInfo->setFreq = i8253SetFreq;
-	timerInfo->setState = i8253State;
-	i8253State(false);
-}
-
-void i8253Fini(void) {
-	i8253State(false);
 }

@@ -6,6 +6,7 @@
 #include <sched/thread.h>
 #include <sched/readyqueue.h>
 #include <sched/queue.h>
+#include <irq.h>
 
 #define pcpuRead64(attr)		doPcpuRead64((uint64_t)(&(( (struct cpuInfo*)0)->attr)))
 #define pcpuRead32(attr)		doPcpuRead32((uint64_t)(&(( (struct cpuInfo*)0)->attr)))
@@ -23,8 +24,6 @@
 #define GDT_OP_SIZE		(1UL << 54)
 #define GDT_DATA		(1UL << 44)
 #define GDT_CODE		((1UL << 43) | (1UL << 44))
-
-#define JIFFY_HZ	1000
 
 typedef uint64_t gdtEntry_t;
 
