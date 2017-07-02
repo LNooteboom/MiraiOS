@@ -6,10 +6,12 @@
 #include <irq.h>
 #include <print.h>
 
-static void die(void *arg) {
+static __attribute__((noreturn)) void die(void *arg) {
 	(void)(arg);
 	localInterruptDisable();
-	asm("hlt");
+	while(true) {
+		asm("hlt");
+	}
 }
 
 void __attribute__((noreturn)) panic(const char *fmt, ...) {

@@ -1,4 +1,4 @@
-SMPCALL_IRQ_NUM:	equ 0xC2
+SMPCALL_IRQ_NUM:	equ 0xC1
 
 global smpCallInit:function
 global smpCallFunction:function

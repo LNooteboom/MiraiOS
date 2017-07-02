@@ -2,7 +2,7 @@
 
 #include <timer.h>
 #include <stdint.h>
-#include <pio.h>
+#include <io.h>
 
 #define CH0DATA		0x40
 #define CH1DATA		0x41
@@ -24,13 +24,13 @@ void i8253SetFreq(uint32_t freq) {
 
 void i8253State(bool on) {
 	if (on) {
-		outb(CMDREG, CMD_ACC_LOWHIGH | CMD_MODE_RATE);
-		outb(CH0DATA, div); //low
-		outb(CH0DATA, div >> 8); //high
+		out8(CMDREG, CMD_ACC_LOWHIGH | CMD_MODE_RATE);
+		out8(CH0DATA, div); //low
+		out8(CH0DATA, div >> 8); //high
 	} else {
-		outb(CMDREG, CMD_ACC_LOWHIGH | CMD_MODE_COUNT);
-		outb(CH0DATA, 0);
-		outb(CH0DATA, 0);
+		out8(CMDREG, CMD_ACC_LOWHIGH | CMD_MODE_COUNT);
+		out8(CH0DATA, 0);
+		out8(CH0DATA, 0);
 	}
 }
 

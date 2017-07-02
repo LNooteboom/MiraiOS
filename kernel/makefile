@@ -1,7 +1,7 @@
 
 OUTPUT = main.o
 OBJECTS = mainc.o print.o param.o panic.o
-SUBDIRS = timer
+SUBDIRS = 
 
 OBJECTS += $(patsubst %, %/main.o, ${SUBDIRS})
 

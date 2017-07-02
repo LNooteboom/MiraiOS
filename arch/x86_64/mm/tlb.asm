@@ -98,6 +98,7 @@ tlbReloadCR3:
 		jne .wait
 
 	mov [tlbInvalLock], dword 0
+	sti
 	ret
 
 tlbInvalIrq:

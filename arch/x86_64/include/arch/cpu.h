@@ -24,6 +24,8 @@
 #define GDT_DATA		(1UL << 44)
 #define GDT_CODE		((1UL << 43) | (1UL << 44))
 
+#define JIFFY_HZ	1000
+
 typedef uint64_t gdtEntry_t;
 
 enum ipiTypes {
@@ -81,8 +83,9 @@ void doPcpuWrite64(uint64_t addr, uint64_t value);
 void doPcpuWrite32(uint64_t addr, uint32_t value);
 
 void lapicInit(void);
+void lapicEnableTimer(interrupt_t vec);
 void tssGdtInit(struct cpuInfo *info);
-
+void lapicDoSMPBoot(void);
 void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type);
 
 #endif

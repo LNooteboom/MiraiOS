@@ -9,12 +9,23 @@
 #define NROF_BITMAP_IRQS	128
 
 spinlock_t irqBitmapLock;
-uint32_t irqBitmap[NROF_BITMAP_IRQS / 4];
+uint32_t irqBitmap[NROF_BITMAP_IRQS / 4 / 8];
+
+extern void undefinedInterrupt(void);
+extern void dummyInterrupt(void);
 
 void initInterrupts(void) {
 	initIDT();
 	initExceptions();
 	irqBitmap[0] = ~0; //set exceptions as used
+
+	for (int i = 0xE0; i < 0x100; i++) {
+		if (i >= 0xF0) {
+			routeInterrupt(undefinedInterrupt, i, 0);
+		} else {
+			routeInterrupt(dummyInterrupt, i, 0);
+		}
+	}
 }
 
 interrupt_t allocIrqVec(void) {

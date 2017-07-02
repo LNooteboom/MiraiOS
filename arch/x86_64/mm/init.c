@@ -9,6 +9,7 @@
 #include <mm/heap.h>
 #include <mm/lowmem.h>
 #include <print.h>
+#include <panic.h>
 
 #include "map.h"
 

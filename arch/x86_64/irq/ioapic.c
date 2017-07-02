@@ -55,12 +55,10 @@ void ioApicInit(void) {
 		ioApicInfos[i].gsiLength = (ver >> 16) & 0xFF;
 		releaseSpinlock(&(ioApicInfos[i].lock));
 	}
-	asm("sti");
+	localInterruptEnable();
 }
 
-int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags) {
-	interrupt_t vec = allocIrqVec();
-	routeInterrupt(ISR, vec, 0);
+int routeIrqLine(interrupt_t vec, unsigned int irq, unsigned int flags) {
 	if (flags & IRQ_FLAG_ISA) {
 		unsigned int isaFlags = 0;
 		for (unsigned int i = 0; i < isaListLen; i++) {
@@ -82,9 +80,8 @@ int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags) {
 
 	struct ioApicInfo *ioApic = findApic(irq);
 	if (!ioApic) {
-		sprint("Could not find APIC for irq: ");
-		hexprintln(irq);
-		return 0;
+		kprintf("Could not find APIC for irq: %d", irq);
+		return 1;
 	}
 
 	acquireSpinlock(&(ioApic->lock));
@@ -104,10 +101,10 @@ int routeHWIRQ(unsigned int irq, void (*ISR)(void), unsigned int flags) {
 	*(ioApic->indexPort) = index;
 	*(ioApic->dataPort) = value >> 32;
 	releaseSpinlock(&(ioApic->lock));
-	return vec;
+	return 0;
 }
 
-void unrouteHWIRQ(unsigned int irq, bool isa) {
+void unrouteIrqLine(unsigned int irq, bool isa) {
 	//mask ioapic entry
 	if (isa) {
 		for (unsigned int i = 0; i < isaListLen; i++) {
@@ -125,11 +122,6 @@ void unrouteHWIRQ(unsigned int irq, bool isa) {
 	*(ioApic->indexPort) = REG_IORED_BASE + ((irq - ioApic->gsiBase) * 2);
 	*(ioApic->dataPort) |= IORED_FLAG_MASK;
 	releaseSpinlock(&(ioApic->lock));
-
-	//mask idt entry
-	interrupt_t vec = gsiToVec[irq];
-	unrouteInterrupt(vec);
-	deallocIrqVec(vec);
 }
 
 int addISAOverride(uint32_t dst, uint16_t src, uint16_t flags) {

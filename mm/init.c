@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <param/main.h>
 #include <print.h>
+#include <panic.h>
 
 void mmInit(void) {
 	if (bootInfo->flags & (1 << 6)) {

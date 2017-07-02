@@ -18,6 +18,8 @@ extern acquireSpinlock
 extern releaseSpinlock
 extern setCurrentThread
 extern readyQueuePop
+extern perCpuTimer
+extern lapicEnableTimer
 
 SECTION .text
 
@@ -83,6 +85,13 @@ smpbootStart:
 	mov ecx, 0xC0000101
 	shr rdx, 32
 	wrmsr ;set GS.base to CPUInfo
+
+	;enable APIC timer
+	cmp [perCpuTimer], dword 0
+	je .noApicTimer
+		mov edi, 0xC3
+		call lapicEnableTimer
+	.noApicTimer:
 
 	xor edi, edi
 	call setCurrentThread

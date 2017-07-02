@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <mm/paging.h>
 #include <arch/acpi.h>
+#include <panic.h>
 #include "header.h"
 #include "acpi.h"
 

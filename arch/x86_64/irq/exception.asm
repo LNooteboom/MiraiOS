@@ -7,19 +7,20 @@ extern hexprintln64
 extern hexprintln
 extern routeInterrupt
 extern testcount
+extern lapicBase
 
 extern excPF
 
 global initExceptions:function
+global undefinedInterrupt:function
+global dummyInterrupt:function
 
 SECTION .text
 
 initExceptions:
-    push rbp
-    mov rbp, rsp
-
     push rbx
     push r12
+
     xor bl, bl
     mov r12, excList
     
@@ -35,24 +36,8 @@ initExceptions:
         jmp .start
     .end:
 
-	;map spurious irq vectors
-	;mov rdi, undefinedInterrupt
-	;mov esi, 0xFF
-	;xor edx, edx
-	;call routeInterrupt
-	mov r12d, 0xF0
-	.start2:
-		mov rdi, undefinedInterrupt
-		xor edx, edx
-		mov esi, r12d
-		call routeInterrupt
-		inc r12
-		cmp r12d, 0x100
-		jne .start2
-
-    mov r12, [rbp-16]
-    mov rbx, [rbp-8]
-    leave
+    pop r12
+	pop rbx
     ret
 
 exceptionBase:
@@ -172,9 +157,17 @@ excVE:
 	mov rdi, VEmsg
 	jmp exceptionBase
 
+ALIGN 8
 undefinedInterrupt:
     iretq
 
+ALIGN 8
+dummyInterrupt:
+	push rax
+	mov rax, [lapicBase]
+	mov [rax + 0xB0], dword 0
+	pop rax
+	iretq
 
 SECTION .rodata
 

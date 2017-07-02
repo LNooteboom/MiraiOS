@@ -1,7 +1,7 @@
 #include "main.h"
 
 #include <stdint.h>
-#include <pio.h>
+#include <io.h>
 
 #define PS2COMMAND_READCONFIG 0x20
 #define PS2COMMAND_WRITECONFIG 0x60
@@ -98,6 +98,6 @@ void ps2Init(void) {
 
 void ps2FlushOutput(void) {
 	while ((ps2ReadStatus() & 0x01) == 1){
-		inb(0x60);
+		in8(0x60);
 	}
 }

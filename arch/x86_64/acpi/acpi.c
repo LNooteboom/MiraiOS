@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <mm/memset.h>
 #include <mm/paging.h>
+#include <panic.h>
 #include "rsdp.h"
 #include "madt.h"
 #include "header.h"

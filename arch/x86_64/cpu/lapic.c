@@ -1,15 +1,25 @@
 #include <arch/cpu.h>
 
+#include "lapicdefs.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include <arch/msr.h>
+#include <arch/tlb.h>
 #include <mm/paging.h>
 #include <mm/heap.h>
-#include <print.h>
+#include <mm/memset.h>
 #include <sched/spinlock.h>
 #include <sched/sleep.h>
-#include <arch/msr.h>
-#include <mm/memset.h>
-#include <arch/tlb.h>
+#include <print.h>
+#include <io.h>
+
+#define PIT_HZ				1193182
+
+#define PIT_CH2DATA			0x42
+#define PIT_CMDREG			0x43
+#define PIT_CMD_ACC_LOWHIGH	(3 << 4)
+#define PIT_CMD_MODE_COUNT	(0 << 1)
+#define PIT_CMD_MODE_RATE	(2 << 1)
 
 struct smpbootInfo {
 	uint16_t jump;
@@ -28,9 +38,11 @@ extern bool nxEnabled;
 extern char PML4T;
 
 uintptr_t physLapicBase;
-volatile uint32_t *lapicBase;
+volatile char *lapicBase;
 size_t cpuInfoSize; //used for AP boot in asm
 volatile bool cpuStartedUp;
+
+int32_t busSpeed;
 
 static int getCPUInfo(unsigned int apicID) {
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
@@ -41,46 +53,100 @@ static int getCPUInfo(unsigned int apicID) {
 	return -1;
 }
 
+static int32_t getBusSpeed(void) {
+	//set lapic timer divide to 16
+	write32(lapicBase + LAPIC_DIV, 3);
+	//set oneshot + interrupt to dummy irq (0xE0)
+	write32(lapicBase + LAPIC_LVT_TMR, 0xE0);
+
+	//pit chnl 2 to speaker enable(bit 0 set), speaker data disabled(bit 1 clear)
+	out8(0x61, (in8(0x61) & 0xFD) | 1);
+	//set channel 2 to hw one-shot, access low/high
+	out8(PIT_CMDREG, (2 << 6) | (3 << 4) | (1 << 1));
+	//10ms
+	int pitVal = PIT_HZ / 100;
+	out8(PIT_CH2DATA, pitVal);
+	out8(PIT_CH2DATA, pitVal >> 8);
+	//start pit
+	char data = in8(0x61);
+	out8(0x61, data & ~1);
+	out8(0x61, data | 1);
+
+	//start lapic counter
+	write32(lapicBase + LAPIC_TIC, ~0);
+	//wait for spkr gate to go high again (read bit 5 from 0x61)
+	
+	while (!(in8(0x61) & (1 << 5))) {
+		//asm ("pause");
+	}
+	//stop lapic timer
+	write32(lapicBase + LAPIC_LVT_TMR, LAPIC_MASK);
+	int32_t counterVal = 0 - (int32_t)read32(lapicBase + LAPIC_TCC);
+	return counterVal * 1600; //multiply by 16 (divider) and 100 (we only ran for 10ms)
+}
+
 void lapicInit(void) {
 	//enable LAPIC
-	uint64_t val = rdmsr(0x1B);
-	val |= (1 << 11); //set APIC enable bit
-	wrmsr(0x1B, val);
-	physLapicBase = val & ~0xFFF;
+	uint64_t addr = rdmsr(0x1B);
+	physLapicBase = addr & ~0xFFF;
 	lapicBase = ioremap(physLapicBase, PAGE_SIZE);
 	cpuInfoSize = sizeof(struct cpuInfo);
 
-	uint32_t apicID = lapicBase[0x20 / 4] >> 24;
+	//uint32_t apicID = lapicBase[0x20 / 4] >> 24;
+	uint32_t apicID = read32(lapicBase + LAPIC_ID) >> 24;
 	int index = getCPUInfo(apicID);
 	if (index < 0) {
 		sprint("APIC ID is not present\n");
 		return;
 	}
+	write32(lapicBase + 0xE0, 0x0FFFFFFFF);
+	write32(lapicBase + 0xD0, (read32(lapicBase + 0xD0) & 0x00FFFFFF) | 1);
+	write32(lapicBase + LAPIC_LVT_PERF, LAPIC_MASK);
+	write32(lapicBase + LAPIC_LVT_LINT0, LAPIC_MASK);
+	write32(lapicBase + LAPIC_LVT_LINT1, LAPIC_MASK);
+	write32(lapicBase + LAPIC_LVT_TMR, LAPIC_MASK);
+	write32(lapicBase + LAPIC_TPR, 0);
+
+	addr |= (1 << 11); //set APIC enable bit
+	wrmsr(0x1B, addr);
+	write32(lapicBase + LAPIC_SPURIOUS, 0x1FF); //set spurious register to vector 0xFF (points to empty isr)
+
+	busSpeed = getBusSpeed();
+	/*
+	//route interrupt vector 0xC2 to jiffyIrq
+	routeInterrupt(jiffyIrq, 0xC2, 0);
+
+	write32(lapicBase + LAPIC_LVT_TMR, 0xC2 | (1 << 17)); //set vector + periodic mode
+	write32(lapicBase + LAPIC_DIV, 3); //set divider to 16
+	lapicCount = count / (16 * JIFFY_HZ);
+	write32(lapicBase + LAPIC_TIC, lapicCount);*/
+
 	struct cpuInfo *info = &(cpuInfos[index]);
 	acquireSpinlock(&(info->lock));
-	lapicBase[0xF0 / 4] = 0x1FF; //set spurious register to vector 0xFF (points to empty isr)
-
 	tssGdtInit(info);
 	wrmsr(0xC0000101, (uint64_t)info); //set GS.base to cpuinfo
 	releaseSpinlock(&(info->lock));
+	
+}
+
+void lapicEnableTimer(interrupt_t vec) {
+	write32(lapicBase + LAPIC_LVT_TMR, vec | (1 << 17)); //set vector + periodic mode
+	write32(lapicBase + LAPIC_DIV, 3); //set divider to 16
+	write32(lapicBase + LAPIC_TIC, busSpeed / (16 * JIFFY_HZ));
 }
 
 void ackIRQ(void) {
-	lapicBase[0xB0 / 4] = 0;
+	write32(lapicBase + LAPIC_EOI, 0);
 }
 
 void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type) {
-	//asm volatile ("cli");
-	lapicBase[0x310 / 4] = destination << 24;
-	lapicBase[0x300 / 4] = vec | ((type & 7) << 8) | (1 << 14);
-	//asm volatile ("sti");
+	write32(lapicBase + LAPIC_ICRH, destination << 24);
+	write32(lapicBase + LAPIC_ICRL, vec | ((type & 7) << 8) | (1 << 14));
 }
 
 void lapicSendIPIToAll(uint8_t vec, enum ipiTypes type) {
-	//asm volatile ("cli");
-	lapicBase[0x310 / 4] = 0xFF << 24;
-	lapicBase[0x300 / 4] = vec | ((type & 7) << 8) | (1 << 14) | (3 << 18);
-	//asm volatile ("sti");
+	write32(lapicBase + LAPIC_ICRH, 0xFF << 24);
+	write32(lapicBase + LAPIC_ICRL, vec | ((type & 7) << 8) | (1 << 14) | (3 << 18));
 }
 
 void lapicDoSMPBoot(void) {
@@ -102,9 +168,7 @@ void lapicDoSMPBoot(void) {
 		if (cpuInfos[i].apicID == currentAPIC) {
 			continue; //ignore this cpu
 		}
-		sprint("Starting CPU ");
-		decprint(i);
-		sprint("...\n");
+		kprintf("Starting CPU %d...\n", i);
 
 		cpuStartedUp = false;
 		

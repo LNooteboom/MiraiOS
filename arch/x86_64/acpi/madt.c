@@ -7,12 +7,13 @@
 #include <mm/heap.h>
 #include <mm/memset.h>
 #include <print.h>
-#include <pio.h>
+#include <io.h>
 #include <irq.h>
 #include <arch/cpu.h>
 #include <arch/ioapic.h>
+#include <panic.h>
 
-#define ioWait() outb(0x80, 0)
+#define ioWait() out8(0x80, 0)
 
 #define APIC_BUFFER_SIZE	256
 
@@ -62,30 +63,30 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 
 	if (madtHdr->flags & 1) {
 		//disable pit
-		outb(0x43, 0x30);
-		outb(0x40, 0x00);
-		outb(0x40, 0x00);
+		out8(0x43, 0x30);
+		out8(0x40, 0x00);
+		out8(0x40, 0x00);
 
 		//disable legacy PICs
-		outb(0x20, 0x11);
+		out8(0x20, 0x11);
 		ioWait();
-		outb(0xa0, 0x11);
+		out8(0xa0, 0x11);
 		ioWait();
-		outb(0x21, 0xF0);
+		out8(0x21, 0xF0);
 		ioWait();
-		outb(0xa1, 24);
+		out8(0xa1, 24);
 		ioWait();
-		outb(0x21, 4);
+		out8(0x21, 4);
 		ioWait();
-		outb(0xa1, 2);
+		out8(0xa1, 2);
 		ioWait();
-		outb(0x21, 0x01);
+		out8(0x21, 0x01);
 		ioWait();
-		outb(0xa1, 0x01);
+		out8(0xa1, 0x01);
 		ioWait();
 
-		outb(0xa1, 0xff);
-		outb(0x21, 0xff);
+		out8(0xa1, 0xff);
+		out8(0x21, 0xff);
 		ACPI_LOG("Legacy PICs disabled.\n");
 	}
 

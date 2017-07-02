@@ -11,6 +11,10 @@ extern readyQueuePop
 extern sleepSkipTime
 extern deallocThread
 
+extern lapicBase
+extern busSpeed
+extern perCpuTimer
+
 extern jiffyVec
 extern lapicSendIPIToAll
 
@@ -178,9 +182,9 @@ jiffyIrq:
 
 	call ackIRQ
 
-	cmp [gs:0x14], dword 0
+	cmp [perCpuTimer], dword 0
 	jne .noIPI
-		mov edi, 0xC1
+		mov edi, 0xC3
 		xor esi, esi
 		call lapicSendIPIToAll
 	.noIPI:
@@ -413,6 +417,3 @@ nextThread: ;r15 = old thread
 	mov r15, [rsp]
 	add rsp, 0x78
 	iretq
-
-;return:
-;	ret

@@ -3,7 +3,6 @@
 #include <print.h>
 #include <mm/init.h>
 #include <param/main.h>
-#include <timer.h>
 #include <arch.h>
 #include <sched/thread.h>
 #include <stddef.h>
@@ -15,8 +14,6 @@ uintptr_t __stack_chk_guard;
 
 thread_t mainThread;
 
-extern void *lapicDoSMPBoot(void *arg);
-
 void kmain(void) {
 	initInterrupts();
 	vgaInit();
@@ -24,19 +21,14 @@ void kmain(void) {
 	paramInit();
 	mmInit();
 
-	sprint("Detected ");
-	decprint(getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
-	sprint("MiB of free memory.\n");
+	kprintf("Detected %dMiB of free memory.\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
 	
-	archInit();
+	earlyArchInit();
 
+	//initialize scheduler
 	kthreadCreateFromMain(&mainThread);
 
-	jiffyInit();
-
-	thread_t smpThread;
-	kthreadCreate(&smpThread, lapicDoSMPBoot, NULL, THREAD_FLAG_RT);
-	kthreadJoin(smpThread, NULL);
+	archInit();
 
 	sprint("Init complete.\n");
 	kthreadExit(NULL);

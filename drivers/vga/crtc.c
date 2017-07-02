@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <mm/paging.h>
-#include <pio.h>
+#include <io.h>
 
 #define REG_MISC_OUTPUT_READ	0x3CC
 #define REG_MISC_OUTPUT_WRITE	0x3C2
@@ -22,18 +22,18 @@
 
 #define GRAPH_INDEX_MISC				0x06
 
-#define getCRTCIndex()			inb(CRTCIndexPort)
-#define setCRTCIndex(index)		outb(CRTCIndexPort, index)
-#define getCRTCData()			inb(CRTCDataPort)
-#define setCRTCData(data)		outb(CRTCDataPort, data)
+#define getCRTCIndex()			in8(CRTCIndexPort)
+#define setCRTCIndex(index)		out8(CRTCIndexPort, index)
+#define getCRTCData()			in8(CRTCDataPort)
+#define setCRTCData(data)		out8(CRTCDataPort, data)
 
-#define getGraphIndex()			inb(REG_GRAPHICS_INDEX)
-#define setGraphIndex(index)	outb(REG_GRAPHICS_INDEX, index)
-#define getGraphData()			inb(REG_GRAPHICS_DATA)
-#define setGraphData(data)		outb(REG_GRAPHICS_DATA, data)
+#define getGraphIndex()			in8(REG_GRAPHICS_INDEX)
+#define setGraphIndex(index)	out8(REG_GRAPHICS_INDEX, index)
+#define getGraphData()			in8(REG_GRAPHICS_DATA)
+#define setGraphData(data)		out8(REG_GRAPHICS_DATA, data)
 
-static ioport_t CRTCIndexPort;
-static ioport_t CRTCDataPort;
+static unsigned int CRTCIndexPort;
+static unsigned int CRTCDataPort;
 
 volatile char *vgaMem;
 size_t vgaMemSize;
@@ -42,7 +42,7 @@ uint8_t vgaScreenWidth;
 uint16_t vgaScreenHeight;
 
 static void getCRTCPorts(void) {
-	uint8_t miscOutputReg = inb(REG_MISC_OUTPUT_READ);
+	uint8_t miscOutputReg = in8(REG_MISC_OUTPUT_READ);
 	if (miscOutputReg & 1) {
 		CRTCIndexPort = 0x3D4;
 		CRTCDataPort = 0x3D5;
