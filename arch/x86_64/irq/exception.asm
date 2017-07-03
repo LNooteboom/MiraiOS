@@ -5,7 +5,7 @@ NROF_DEFINED_EXCS: equ 21
 extern sprint
 extern hexprintln64
 extern hexprintln
-extern routeInterrupt
+extern mapIdtEntry
 extern testcount
 extern lapicBase
 
@@ -30,7 +30,7 @@ initExceptions:
         mov dl, 1
         mov si, bx
         mov rdi, [r12]
-        call routeInterrupt
+        call mapIdtEntry
         add r12, 8
         inc bl
         jmp .start

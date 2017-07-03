@@ -8,7 +8,7 @@
 #include <sched/spinlock.h>
 #include <mm/physpaging.h>
 #include <arch/tlb.h>
-#include "map.h"
+#include <arch/map.h>
 
 #define KERNEL_VMEM_END 0xFFFFFFFFC0000000
 

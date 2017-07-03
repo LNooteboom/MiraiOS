@@ -59,7 +59,7 @@ void ioApicInit(void) {
 }
 
 int routeIrqLine(interrupt_t vec, unsigned int irq, unsigned int flags) {
-	if (flags & IRQ_FLAG_ISA) {
+	if (flags & HWIRQ_FLAG_ISA) {
 		unsigned int isaFlags = 0;
 		for (unsigned int i = 0; i < isaListLen; i++) {
 			if (isaOverrides[i].source == irq) {
@@ -68,12 +68,12 @@ int routeIrqLine(interrupt_t vec, unsigned int irq, unsigned int flags) {
 				break;
 			}
 		}
-		flags = IRQ_FLAG_CUSTOM;
+		flags = HWIRQ_FLAG_CUSTOM;
 		if ((isaFlags & 3) != 1) {
-			flags |= IRQ_FLAG_POLARITY;
+			flags |= HWIRQ_FLAG_POLARITY;
 		}
 		if (((isaFlags >> 2) & 3) == 3) {
-			flags |= IRQ_FLAG_TRIGGER;
+			flags |= HWIRQ_FLAG_TRIGGER;
 		}
 	}
 	gsiToVec[irq] = vec;
@@ -87,11 +87,11 @@ int routeIrqLine(interrupt_t vec, unsigned int irq, unsigned int flags) {
 	acquireSpinlock(&(ioApic->lock));
 	uint32_t index = REG_IORED_BASE + ((irq - ioApic->gsiBase) * 2);
 	*(ioApic->indexPort) = index;
-	if ((flags & IRQ_FLAG_CUSTOM) == 0) {
+	if ((flags & HWIRQ_FLAG_CUSTOM) == 0) {
 		unsigned int prevFlags = *(ioApic->dataPort);
-		flags = prevFlags & (IRQ_FLAG_POLARITY | IRQ_FLAG_TRIGGER);
+		flags = prevFlags & (HWIRQ_FLAG_POLARITY | HWIRQ_FLAG_TRIGGER);
 	} else {
-		flags &= IRQ_FLAG_POLARITY | IRQ_FLAG_TRIGGER;
+		flags &= HWIRQ_FLAG_POLARITY | HWIRQ_FLAG_TRIGGER;
 	}
 	uint64_t apicID = pcpuRead32(apicID);
 	uint64_t value = flags | (vec & 0xFF) | (apicID << IORED_APIC_ID_SHIFT);

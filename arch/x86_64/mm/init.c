@@ -10,8 +10,7 @@
 #include <mm/lowmem.h>
 #include <print.h>
 #include <panic.h>
-
-#include "map.h"
+#include <arch/map.h>
 
 //#define LOWMEM_END 0x00100000
 #define ENTRYTYPE_FREE 1

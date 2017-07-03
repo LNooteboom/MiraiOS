@@ -1,4 +1,4 @@
-#include "map.h"
+#include <arch/map.h>
 #include <mm/pagemap.h>
 
 #include <stdint.h>
@@ -120,4 +120,9 @@ Unmaps a page.
 */
 void mmUnmapPage(uintptr_t vaddr) {
 	mmSetPageFlags(vaddr, 0);
+}
+
+void mmUnmapBootPages(void) {
+	*mmGetEntry(0, 2) = 0;
+	*mmGetEntry(0, 3) = 0;
 }

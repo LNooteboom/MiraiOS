@@ -9,11 +9,14 @@
 #include <sched/lock.h>
 #include <panic.h>
 #include <mm/physpaging.h>
-#include <irq.h>
 
 uintptr_t __stack_chk_guard;
 
 thread_t mainThread;
+
+void test(void) {
+	sprint("interrupt!\n");
+}
 
 void kmain(void) {
 	initInterrupts();

@@ -87,4 +87,6 @@ void tssGdtInit(struct cpuInfo *info);
 void lapicDoSMPBoot(void);
 void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type);
 
+void ackIRQ(void);
+
 #endif

@@ -1,6 +1,6 @@
 global initIDT:function
-global routeInterrupt:function
-global unrouteInterrupt:function
+global mapIdtEntry:function
+global unmapIdtEntry:function
 
 global idtr:data
 
@@ -16,7 +16,7 @@ initIDT:
 	
 	ret
 
-routeInterrupt:
+mapIdtEntry:
 	;(void (*ISR)(void), interrupt_t interrupt, uint8_t flags) returns void
 	;flags bit 0 = interrupt clear, trap when set
 	mov eax, (0x08 << 16)
@@ -42,7 +42,7 @@ routeInterrupt:
 
 	ret
 
-unrouteInterrupt:
+unmapIdtEntry:
 	;(interrupt_t interrupt) returns void
 	shl rdi, 4
 	and [idt + rdi + 4], word 0x7FFF ;clear present bit

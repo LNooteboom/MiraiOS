@@ -1,6 +1,6 @@
 
 OUTPUT = main.o
-OBJECTS = mainc.o print.o param.o panic.o
+OBJECTS = mainc.o print.o param.o panic.o irq.o
 SUBDIRS = 
 
 OBJECTS += $(patsubst %, %/main.o, ${SUBDIRS})

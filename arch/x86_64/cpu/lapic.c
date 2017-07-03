@@ -12,6 +12,7 @@
 #include <sched/sleep.h>
 #include <print.h>
 #include <io.h>
+#include <arch/map.h>
 
 #define PIT_HZ				1193182
 
@@ -112,14 +113,6 @@ void lapicInit(void) {
 	write32(lapicBase + LAPIC_SPURIOUS, 0x1FF); //set spurious register to vector 0xFF (points to empty isr)
 
 	busSpeed = getBusSpeed();
-	/*
-	//route interrupt vector 0xC2 to jiffyIrq
-	routeInterrupt(jiffyIrq, 0xC2, 0);
-
-	write32(lapicBase + LAPIC_LVT_TMR, 0xC2 | (1 << 17)); //set vector + periodic mode
-	write32(lapicBase + LAPIC_DIV, 3); //set divider to 16
-	lapicCount = count / (16 * JIFFY_HZ);
-	write32(lapicBase + LAPIC_TIC, lapicCount);*/
 
 	struct cpuInfo *info = &(cpuInfos[index]);
 	acquireSpinlock(&(info->lock));
@@ -181,5 +174,6 @@ void lapicDoSMPBoot(void) {
 			asm("pause");
 		}
 	}
+	mmUnmapBootPages();
 	tlbReloadCR3();
 }

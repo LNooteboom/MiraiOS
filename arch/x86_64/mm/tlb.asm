@@ -5,7 +5,7 @@ global tlbInvalidateGlobal:function
 global tlbInvalidateLocal:function
 global tlbReloadCR3:function
 
-extern routeInterrupt
+extern mapIdtEntry
 extern acquireSpinlock
 extern releaseSpinlock
 extern ackIRQ
@@ -19,7 +19,7 @@ tlbInit:
 	mov rdi, tlbInvalIrq
 	mov esi, TLB_INVAL_IRQ_NUM
 	xor edx, edx
-	call routeInterrupt
+	call mapIdtEntry
 	ret
 
 tlbInvalidateGlobal: ;(void *base, uint64_t numPages) returns void

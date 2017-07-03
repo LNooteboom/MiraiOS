@@ -7,7 +7,7 @@ extern lapicSendIPIToAll
 extern acquireSpinlock
 extern releaseSpinlock
 extern nrofActiveCPUs
-extern routeInterrupt
+extern mapIdtEntry
 extern ackIRQ
 
 SECTION .text
@@ -16,7 +16,7 @@ smpCallInit:
 	mov rdi, smpCallIrq
 	mov esi, SMPCALL_IRQ_NUM
 	xor edx, edx
-	jmp routeInterrupt ;call + ret
+	jmp mapIdtEntry ;call + ret
 
 ALIGN 8
 smpCallFunction: ;(void (*func)(void* arg), void *arg, bool wait) returns void
