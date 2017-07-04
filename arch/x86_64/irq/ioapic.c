@@ -96,6 +96,8 @@ int routeIrqLine(interrupt_t vec, unsigned int irq, unsigned int flags) {
 	uint64_t apicID = pcpuRead32(apicID);
 	uint64_t value = flags | (vec & 0xFF) | (apicID << IORED_APIC_ID_SHIFT);
 
+	kprintf("[IOAPIC] Write %x to %x\n", value, index);
+
 	*(ioApic->dataPort) = value;
 	index++;
 	*(ioApic->indexPort) = index;

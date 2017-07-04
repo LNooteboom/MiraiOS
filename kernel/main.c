@@ -10,8 +10,7 @@
 #include <panic.h>
 #include <mm/physpaging.h>
 #include <modules.h>
-
-#define NROF_MODULE_INIT_LEVELS		4
+#include <irq.h>
 
 //linker symbols
 extern moduleCall_t MODULE_INITS_0_START;
@@ -31,13 +30,6 @@ moduleCall_t *moduleInitLevels[NROF_MODULE_INIT_LEVELS + 1] = {
 uintptr_t __stack_chk_guard;
 
 thread_t mainThread;
-
-int testModule(void) {
-	sprint("testMod!\n");
-	return 0;
-}
-
-MODULE_INIT_LEVEL(testModule, 0);
 
 void kmain(void) {
 	initInterrupts();
@@ -61,7 +53,6 @@ void kmain(void) {
 			(*i)();
 		}
 	}
-
 	sprint("Init complete.\n");
 	kthreadExit(NULL);
 }

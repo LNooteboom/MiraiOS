@@ -3,6 +3,10 @@
 
 #include <sched/thread.h>
 
+static inline void relax(void) {
+	asm ("pause");
+}
+
 void kthreadSleep(unsigned long millis);
 
 bool sleepSkipTime(thread_t curThread);

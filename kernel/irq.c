@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <sched/spinlock.h>
-#include <errorcodes.h>
+#include <errno.h>
 
 #define IRQDESC_START			32
 #define IRQDESC_NROF_ENTRIES	(128 - 32)
