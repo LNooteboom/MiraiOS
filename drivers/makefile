@@ -9,7 +9,4 @@ ${OUTPUT}: ${OBJECTS}
 	${LD} -r -o $@ ${OBJECTS}
 
 %/main.o: %/makefile
-	echo a
-	echo $@
 	$(MAKE) -C $(patsubst %/main.o,%,$@)
-	echo b

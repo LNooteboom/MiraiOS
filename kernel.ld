@@ -41,6 +41,19 @@ SECTIONS {
 	.rodata : {
 		*.o (.rodata*);
 	}
+
+	.moduleInits : {
+		MODULE_INITS_0_START = .;
+		*.o (.moduleInits0)
+		MODULE_INITS_1_START = .;
+		*.o (.moduleInits1)
+		MODULE_INITS_2_START = .;
+		*.o (.moduleInits2)
+		MODULE_INITS_3_START = .;
+		*.o (.moduleInits3)
+		MODULE_INITS_END = .;
+	}
+
 	DATA_END_ADDR = .;
 	.bss : {
 		*.o (.bss);
