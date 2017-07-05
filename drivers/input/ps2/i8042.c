@@ -44,11 +44,11 @@ static void i8042Error(const char *msg) {
 	kprintf("[i8042] %s\n", msg);
 }
 
-static inline char i8042Status(void) {
+static inline uint8_t i8042Status(void) {
 	return in8(I8042_PORT_STATUS);
 }
 
-static inline int i8042WriteWait(void) {
+static int i8042WriteWait(void) {
 	int timeout = 0;
 	do {
 		if (!(i8042Status() & I8042_STATUS_INBUFFER)) {
@@ -63,7 +63,7 @@ static inline int i8042WriteWait(void) {
 	return 0;
 }
 
-static inline int i8042ReadWait(void) {
+static int i8042ReadWait(void) {
 	int timeout = 0;
 	do {
 		if (i8042Status() & I8042_STATUS_OUTBUFFER) {
@@ -78,31 +78,16 @@ static inline int i8042ReadWait(void) {
 	return 0;
 }
 
-static inline int i8042ReadData(char *data) {
-	int error = i8042ReadWait();
-	if (error)
-		return error;
-
-	*data = in8(I8042_PORT_DATA);
-	return 0;
+static inline uint8_t i8042ReadData(void) {
+	return in8(I8042_PORT_DATA);
 }
 
-static inline int i8042WriteData(char data) {
-	int error = i8042WriteWait();
-	if (error)
-		return error;
-
+static inline void i8042WriteData(uint8_t data) {
 	out8(I8042_PORT_DATA, data);
-	return 0;
 }
 
-static inline int i8042Cmd(char cmd) {
-	int error = i8042WriteWait();
-	if (error)
-		return error;
-
+static inline void i8042Cmd(uint8_t cmd) {
 	out8(I8042_PORT_CMD, cmd);
-	return 0;
 }
 
 static int i8042Flush(void) {
@@ -121,118 +106,130 @@ static int i8042Flush(void) {
 	return ret;
 }
 
+static int i8042SendPort1(uint8_t command) {
+	int ret = 0;
+	do {
+		if (i8042WriteWait())
+			return -EIO;
+		i8042WriteData(command);
+		//get return value
+		if (i8042ReadWait())
+			return -EIO;
+		ret = i8042ReadData();
+	} while (ret == 0xFE);
+	return ret;
+}
+
 static void i8042Interrupt(void) {
-	char t;
-	i8042ReadData(&t);
-	sprint("ps2 interrupt!\n");
+	if (!i8042CmdSent) {
+		//call keyboard driver
+		cprint('k');
+		hexprintln(i8042ReadData());
+	}
 }
 
 int i8042Init(void) {
-	int error;
-
 	//check if exists
-	error = i8042Flush();
-	if (error) {
+	if (i8042Flush()) {
 		i8042Error("Device not found");
-		return error;
+		return -EIO;
 	}
 
 	//Disable devices
-	error = i8042Cmd(I8042_CMD_DISABLE_PORT1);
-	if (error) {
-		i8042Error("Error disabling port 1");
-		return error;
-	}
+	if (i8042WriteWait())
+		return -EIO;
+	i8042Cmd(I8042_CMD_DISABLE_PORT1);
+	if (i8042WriteWait())
+		return -EIO;
 	i8042Cmd(I8042_CMD_DISABLE_PORT2);
 
 	//Flush output buffer
-	error = i8042Flush();
-	if (error) {
+	if (i8042Flush()) {
 		i8042Error("Error flushing buffer");
-		return error;
+		return -EIO;
 	}
 
 	//Set controller config byte
-	error = i8042Cmd(I8042_CMD_READ_CONFIG);
-	if (error) {
-		return error;
-	}
-	char config;
-	error = i8042ReadData(&config);
-	if (error) {
-		return error;
-	}
+	if (i8042WriteWait())
+		return -EIO;
+	i8042Cmd(I8042_CMD_READ_CONFIG);
+	if (i8042ReadWait())
+		return -EIO;
+	uint8_t config = i8042ReadData();
 	config &= ~(I8042_CONFIG_IRQ_PORT1 | I8042_CONFIG_IRQ_PORT2 | I8042_CONFIG_XLATE);
-	error = i8042Cmd(I8042_CMD_WRITE_CONFIG);
-	if (error) {
-		return error;
-	}
-	error = i8042WriteData(config);
-	if (error) {
-		return error;
-	}
+	if (i8042WriteWait())
+		return -EIO;
+	i8042Cmd(I8042_CMD_WRITE_CONFIG);
+	if (i8042WriteWait())
+		return -EIO;
+	i8042WriteData(config);
 
 	//Perform self-test
-	error = i8042Cmd(I8042_CMD_SELF_TEST);
-	if (error) {
-		return error;
-	}
-	char response = 0;
-	error = i8042ReadData(&response);
-	if (response != 0x55) {
-		i8042Error("Controller self-test failed");
+	if (i8042WriteWait())
+		return -EIO;
+	i8042Cmd(I8042_CMD_SELF_TEST);
+	if (i8042ReadWait())
+		return -EIO;
+	if (i8042ReadData() != 0x55) {
+		i8042Error("Controller self-test failed, continuing anyway...");
 	}
 
 	//Test ps2 port 1
-	error = i8042Cmd(I8042_CMD_TEST_PORT1);
-	if (error) {
-		return error;
-	}
-	error = i8042ReadData(&response);
-	if (error) {
-		return error;
-	}
-	if (response) {
-		i8042Error("No keyboard connected");
+	if (i8042WriteWait())
+		return -EIO;
+	i8042Cmd(I8042_CMD_TEST_PORT1);
+	if (i8042ReadWait())
+		return -EIO;
+	if (i8042ReadData()) {
+		i8042Error("Port 1 self test failed");
 	}
 
 	//Enable port 1
-	error = i8042Cmd(I8042_CMD_ENABLE_PORT1);
-	if (error) {
-		return error;
-	}
+	if (i8042WriteWait())
+		return -EIO;
+	i8042Cmd(I8042_CMD_ENABLE_PORT1);
 
 	//Enable interrupts
 	interrupt_t vec = allocIrqVec();
-	if (!vec) {
+	if (!vec)
 		return -EBUSY;
-	}
-	error = routeInterrupt(i8042Interrupt, vec, 0, "PS/2 Keyboard");
-	if (error) {
+	if (routeInterrupt(i8042Interrupt, vec, 0, "PS/2 Keyboard")) {
 		deallocIrqVec(vec);
-		return error;
+		return -EIO;
 	}
-	error = routeIrqLine(vec, I8042_IRQ_PORT1, HWIRQ_FLAG_ISA);
-	if (error) {
+	if (routeIrqLine(vec, I8042_IRQ_PORT1, HWIRQ_FLAG_ISA)) {
 		unrouteInterrupt(vec);
 		deallocIrqVec(vec);
-		return error;
+		return -EIO;
 	}
+	if (i8042WriteWait())
+		return -EIO;
+	i8042Cmd(I8042_CMD_READ_CONFIG);
+	if (i8042ReadWait())
+		return -EIO;
+	config = i8042ReadData();
 
-	error = i8042Cmd(I8042_CMD_WRITE_CONFIG);
-	if (error) {
-		return error;
-	}
-	error = i8042WriteData((config | I8042_CONFIG_IRQ_PORT1) & ~I8042_CONFIG_DIS_PORT1);
-	if (error) {
-		return error;
-	}
+	config |= I8042_CONFIG_IRQ_PORT1;
+
+	if (i8042WriteWait())
+		return -EIO;
+	i8042Cmd(I8042_CMD_WRITE_CONFIG);
+	if (i8042WriteWait())
+		return -EIO;
+	i8042WriteData(config);
 
 	//reset
-	error = i8042WriteData(0xFF);
-	if (error) {
-		return error;
+	if (i8042SendPort1(0xFF) < 0) {
+		i8042Error("No device on port 1");
+		return -EIO;
 	}
+	if (i8042ReadWait())
+		return -EIO;
+	if (i8042ReadData() != 0xAA) {
+		i8042Error("Device on port 1 self-test failed!");
+	}
+
+	i8042CmdSent = false;
 
 	return 0;
 }

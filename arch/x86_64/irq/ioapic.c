@@ -61,19 +61,25 @@ void ioApicInit(void) {
 int routeIrqLine(interrupt_t vec, unsigned int irq, unsigned int flags) {
 	if (flags & HWIRQ_FLAG_ISA) {
 		unsigned int isaFlags = 0;
+		bool found = false;
 		for (unsigned int i = 0; i < isaListLen; i++) {
 			if (isaOverrides[i].source == irq) {
 				irq = isaOverrides[i].GSI;
 				isaFlags = isaOverrides[i].flags;
+				found = true;
 				break;
 			}
 		}
-		flags = HWIRQ_FLAG_CUSTOM;
-		if ((isaFlags & 3) != 1) {
-			flags |= HWIRQ_FLAG_POLARITY;
-		}
-		if (((isaFlags >> 2) & 3) == 3) {
-			flags |= HWIRQ_FLAG_TRIGGER;
+		if (found) {
+			flags = HWIRQ_FLAG_CUSTOM;
+			if ((isaFlags & 3) != 1) {
+				flags |= HWIRQ_FLAG_POLARITY;
+			}
+			if (((isaFlags >> 2) & 3) == 3) {
+				flags |= HWIRQ_FLAG_TRIGGER;
+			}
+		} else {
+			flags = 0;
 		}
 	}
 	gsiToVec[irq] = vec;
@@ -95,8 +101,6 @@ int routeIrqLine(interrupt_t vec, unsigned int irq, unsigned int flags) {
 	}
 	uint64_t apicID = pcpuRead32(apicID);
 	uint64_t value = flags | (vec & 0xFF) | (apicID << IORED_APIC_ID_SHIFT);
-
-	kprintf("[IOAPIC] Write %x to %x\n", value, index);
 
 	*(ioApic->dataPort) = value;
 	index++;

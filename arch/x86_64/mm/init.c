@@ -61,10 +61,10 @@ void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
 				base = PAGE_SIZE;
 				size -= PAGE_SIZE;
 			}
-			sprint("Found free memory: ");
-			hexprint64(base);
-			sprint(" - ");
-			hexprintln64(base + size);
+			//sprint("Found free memory: ");
+			//hexprint64(base);
+			//sprint(" - ");
+			//hexprintln64(base + size);
 
 			//allocate room in virtual address space for page stacks
 			if (firstPage && size >= (NROF_PAGE_STACKS + 1) * PAGE_SIZE) {
