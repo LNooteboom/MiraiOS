@@ -1,5 +1,7 @@
+#include "ps2.h"
 #include <modules.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <io.h>
 #include <sched/sleep.h>
 #include <errno.h>
@@ -39,6 +41,8 @@
 static spinlock_t i8042Lock;
 
 static bool i8042CmdSent = true;
+
+static struct ps2Controller i8042Port1;
 
 static void i8042Error(const char *msg) {
 	kprintf("[i8042] %s\n", msg);
@@ -91,7 +95,6 @@ static inline void i8042Cmd(uint8_t cmd) {
 }
 
 static int i8042Flush(void) {
-	acquireSpinlock(&i8042Lock);
 	int count = 0;
 	int ret = 0;
 	while (i8042Status() & I8042_STATUS_OUTBUFFER) {
@@ -102,7 +105,6 @@ static int i8042Flush(void) {
 			break;
 		}
 	}
-	releaseSpinlock(&i8042Lock);
 	return ret;
 }
 
@@ -120,11 +122,20 @@ static int i8042SendPort1(uint8_t command) {
 	return ret;
 }
 
-static void i8042Interrupt(void) {
-	if (!i8042CmdSent) {
+static void i8042InterruptPort1(void) {
+	if (!i8042CmdSent && i8042Port1.connected && i8042Port1.dev != NULL) {
 		//call keyboard driver
-		cprint('k');
-		hexprintln(i8042ReadData());
+		i8042Port1.dev->drv->interrupt(i8042Port1.dev);
+	}
+}
+
+void ps2RegisterDriver(const struct ps2Driver *drv) {
+	if (i8042Port1.connected) {
+		for (int i = 0; i < drv->IDsLen; i++) {
+			if (drv->IDs[i] == i8042Port1.id) {
+				i8042Port1.dev = drv->newDevice(&i8042Port1);
+			}
+		}
 	}
 }
 
@@ -193,7 +204,7 @@ int i8042Init(void) {
 	interrupt_t vec = allocIrqVec();
 	if (!vec)
 		return -EBUSY;
-	if (routeInterrupt(i8042Interrupt, vec, 0, "PS/2 Keyboard")) {
+	if (routeInterrupt(i8042InterruptPort1, vec, 0, "PS/2 Keyboard")) {
 		deallocIrqVec(vec);
 		return -EIO;
 	}
@@ -219,15 +230,36 @@ int i8042Init(void) {
 	i8042WriteData(config);
 
 	//reset
-	if (i8042SendPort1(0xFF) < 0) {
-		i8042Error("No device on port 1");
-		return -EIO;
+	if (i8042SendPort1(0xFF) < 0 || i8042ReadWait()) {
+		i8042Port1.connected = false;
+	} else {
+		if (i8042ReadData() != 0xAA) {
+			i8042Error("Device on port 1 self-test failed!");
+		}
+		if (i8042SendPort1(0xF5) < 0 || i8042SendPort1(0xF2) < 0) {
+			i8042Port1.connected = false;
+		} else {
+			while (i8042ReadWait()) {
+				char nrofBytes = i8042Port1.id >> 24;
+				
+				i8042Port1.id |= i8042ReadData() << (8 * nrofBytes);
+				i8042Port1.id &= 0x00FFFFFF;
+				i8042Port1.id |= ++nrofBytes << 24;
+			}
+			i8042Port1.connected = true;
+		}
 	}
-	if (i8042ReadWait())
-		return -EIO;
-	if (i8042ReadData() != 0xAA) {
-		i8042Error("Device on port 1 self-test failed!");
-	}
+	i8042Flush();
+
+	//initialize port 1 struct
+	i8042Port1.dev = NULL;
+
+	i8042Port1.controllerLock = &i8042Lock;
+	i8042Port1.sendCommand = i8042SendPort1;
+	i8042Port1.writeWait = i8042WriteWait;
+	i8042Port1.readWait = i8042ReadWait;
+	i8042Port1.write = i8042WriteData;
+	i8042Port1.read = i8042ReadData;
 
 	i8042CmdSent = false;
 
