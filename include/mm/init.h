@@ -8,7 +8,7 @@
 /*
 These 'variables' are linker symbols and have no value, they will give a page fault upon read/write.
 */
-extern char BSS_END_ADDR;s
+extern char BSS_END_ADDR;
 extern char KERNEL_START_ADDR;
 
 
