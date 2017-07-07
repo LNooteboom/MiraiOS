@@ -4,9 +4,12 @@
 #include <stdint.h>
 #include <stdarg.h>
 
-void vkprintf(const char *fmt, va_list args);
-
+/*
+Formatted print
+*/
 void kprintf(const char *fmt, ...);
+
+void vkprintf(const char *fmt, va_list args);
 
 /*
 Prints a character to the output console

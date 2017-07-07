@@ -6,10 +6,9 @@
 #include <param/mmap.h>
 
 /*
-This 'variable' is a linker symbol and has no value, it will give a page fault upon read/write.
+These 'variables' are linker symbols and have no value, they will give a page fault upon read/write.
 */
-extern char BSS_END_ADDR;
-
+extern char BSS_END_ADDR;s
 extern char KERNEL_START_ADDR;
 
 

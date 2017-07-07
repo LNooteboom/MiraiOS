@@ -5,12 +5,19 @@
 
 #define NROF_QUEUE_PRIORITIES	8
 
+/*
+Pops a thread from the current cpu's readyqueue
+*/
 thread_t readyQueuePop(void);
 
+/*
+Pushes a thread to the current cpu's readyqueue
+*/
 void readyQueuePush(thread_t thread);
 
-//void readyQueuePushFront(thread_t thread);
-
+/*
+Attempts to find a thread with a higher priority value than the current thread.
+*/
 thread_t readyQueueExchange(thread_t thread, bool front);
 
 #endif

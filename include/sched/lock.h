@@ -12,10 +12,19 @@ struct semaphore {
 
 typedef struct semaphore semaphore_t;
 
+/*
+Initializes a semaphore
+*/
 void semInit(semaphore_t *semaphore, int value);
 
+/*
+Decrements the semaphore and blocks if the result is negative
+*/
 void semWait(semaphore_t *semaphore);
 
+/*
+Increments the semaphore and frees a thread if the value was negative
+*/
 void semSignal(semaphore_t *semaphore);
 
 #endif
