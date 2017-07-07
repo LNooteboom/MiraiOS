@@ -109,4 +109,26 @@
 #define KEY_KP0			103
 #define KEY_KPDOT		104
 
+#define KEY_PREVIOUSSONG 105
+#define KEY_PLAYPAUSE	106
+#define KEY_NEXTSONG	107
+#define KEY_MUTE		208
+#define KEY_VOLUMEDOWN	209
+#define KEY_VOLUMEUP	210
+#define KEY_SELECT		225
+#define KEY_SEARCH		211
+#define KEY_FAVORITES	212
+#define KEY_FORWARD		213
+#define KEY_BACK		214
+#define KEY_HOMEPAGE	215
+#define KEY_EMAIL		216
+#define KEY_STOP		217
+#define KEY_REFRESH		218
+#define KEY_CALCULATOR	219
+#define KEY_APPS		220
+#define KEY_POWER		221
+#define KEY_SLEEP		222
+#define KEY_WAKE		223
+#define KEY_COMPUTER	224
+
 #endif
