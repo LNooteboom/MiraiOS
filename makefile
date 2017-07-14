@@ -1,56 +1,75 @@
-SHELL = /bin/sh
+TARGET := x86_64-elf
+ARCH := x86_64
 
-export TARGET = x86_64-elf
-export ARCH = x86_64
-
-WARNINGS = "-Wall" "-Wextra"
-NOSTDSTUFF = "-ffreestanding" "-nostdlib" "-nostartfiles" "-fno-pie"
-export CFLAG = ${WARNINGS} ${NOSTDSTUFF} "-std=gnu99" "-O2" "-fstack-protector" "-g" "-I$(PWD)/include/" "-I$(PWD)/arch/${ARCH}/include" "-mcmodel=kernel" "-mno-red-zone" "-masm=intel"
-export CC = ${TARGET}-gcc
-#export CC = gcc
-
-export NASM = nasm
-export NASMFLAG = "-f elf64"
-
-export LD = ${TARGET}-ld
-
-
-OUTPUT = vmmount/out.img
 KERNEL = miraiBoot
-BOOT = BOOT
-IMAGE = out.img
-MODULES = kernel arch/${ARCH} drivers mm sched
-OBJ_INIT = init.o
 
+KERNEL_ROOT := .
+DEPDIR := .d
+$(shell mkdir -p $(DEPDIR) > /dev/null)
 
-OBJECTS = $(patsubst %, %/main.o, ${MODULES}) ${OBJ_INIT}
-INITDIR = arch/${ARCH}/init
+FLAG_WARNINGS := -Wall -Wextra
+FLAG_FREESTANDING := -ffreestanding -nostdlib -nostartfiles -fno-pie
+FLAG_KERNEL := -masm=intel -mno-red-zone -mcmodel=kernel
+FLAG_INCLUDES := -I$(KERNEL_ROOT)/include/ -I$(KERNEL_ROOT)/arch/${ARCH}/include
+FLAG_DEBUG := -g
+FLAG_OPTIMIZE := -O2
+FLAG_DEP = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 
-all: ${KERNEL} #${BOOT} ${IMAGE}
-	#mount ${IMAGE} mnt
-	#cp ${KERNEL} mnt
-	#cp ${BOOT} mnt
-	#umount mnt
-	#cp out.img vmmount
+CFLAG = $(FLAG_WARNINGS) $(FLAG_FREESTANDING) $(FLAG_KERNEL) $(FLAG_INCLUDES) $(FLAG_DEBUG) $(FLAG_OPTIMIZE) $(FLAG_DEP) -c
+CC := $(TARGET)-gcc
 
-${OBJ_INIT}: ${INITDIR}
-	$(MAKE) -C $<
-	cp ${INITDIR}/main.o $@
+NASM := nasm
+NASMFLAG := -f elf64
+LD := $(TARGET)-ld
 
-${KERNEL}: ${OBJECTS}
-	${LD} -z max-page-size=0x1000 -T kernel.ld
+obj-y :=
 
-%/main.o:
-	$(MAKE) -C $(patsubst %/main.o,%,$@)
+include config
 
-${BOOT}: boot/stage2.asm
-	${NASM} -f bin -o $@ $<
+.PHONY: all clean
 
-${IMAGE}: boot/bootsector.asm
-	${NASM} -f bin -o $@ $<
+all: $(KERNEL)
 
 clean:
-	find . -name "*.o" -type f -delete
-	rm -f *.img
-	rm -f miraiBoot
-	rm -f BOOT
+	rm -rf $(obj-y) $(DEPDIR)
+
+#subdirs
+dir := $(KERNEL_ROOT)/kernel
+$(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
+include $(dir)/Rules.mk
+
+dir := $(KERNEL_ROOT)/arch/$(ARCH)
+$(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
+include $(dir)/Rules.mk
+
+dir := $(KERNEL_ROOT)/mm
+$(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
+include $(dir)/Rules.mk
+
+dir := $(KERNEL_ROOT)/sched
+$(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
+include $(dir)/Rules.mk
+
+dir := $(KERNEL_ROOT)/drivers
+$(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
+include $(dir)/Rules.mk
+
+$(KERNEL): $(obj-y)
+	@echo "(LD) $@"
+	@$(LD) -z max-page-size=0x1000 -T kernel.ld $(obj-y)
+
+%.o: %.c
+%.o: %.c $(DEPDIR)/%.d
+	@echo "(CC) $@"
+	@${CC} ${CFLAG} -o $@ $<
+	@mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
+
+%.o: %.asm
+	@echo "(NASM) $@"
+	@${NASM} ${NASMFLAG} -o $@ $<
+
+%.d: ;
+
+.PRECIOUS: $(DEPDIR)/%.d
+
+include $(wildcard $(patsubst %,$(DEPDIR)/%.d,$(basename $(obj-y)) ))

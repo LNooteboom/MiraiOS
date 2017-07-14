@@ -1,17 +1,7 @@
 
 OUTPUT_FORMAT(elf64-x86-64)
 
-
-INPUT
-(
-	mm/main.o
-	drivers/main.o
-	arch/x86_64/main.o
-	kernel/main.o
-	sched/main.o
-)
-
-STARTUP(init.o)
+/*STARTUP(init.o)*/
 ENTRY(__init)
 
 OUTPUT(miraiBoot)
@@ -22,7 +12,7 @@ SECTIONS {
 	. = 0x1000000;
 	KERNEL_START_ADDR = . + VMEM_OFFSET;
 	multiboot : {
-		init.o (multiboot);
+		*.o (multiboot);
 	}
 	boottext : {
 		*.o (boottext);

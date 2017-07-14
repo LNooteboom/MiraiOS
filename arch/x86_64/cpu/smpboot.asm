@@ -148,5 +148,5 @@ smpbootStart:
 SECTION .rodata
 
 smpboot16start:
-INCBIN "smpboot16.bin"
+INCBIN "arch/x86_64/cpu/smpboot16.bin"
 smpboot16end:
