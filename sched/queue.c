@@ -5,15 +5,6 @@
 #include <sched/spinlock.h>
 #include <sched/thread.h>
 
-/*struct threadInfoQueue {
-	struct threadInfo *first;
-	struct threadInfo *last;
-	int nrofThreads;
-	spinlock_t lock;
-};*/
-
-//struct threadInfoQueue queue;
-
 struct threadInfo *threadQueuePop(struct threadInfoQueue *queue) {
 	struct threadInfo *ret = queue->first;
 	if (!ret) {

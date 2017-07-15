@@ -42,6 +42,7 @@ acquireSpinlock:
 	ret
 
 .error:
+	xchg bx, bx
 	mov rdi, spinlockStuckMsg
 	call sprint
 	mov rdi, [rsp]

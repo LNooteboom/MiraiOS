@@ -2,7 +2,6 @@ BITS 32
 
 global __init:function
 global vmemOffset:data
-global bootInfo:data
 
 global initStackEnd:data
 global excStackStart:data
@@ -55,7 +54,7 @@ __init:
 		xor edx, edx
 	
 	.L0:
-	mov [(bootInfo - VMEM_OFFSET)], ebx
+	mov [(multiBootInfo - VMEM_OFFSET)], ebx
 	mov ax, 0x10
 
 	cld
@@ -172,6 +171,8 @@ __init:
 	or eax, (1 << 31)
 	mov cr0, eax
 	
+	;load multibootinfo ptr in edi
+	mov edi, [multiBootInfo - VMEM_OFFSET]
 	;now jump to 64 bit (in another file)
 	jmp far dword [jumpVect]
 
@@ -305,5 +306,5 @@ PDT:
 excStackStart:
 	resb PAGESIZE
 initStackEnd:
-bootInfo:
+multiBootInfo:
 	resq 1

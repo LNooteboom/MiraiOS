@@ -2,7 +2,6 @@
 #include <drivers/vga.h>
 #include <print.h>
 #include <mm/init.h>
-#include <param/main.h>
 #include <arch.h>
 #include <sched/thread.h>
 #include <stddef.h>
@@ -35,7 +34,7 @@ void kmain(void) {
 	initInterrupts();
 	vgaInit();
 	sprint("\e[0m\e[2JKernel initialising...\n");
-	paramInit();
+	//paramInit();
 	mmInit();
 
 	kprintf("Detected %dMiB of free memory.\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);

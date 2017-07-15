@@ -21,18 +21,18 @@ initExceptions:
     push rbx
     push r12
 
-    xor bl, bl
+    xor ebx, ebx
     mov r12, excList
     
     .start:
-        cmp bl, NROF_DEFINED_EXCS
+        cmp ebx, NROF_DEFINED_EXCS
         jae .end
-        mov dl, 1
-        mov si, bx
+        xor edx, edx
+        mov esi, ebx
         mov rdi, [r12]
         call mapIdtEntry
         add r12, 8
-        inc bl
+        inc ebx
         jmp .start
     .end:
 

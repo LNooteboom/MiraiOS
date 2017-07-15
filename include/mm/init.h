@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <param/mmap.h>
 
 /*
 These 'variables' are linker symbols and have no value, they will give a page fault upon read/write.
@@ -20,6 +19,6 @@ void mmInit(void);
 /*
 This function pushes all the pages in *mmap on the internal page stack
 */
-void mmInitPaging(struct mmap *mmap, size_t mmapSize);
+void mmInitPaging(void);
 
 #endif

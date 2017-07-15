@@ -2,125 +2,72 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stddef.h>
-#include <param/mmap.h>
-#include <mm/physpaging.h>
-#include <mm/pagemap.h>
-#include <mm/heap.h>
-#include <mm/lowmem.h>
-#include <print.h>
-#include <panic.h>
+#include <arch/bootinfo.h>
 #include <arch/map.h>
+#include <mm/paging.h>
+#include <mm/pagemap.h>
+#include <mm/lowmem.h>
+#include <mm/physpaging.h>
 
-//#define LOWMEM_END 0x00100000
 #define ENTRYTYPE_FREE 1
-
 #define NROF_PAGE_STACKS 4
 
-static bool checkMmap(struct mmap *mmap, size_t mmapSize) {
-	struct mmap *currentEntry = mmap;
-	uintptr_t oldEntryEnd = 0;
-	while ((uintptr_t)currentEntry < (uintptr_t)mmap + mmapSize) {
-		if (currentEntry->base < oldEntryEnd) { //if unordered or overlapped
-			return false;
+void mmInitPaging(void) {
+	struct mmapEntry *mmap = bootInfo.mmap;
+	unsigned int len = bootInfo.mmapLen;
+	bool first = true;
+	
+	for (unsigned int i = 0; i < len; i++) {
+		int type = mmap[i].attr;
+		if (type != ENTRYTYPE_FREE) {
+			continue;
 		}
-		oldEntryEnd = currentEntry->base + currentEntry->length;
-		currentEntry = (struct mmap*)((void*)(currentEntry) + currentEntry->entrySize + sizeof(uint32_t));
-	}
-	return true;
-}
-
-void mmInitPaging(struct mmap *mmap, size_t mmapSize) {
-	if (!checkMmap(mmap, mmapSize)) {
-		panic("Mmap is corrupted");
-	}
-
-	uintptr_t physBssEnd = (uintptr_t)&BSS_END_ADDR - (uintptr_t)&VMEM_OFFSET;
-	if (physBssEnd & (PAGE_SIZE - 1)) {
-		physBssEnd &= ~(PAGE_SIZE - 1);
-		physBssEnd += PAGE_SIZE;
-	}
-	//uintptr_t physKernelStart = (uintptr_t)&KERNEL_START_ADDR - (uintptr_t)&VMEM_OFFSET;
-	struct mmap *currentEntry = mmap;
-	bool firstPage = true;
-
-	while ((uintptr_t)currentEntry < (uintptr_t)mmap + mmapSize) {
-		if (currentEntry->type == ENTRYTYPE_FREE) {
-			
-			uint64_t base = currentEntry->base;
-			uint64_t size = currentEntry->length;
-
-			//align base and size
-			if (base & (PAGE_SIZE - 1)) {
-				base &= ~(PAGE_SIZE - 1);
-				base += PAGE_SIZE;
-				size &= ~(PAGE_SIZE - 1);
+		uintptr_t addr = mmap[i].addr;
+		uint64_t nrofPages = mmap[i].nrofPages;
+		if (addr < LOWMEM_SIZE) {
+			uintptr_t end = addr + nrofPages * PAGE_SIZE;
+			if (end <= LOWMEM_SIZE) {
+				deallocLowPhysPages(addr, nrofPages);
+				continue;
 			}
-			//skip ivt + bda (for some reason mmap ignores this)
-			if (base == 0) {
-				base = PAGE_SIZE;
-				size -= PAGE_SIZE;
-			}
-			//sprint("Found free memory: ");
-			//hexprint64(base);
-			//sprint(" - ");
-			//hexprintln64(base + size);
+			uint64_t lowPages = (LOWMEM_SIZE - addr) / PAGE_SIZE;
+			deallocLowPhysPages(addr, lowPages);
+			addr = LOWMEM_SIZE;
+			nrofPages -= lowPages;
+		}
 
-			//allocate room in virtual address space for page stacks
-			if (firstPage && size >= (NROF_PAGE_STACKS + 1) * PAGE_SIZE) {
-				uintptr_t start = (uintptr_t)&BSS_END_ADDR;
-				if (start & (LARGEPAGE_SIZE - 1)) { //align it with large pages
-					start &= ~(LARGEPAGE_SIZE - 1);
-					start += LARGEPAGE_SIZE;
-				}
-				uintptr_t freeBufferLarge = start;
-				start += LARGEPAGE_SIZE;
-				uintptr_t freeBufferSmall = start;
-				start += PAGE_SIZE;
-
-				//set new page table
-				mmSetPageEntry(start, 1, base | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE);
-				base += PAGE_SIZE;
-				size -= PAGE_SIZE;
-
-				mmInitPhysPaging(start, freeBufferSmall, freeBufferLarge);
-				firstPage = false;
+		if (first && nrofPages >= NROF_PAGE_STACKS + 1) {
+			uintptr_t bssEnd = (uintptr_t)&BSS_END_ADDR;
+			size_t ptRoomAvail = LARGEPAGE_SIZE - (bssEnd & (LARGEPAGE_SIZE - 1));
+			if (ptRoomAvail < NROF_PAGE_STACKS * PAGE_SIZE) {
+				//create new page table
+				mmSetPageEntry(bssEnd, 1, addr | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE);
+				addr += PAGE_SIZE;
+				nrofPages--;
 			}
-			//dealloc lowmem (<16MiB)
-			if (base < LOWMEM_SIZE) {
-				size_t lowSize;
-				if (base + size > LOWMEM_SIZE) {
-					lowSize = LOWMEM_SIZE - base;
-					size -= lowSize;
-				} else {
-					lowSize = size;
-					size = 0;
-				}
-				deallocLowPhysPages(base, lowSize / PAGE_SIZE);
-				base += lowSize;
-				//size -= lowSize;
+			uintptr_t zeroBuffer = bssEnd;
+			bssEnd += PAGE_SIZE;
+			for (int j = 0; j < NROF_PAGE_STACKS; j++) {
+				mmMapPage(bssEnd + j * PAGE_SIZE, addr, PAGE_FLAG_WRITE);
+				addr += PAGE_SIZE;
 			}
-			//dealloc highmem
-			if (size != 0 && base + size > physBssEnd) {
-				//uintptr_t currentPage = base;
-				if (base < physBssEnd) {
-					size -= physBssEnd - base;
-					base = physBssEnd;
-				}
-				for (size_t i = 0; i < size; i += PAGE_SIZE) {
-					if ( !(base & (LARGEPAGE_SIZE - 1)) && size >= PAGE_SIZE) {
-						//There is a better way to do this, but right now this is the simplest solution
-						deallocLargePhysPage(base);
-						base += LARGEPAGE_SIZE;
-						i += LARGEPAGE_SIZE - PAGE_SIZE;
-					} else {
-						deallocPhysPage(base);
-						base += PAGE_SIZE;
-					}
-				}
+
+			nrofPages -= NROF_PAGE_STACKS;
+			mmInitPhysPaging(bssEnd, zeroBuffer, 0);
+			first = false;
+		}
+
+		//dealloc highmem
+		while (nrofPages) {
+			if ((addr & (LARGEPAGE_SIZE - 1)) || nrofPages < (LARGEPAGE_SIZE / PAGE_SIZE)) {
+				deallocPhysPage(addr);
+				addr += PAGE_SIZE;
+				nrofPages--;
+			} else {
+				deallocLargePhysPage(addr);
+				addr += LARGEPAGE_SIZE;
+				nrofPages -= LARGEPAGE_SIZE / PAGE_SIZE;
 			}
 		}
-		//get next entry
-		currentEntry = (struct mmap*)((void*)(currentEntry) + currentEntry->entrySize + sizeof(uint32_t));
 	}
 }

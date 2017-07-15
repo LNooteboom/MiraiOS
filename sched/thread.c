@@ -75,6 +75,7 @@ int kthreadCreateFromMain(thread_t *thread) {
 	thrd->lock = 0;
 
 	thrd->detached = true;
+	thrd->cpuAffinity = 0;
 	thrd->fixedPriority = true;
 	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
 
