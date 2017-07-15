@@ -17,6 +17,24 @@ struct bootInfo {
 	void *lowMemReservedEnd;
 	void *initrd;
 	size_t initrdLen;
+
+	//framebuffer info
+	physPage_t fbAddr;
+	size_t fbSize;
+	uint32_t fbXRes;
+	uint32_t fbYres;
+	uint32_t fbPitch;
+
+	bool fbIsRgb;
+	uint32_t fbBpp;
+	uint8_t fbRSize;
+	uint8_t fbRShift;
+	uint8_t fbGSize;
+	uint8_t fbGShift;
+	uint8_t fbBSize;
+	uint8_t fbBShift;
+	uint8_t fbResSize;
+	uint8_t fbResShift;
 };
 
 extern struct bootInfo bootInfo;

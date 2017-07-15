@@ -17,6 +17,25 @@ STRUC BootInfo
 .lowMemReservedEnd: resq 1
 .initrd: resq 1
 .initrdLen: resq 1
+
+;framebuffer info
+.fbAddr: resq 1
+.fbSize: resq 1
+.fbXRes: resd 1
+.fbYRes: resd 1
+.fbPitch: resd 1
+
+.fbIsRgb: resd 1
+.fbBpp: resd 1
+.fbRSize: resb 1
+.fbRShift: resb 1
+.fbGSize: resb 1
+.fbGShift: resb 1
+.fbBSize: resb 1
+.fbBShift: resb 1
+.fbResSize: resb 1
+.fbResShift: resb 1
+
 .size:
 ENDSTRUC
 
@@ -24,6 +43,43 @@ STRUC Mmap
 .addr: resq 1
 .nrofPages: resq 1
 .attr: resq 1
+.size:
+ENDSTRUC
+
+STRUC VbeInfo
+.attr: resw 1
+.winA: resb 1
+.winB: resb 1
+.gran: resw 1
+.winSize: resw 1
+.segA: resw 1
+.segB: resw 1
+.winFunc: resd 1
+.pitch: resw 1
+
+.xRes: resw 1
+.yRes: resw 1
+.xChar: resb 1
+.yChar: resb 1
+.nrofPlanes: resb 1
+.bpp: resb 1
+.nrofBanks: resb 1
+.memModel: resb 1
+.bankSize: resb 1
+.nrofImagePages: resb 1
+.reserved: resb 1
+
+.rMaskSize: resb 1
+.rShift: resb 1
+.gMaskSize: resb 1
+.gShift: resb 1
+.bMaskSize: resb 1
+.bShift: resb 1
+.resMaskSize: resb 1
+.resShift: resb 1
+.dcAttr: resb 1
+
+.physBase: resd 1
 .size:
 ENDSTRUC
 
@@ -134,6 +190,61 @@ init64: ;We are now in 64-bit
 		mov [bootInfo + BootInfo.initrd], rax
 		mov [bootInfo + BootInfo.initrdLen], rax
 	.end2:
+	;set video info
+	cmp [r15], dword (1 << 11)
+	jz .noFB
+	mov ebp, [r15 + 76] ;get vbe mode info
+	add rbp, VMEM_OFFSET
+
+	xchg bx, bx
+
+	;compute fb size
+	movzx eax, word [rbp + VbeInfo.pitch]
+	movzx edx, word [rbp + VbeInfo.yRes]
+	mul edx
+	mov [r15 + BootInfo.fbSize], eax
+
+	;get other attributes
+	mov eax, [rbp + VbeInfo.physBase]
+	movzx ebx, word [rbp + VbeInfo.xRes]
+	movzx ecx, word [rbp + VbeInfo.yRes]
+	movzx edx, word [rbp + VbeInfo.pitch]
+	mov rsi, [rbp + VbeInfo.rMaskSize] ;get all masks and shifts in one fell swoop
+	movzx edi, byte [rbp + VbeInfo.bpp]
+	mov r8b, [rbp + VbeInfo.memModel]
+
+	;check if framebuffer valid
+	cmp r8b, 6
+	je .valid
+	cmp r8b, 3
+	jne .noFB
+	cmp edi, 32
+	jne .noFB
+	jmp .rgb
+	.valid: ;if (memModel == 6 || (memModel == 3 && bpp == 32))
+		;check if rgb
+		mov r9, 0x1808100808080008
+		cmp rsi, r9
+		je .rgb
+		xor r9d, r9d
+		jmp .end3
+		.rgb:
+		mov r9d, dword 1
+	.end3:
+	;store everything
+	mov [r15 + BootInfo.fbAddr], rax
+	mov [r15 + BootInfo.fbXRes], ebx
+	mov [r15 + BootInfo.fbYRes], ecx
+	mov [r15 + BootInfo.fbPitch], edx
+	mov [r15 + BootInfo.fbIsRgb], r9d
+	mov [r15 + BootInfo.fbBpp], edi
+	mov [r15 + BootInfo.fbRSize], rsi
+	jmp .end4
+	.noFB:
+	xor rax, rax
+	mov [r15 + BootInfo.fbAddr], rax
+	.end4:
+
 	call kmain
 	;kmain should never return
 	.halt:

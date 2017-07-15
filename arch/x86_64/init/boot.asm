@@ -21,7 +21,7 @@ VMEM_OFFSET				equ 0xFFFFFFFF80000000
 INITSTACKSIZE			equ 0x400
 
 MULTIBOOT_MAGIC			equ 0x1BADB002
-MULTIBOOT_FLAGS			equ (1 << 16) + (1 << 1)
+MULTIBOOT_FLAGS			equ (1 << 16) | (1 << 1) | (1 << 2)
 MULTIBOOT_CHECKSUM		equ -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
 MULTIBOOT_HEADER_PADDR	equ multiBootHeader
 
@@ -41,6 +41,11 @@ multiBootHeader:
 	.loadEndAddr:	dd (DATA_END_ADDR - VMEM_OFFSET)
 	.bssEnd:		dd (BSS_END_ADDR - VMEM_OFFSET)
 	.entryAddr:		dd __init
+	;vbe info
+	.modeType:		dd 0
+	.width:			dd 0
+	.height:		dd 0
+	.depth:			dd 0
 
 SECTION boottext
 
