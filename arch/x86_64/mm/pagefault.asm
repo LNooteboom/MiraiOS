@@ -1,6 +1,6 @@
 global excPF:function
 
-extern sprint
+extern puts
 extern hexprintln
 extern hexprintln64
 extern cprint
@@ -71,7 +71,7 @@ excPF:
                         jmp .L7
                 .L5: ;else
                     mov rdi, invAllocMsg
-                    call sprint
+                    call puts
                     jmp $
                 .L7:
                 mov rdx, 0xFFF0000000000FFF
@@ -84,7 +84,7 @@ excPF:
             jns .L1
             ;page already alloced
 			mov rdi, weirdPF
-			call sprint
+			call puts
 			jmp $
         .L8:
         xor rdi, rdi
@@ -112,44 +112,44 @@ excPF:
 
     ;print error message
     mov rdi, PFmsg
-    call sprint
+    call puts
 
     ;print return addr
     mov rdi, addressText ;"At: "
-    call sprint
+    call puts
     mov rdi, [rsp+8]
     call hexprintln64
 
     ;print "attempted to access"
     mov rdi, PFAddr
-    call sprint
+    call puts
     mov rdi, cr2
     call hexprintln64
 
     ;print error code
     mov rdi, errorCode
-    call sprint
+    call puts
     mov edi, [rsp]
-    call hexprintln
+    call hexprintln64
     test [rsp], byte 0x01
     jz .L9
         mov rdi, PFPresent
-        call sprint
+        call puts
     .L9:
     test [rsp], byte 0x02
     jz .L10
         mov rdi, PFRW
-        call sprint
+        call puts
     .L10:
     test [rsp], byte 0x04
     jz .L11
         mov rdi, PFUS
-        call sprint
+        call puts
     .L11:
     test [rsp], byte 0x08
     jz .L12
         mov rdi, PFRSV
-        call sprint
+        call puts
 		mov rdi, cr2
 		mov rsi, 0
 		call mmGetEntry
@@ -159,7 +159,7 @@ excPF:
     test [rsp], byte 0x10
     jz .L13
         mov rdi, PFID
-        call sprint
+        call puts
     .L13:
 
     jmp $

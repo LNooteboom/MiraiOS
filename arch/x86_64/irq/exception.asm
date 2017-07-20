@@ -2,7 +2,7 @@ NROF_DEFINED_EXCS: equ 21
 
 %define endl 10, 0
 
-extern sprint
+extern puts
 extern hexprintln64
 extern hexprintln
 extern mapIdtEntry
@@ -44,10 +44,10 @@ exceptionBase:
     push rbp
     mov rbp, rsp
 
-    call sprint
+    call puts
 
     mov rdi, addressText
-    call sprint
+    call puts
     mov rdi, [rbp+8]
     call hexprintln64
 
@@ -60,15 +60,15 @@ exceptionBaseWithErrorCode:
     push rbp
     mov rbp, rsp
 
-    call sprint
+    call puts
 
     mov rdi, addressText
-    call sprint
+    call puts
     mov rdi, [rbp+16]
     call hexprintln64
 
     mov rdi, errorCode
-    call sprint
+    call puts
     mov rdi, [rbp+8]
     call hexprintln64
 

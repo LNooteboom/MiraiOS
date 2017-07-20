@@ -86,7 +86,7 @@ int routeIrqLine(interrupt_t vec, unsigned int irq, unsigned int flags) {
 
 	struct ioApicInfo *ioApic = findApic(irq);
 	if (!ioApic) {
-		kprintf("Could not find APIC for irq: %d", irq);
+		printk("Could not find APIC for irq: %d", irq);
 		return 1;
 	}
 

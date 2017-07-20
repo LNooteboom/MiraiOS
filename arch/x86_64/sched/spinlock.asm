@@ -1,7 +1,7 @@
 global acquireSpinlock:function
 global releaseSpinlock:function
 
-extern sprint
+extern puts
 extern hexprintln64
 
 SECTION .text
@@ -44,7 +44,7 @@ acquireSpinlock:
 .error:
 	xchg bx, bx
 	mov rdi, spinlockStuckMsg
-	call sprint
+	call puts
 	mov rdi, [rsp]
 	call hexprintln64
 	cli

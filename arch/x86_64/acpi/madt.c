@@ -87,7 +87,7 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 
 		out8(0xa1, 0xff);
 		out8(0x21, 0xff);
-		ACPI_LOG("Legacy PICs disabled.\n");
+		//ACPI_LOG("Legacy PICs disabled.\n");
 	}
 
 	madtContents = (char*)((uintptr_t)madtHdr + sizeof(struct madtHeader));
@@ -98,15 +98,15 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		struct recordHeader *recHeader = (struct recordHeader*)(&(madtContents[i]));
 		if (recHeader->entryType == 0) {
 			struct LAPIC *rec = (struct LAPIC*)recHeader;
-			ACPI_LOG("Found local APIC ID: ");
-			decprintln(rec->apicID);
+			//ACPI_LOG("Found local APIC ID: ");
+			//decprintln(rec->apicID);
 			if (nrofCPUs < APIC_BUFFER_SIZE) {
 				apicIDs[nrofCPUs++] = rec->apicID;
 			}
 		} else if (recHeader->entryType == 1) {
 			struct IOAPIC *rec = (struct IOAPIC*)recHeader;
-			ACPI_LOG("Found IO APIC ID: ");
-			decprintln(rec->id);
+			//ACPI_LOG("Found IO APIC ID: ");
+			//decprintln(rec->id);
 			struct ioApicInfo *oldInfos = ioApicInfos;
 			ioApicInfos = krealloc(ioApicInfos, (nrofIOApics + 1) * sizeof(struct ioApicInfo));
 			if (ioApicInfos) {

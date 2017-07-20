@@ -126,7 +126,7 @@ void *kmalloc(size_t size) {
 			lastAreaSize = *lastEntry;
 		}
 		if (lastAreaSize >= totalSize) {
-			sprint("heapAlloc error!");
+			puts("heapAlloc error!");
 			return NULL;
 		}
 		size_t remainingSize = totalSize - lastAreaSize;

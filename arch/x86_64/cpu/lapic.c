@@ -97,7 +97,7 @@ void lapicInit(void) {
 	uint32_t apicID = read32(lapicBase + LAPIC_ID) >> 24;
 	int index = getCPUInfo(apicID);
 	if (index < 0) {
-		sprint("APIC ID is not present\n");
+		puts("APIC ID is not present\n");
 		return;
 	}
 	write32(lapicBase + 0xE0, 0x0FFFFFFFF);
@@ -161,7 +161,7 @@ void lapicDoSMPBoot(void) {
 		if (cpuInfos[i].apicID == currentAPIC) {
 			continue; //ignore this cpu
 		}
-		kprintf("Starting CPU %d...\n", i);
+		printk("Starting CPU %d...\n", i);
 
 		cpuStartedUp = false;
 		

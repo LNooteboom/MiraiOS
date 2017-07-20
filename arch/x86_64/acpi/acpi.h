@@ -5,13 +5,13 @@
 #include <stddef.h>
 
 #define ACPI_LOG(text) do {				\
-		sprint("[\e[32macpi\e[0m] ");	\
-		sprint(text);					\
+		puts("[\e[32macpi\e[0m] ");	\
+		puts(text);					\
 	} while(0);
 
 #define ACPI_WARN(text) do {			\
-		sprint("[\e[34macpi\e[0m] ");	\
-		sprint(text);					\
+		puts("[\e[34macpi\e[0m] ");	\
+		puts(text);					\
 	} while(0);
 
 /*

@@ -2,6 +2,8 @@
 #define INCLUDE_ARCH_BOOTINFO_H
 
 #include <stdint.h>
+#include <stdbool.h>
+#include <mm/physpaging.h>
 
 struct mmapEntry {
 	uint64_t addr;

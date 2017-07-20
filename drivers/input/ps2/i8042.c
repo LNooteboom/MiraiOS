@@ -45,7 +45,7 @@ static bool i8042CmdSent = true;
 static struct ps2Controller i8042Port1;
 
 static void i8042Error(const char *msg) {
-	kprintf("[i8042] %s\n", msg);
+	printk("[i8042] %s\n", msg);
 }
 
 static inline uint8_t i8042Status(void) {

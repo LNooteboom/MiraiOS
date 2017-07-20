@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <drivers/vga.h>
 #include <print.h>
 #include <mm/init.h>
 #include <arch.h>
@@ -32,14 +31,12 @@ thread_t mainThread;
 
 void kmain(void) {
 	initInterrupts();
-	vgaInit();
-	sprint("\e[0m\e[2JKernel initialising...\n");
-	//paramInit();
 	mmInit();
-
-	kprintf("Detected %dMiB of free memory.\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
+	fbInit();
+	printk("Detected %dMiB of free memory.\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
 	
 	earlyArchInit();
+
 
 	//initialize scheduler
 	kthreadCreateFromMain(&mainThread);
@@ -52,7 +49,7 @@ void kmain(void) {
 			(*i)();
 		}
 	}
-	sprint("Init complete.\n");
+	puts("Init complete.\n");
 	kthreadExit(NULL);
 }
 

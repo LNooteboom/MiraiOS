@@ -77,7 +77,7 @@ static void kbInterrupt(struct ps2Device *dev) {
 	struct kbDevice *kbDev = (struct kbDevice*)dev;
 	uint16_t data = kbDev->ps2Dev.controller->read();
 	uint16_t keycode;
-	
+
 	switch (data) {
 		case SCANCODE_MODIFIER:
 			kbDev->keyModifier = true;
@@ -93,8 +93,8 @@ static void kbInterrupt(struct ps2Device *dev) {
 				data += (0x100 - 0x80);
 			}
 			keycode = (data < (sizeof(kbScanTable) / sizeof(kbScanTable[0]) )) ? kbScanTable[data] : KEY_RESERVED;
-			cprint('i');
-			decprint(keycode);
+			if (!kbDev->keyReleased)
+				printk("key: %d\n", keycode);
 
 			kbDev->keyReleased = false;
 			break;

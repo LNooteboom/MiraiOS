@@ -20,7 +20,7 @@ void __attribute__((noreturn)) panic(const char *fmt, ...) {
 	va_start(args, fmt);
 	smpCallFunction(die, NULL, false);
 
-	vkprintf(fmt, args);
+	vprintk(fmt, args);
 
 	va_end(args);
 	
