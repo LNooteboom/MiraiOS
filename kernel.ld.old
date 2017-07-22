@@ -9,23 +9,30 @@ OUTPUT(miraiBoot)
 SECTIONS {
 	VMEM_OFFSET = 0xFFFFFFFF80000000;
 	PAGE_SIZE = 0x1000;
-	.setup : ALIGN(0x1000) {
-		*.o (.setup);
+	. = 0x1000000;
+	KERNEL_START_ADDR = . + VMEM_OFFSET;
+	multiboot : {
+		*.o (multiboot);
 	}
-	. += 0x1000000 + VMEM_OFFSET;
-	KERNEL_START_ADDR = .;
-	.text : ALIGN(0x1000) {
+	boottext : {
+		*.o (boottext);
+	}
+	bootdata : {
+		*.o (bootdata);
+	}
+	. += VMEM_OFFSET;
+	.text : {
 		*.o (.text);
 	}
 	TEXT_END_ADDR = .;
-	.data : ALIGN(0x1000) {
+	.data : {
 		*.o (.data);
 	}
-	.rodata : ALIGN(0x1000) {
+	.rodata : {
 		*.o (.rodata*);
 	}
 
-	.moduleInits : ALIGN(0x1000) {
+	.moduleInits : {
 		MODULE_INITS_0_START = .;
 		*.o (.moduleInits0)
 		MODULE_INITS_1_START = .;
@@ -38,7 +45,7 @@ SECTIONS {
 	}
 
 	DATA_END_ADDR = .;
-	.bss : ALIGN(0x1000) {
+	.bss : {
 		*.o (.bss);
 		. = ALIGN(4096);
 	}

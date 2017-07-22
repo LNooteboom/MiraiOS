@@ -54,7 +54,7 @@ dir := $(KERNEL_ROOT)/drivers
 $(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
 include $(dir)/Rules.mk
 
-$(KERNEL): $(obj-y)
+$(KERNEL): $(obj-y) $(tools) kernel.ld
 	@echo "(LD) $@"
 	@$(LD) -z max-page-size=0x1000 -T kernel.ld $(obj-y)
 
