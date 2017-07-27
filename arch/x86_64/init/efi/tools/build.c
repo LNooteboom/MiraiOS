@@ -292,6 +292,7 @@ int main(int argc, char *argv[]) {
 	for (int i = 0; i < kernelElfHeader.phnum; i++) {
 		parsePHEnt(&kernelPHs[i]);
 	}
+	free(kernelPHs);
 	//fill in pe header
 	peHdr.entryPoint = kernelElfHeader.entryAddr + 0x1000;
 	peHdr.sizeOfImage = imageEnd;
@@ -312,7 +313,16 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Failed to write padding\n");
 		return 1;
 	}
-	//now copy kernel to the end of this file
+
+	//now append kernel to dest
+	rewind(kernel);
+	int c;
+	while ((c = fgetc(kernel)) != EOF) {
+		if (putc(c, dest) == EOF) {
+			fprintf(stderr, "Failed to copy kernel to dest");
+			return 1;
+		}
+	}
 
 	if (fclose(dest)) {
 		fprintf(stderr, "Failed to close dest\n");

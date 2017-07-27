@@ -11,7 +11,8 @@ vmmount/
 *.bin
 
 miraiBoot
-BOOT
+miraiBoot.efi
+efibuild
 
 GPATH
 GRTAGS

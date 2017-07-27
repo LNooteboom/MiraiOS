@@ -9,13 +9,14 @@ $(shell mkdir -p $(DEPDIR) > /dev/null)
 
 FLAG_WARNINGS := -Wall -Wextra
 FLAG_FREESTANDING := -ffreestanding -nostdlib -nostartfiles -fno-pie
-FLAG_KERNEL := -masm=intel -mno-red-zone -mcmodel=kernel
+FLAG_KERNEL := -masm=intel -mno-red-zone
+FLAG_MEMMODEL := -mcmodel=kernel
 FLAG_INCLUDES := -I$(KERNEL_ROOT)/include/ -I$(KERNEL_ROOT)/arch/${ARCH}/include
 FLAG_DEBUG := -g
 FLAG_OPTIMIZE := -O2
 FLAG_DEP = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 
-CFLAG = $(FLAG_WARNINGS) $(FLAG_FREESTANDING) $(FLAG_KERNEL) $(FLAG_INCLUDES) $(FLAG_DEBUG) $(FLAG_OPTIMIZE) $(FLAG_DEP) -c
+CFLAG = $(FLAG_WARNINGS) $(FLAG_FREESTANDING) $(FLAG_KERNEL) $(FLAG_MEMMODEL) $(FLAG_INCLUDES) $(FLAG_DEBUG) $(FLAG_OPTIMIZE) $(FLAG_DEP) -c
 CC := $(TARGET)-gcc
 
 NASM := nasm
@@ -28,10 +29,23 @@ include config
 
 .PHONY: all clean
 
+ifeq ($(CONFIG_EFI_STUB),y)
+EFIBUILD := efibuild
+
+all: $(KERNEL).efi
+
+$(KERNEL).efi: $(KERNEL) $(EFIBUILD)
+	@echo "(EFIBUILD) $@"
+	@./$(EFIBUILD) $(KERNEL) $@
+
+clean:
+	rm -rf $(obj-y) $(DEPDIR) $(KERNEL) $(KERNEL).efi $(EFIBUILD)
+else
 all: $(KERNEL)
 
 clean:
-	rm -rf $(obj-y) $(DEPDIR)
+	rm -rf $(obj-y) $(DEPDIR) $(KERNEL)
+endif
 
 #subdirs
 dir := $(KERNEL_ROOT)/kernel

@@ -9,11 +9,13 @@ OUTPUT(miraiBoot)
 SECTIONS {
 	VMEM_OFFSET = 0xFFFFFFFF80000000;
 	PAGE_SIZE = 0x1000;
+
+	KERNEL_START_ADDR = . + 0x1000000 + VMEM_OFFSET;
 	.setup : ALIGN(0x1000) {
 		*.o (.setup);
+		*.o (.setupdata);
 	}
 	. += 0x1000000 + VMEM_OFFSET;
-	KERNEL_START_ADDR = .;
 	.text : ALIGN(0x1000) {
 		*.o (.text);
 	}

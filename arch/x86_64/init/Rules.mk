@@ -6,9 +6,9 @@ ifeq ($(CONFIG_EFI_STUB),y)
 
 $(shell mkdir -p $(DEPDIR)/$(d)/efi > /dev/null)
 
-obj-y += $(d)/efi/main.o
+obj-y += $(d)/efi/init.o $(d)/efi/main.o
 
-efibuild: $(d)/efi/tools/build.c
+$(EFIBUILD): $(d)/efi/tools/build.c
 	@echo "(HOSTCC) $@"
 	@gcc -std=gnu99 -O2 -Wall -o $@ $<
 

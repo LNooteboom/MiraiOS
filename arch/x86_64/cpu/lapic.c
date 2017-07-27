@@ -36,7 +36,6 @@ extern char smpboot16end;
 extern void smpbootStart(void);
 extern char VMEM_OFFSET;
 extern bool nxEnabled;
-extern char PML4T;
 
 uintptr_t physLapicBase;
 volatile char *lapicBase;
@@ -147,12 +146,16 @@ void lapicDoSMPBoot(void) {
 		return;
 	}
 
+	//Get cr3
+	uint64_t cr3;
+	asm ("mov rax, cr3" : "=a"(cr3));
+
 	//Prepare smp boot image
 	volatile struct smpbootInfo *info = (struct smpbootInfo *)0xFFFFFFFF80070000;
 	size_t s = (size_t)(&smpboot16end) - (size_t)(&smpboot16start);
 	memcpy(info, &smpboot16start, s);
 	info->contAddr = (uint32_t)((uintptr_t)&smpbootStart - (uintptr_t)&VMEM_OFFSET);
-	info->pml4tAddr = (uint32_t)((uintptr_t)&PML4T - (uintptr_t)&VMEM_OFFSET);
+	info->pml4tAddr = cr3;
 	info->nxEnabled = nxEnabled;
 
 	//Now boot the APs

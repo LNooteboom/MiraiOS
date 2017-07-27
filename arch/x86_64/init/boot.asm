@@ -298,7 +298,7 @@ noLongModeMsg:
 
 SECTION .data
 
-nxEnabled: db 0
+nxEnabled: dd 0
 
 SECTION .bss align=4096 nobits
 PML4T:
