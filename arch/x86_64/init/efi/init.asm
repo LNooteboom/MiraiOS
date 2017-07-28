@@ -59,7 +59,7 @@ __init:
 	mov edx, 2 ;memory type = loaderData
 	;rcx still loaded with nrof pages
 	mov r8, rsp ;where to put result
-	call efiCall4
+	call earlyEfiCall4
 	test rax, rax
 	jnz bootError
 	pop rbp ;load result in rbp
@@ -77,14 +77,14 @@ __init:
 	lea rsi, [rbp + 0x1000] ;ptr to mem
 	shl rdx, 12
 	xor ecx, ecx
-	call efiCall3
+	call earlyEfiCall3
 
 	;copy current pml4t to new pml4t
 	mov rdi, [r15 + efiBootTable.copyMem]
 	mov rsi, rbp ;destination = pml4t
 	mov rdx, cr3 ;source = current pml4t
 	mov ecx, 0x1000 ;size
-	call efiCall3
+	call earlyEfiCall3
 
 	call preparePageTables
 	
@@ -100,6 +100,9 @@ __init:
 
 	mov cr3, rbp
 
+	mov rax, nxEnabled
+	mov [rax], r13d
+
 	mov rsi, r14
 	pop rdi ;Get image handle
 	;switch stack to initStack
@@ -112,6 +115,9 @@ preparePageTables: ;base in rbp, nrof page tables in rbx, mmap info in [rsp]
 	;get physical pdpt addr
 	lea rax, [rbp + 0x1003]
 	mov [rbp + (511 * 8)], rax ;add pml4e
+	;also add recursive slot
+	lea rcx, [rbp + 3]
+	mov [rbp + (510 * 8)], rcx
 
 	;get physical pdt addr
 	lea rdx, [rbp + 0x2003]
@@ -186,7 +192,7 @@ puts:
 	mov rdx, rdi
 	mov rsi, [r14 + efiSysTable.conOut]
 	mov rdi, [rsi + 8]
-	jmp efiCall2
+	jmp earlyEfiCall2
 
 %if 0
 
@@ -233,7 +239,7 @@ putc:
 	ret
 %endif
 
-efiCall2:
+earlyEfiCall2:
 	sub rsp, 40
 	mov rcx, rsi
 	;mov rdx, rdx
@@ -241,7 +247,7 @@ efiCall2:
 	add rsp, 40
 	ret
 
-efiCall3:
+earlyEfiCall3:
 	sub rsp, 40
 	mov r8, rcx
 	mov rcx, rsi
@@ -250,7 +256,7 @@ efiCall3:
 	add rsp, 40
 	ret
 
-efiCall4:
+earlyEfiCall4:
 	sub rsp, 40
 	mov r9, r8
 	mov r8, rcx

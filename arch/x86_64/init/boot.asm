@@ -165,7 +165,7 @@ __init:
 	;now enable longmode
 	mov ecx, 0xC0000080 ;EFER register
 	rdmsr
-	or eax, (1 << 8) ;set LME bit
+	or eax, (1 << 8) | (1 << 0) ;set LME + SCE bit
 	cmp [nxEnabled - VMEM_OFFSET], byte 0
 	je .noNX2
 		or eax, (1 << 11) ;set NX bit

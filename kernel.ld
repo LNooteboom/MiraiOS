@@ -13,7 +13,6 @@ SECTIONS {
 	KERNEL_START_ADDR = . + 0x1000000 + VMEM_OFFSET;
 	.setup : ALIGN(0x1000) {
 		*.o (.setup);
-		*.o (.setupdata);
 	}
 	. += 0x1000000 + VMEM_OFFSET;
 	.text : ALIGN(0x1000) {
