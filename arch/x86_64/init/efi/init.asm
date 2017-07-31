@@ -1,5 +1,4 @@
 BITS 64
-DEFAULT REL
 
 global bootInfo:data
 global __init:function
@@ -8,6 +7,8 @@ global initStackEnd:data
 global excStackStart:data
 
 global nxEnabled:data
+
+global efiFini:function
 
 extern KERNEL_START_ADDR
 extern TEXT_END_ADDR
@@ -22,6 +23,7 @@ extern efiMain
 SECTION .setup align=16 exec
 
 __init:
+	cli
 	push rcx
 	mov r14, rdx ;r14 contains ptr to system table
 	mov r15, [rdx + efiSysTable.bootServices] ;r15 contains ptr to bootservices table
@@ -100,13 +102,21 @@ __init:
 
 	mov cr3, rbp
 
+	;clear bss
+	mov rdi, [r15 + efiBootTable.setMem]
+	mov rsi, DATA_END_ADDR ;ptr to mem
+	mov rdx, BSS_END_ADDR
+	xor ecx, ecx
+	sub rdx, rsi
+	call earlyEfiCall3
+
 	mov rax, nxEnabled
 	mov [rax], r13d
 
 	mov rsi, r14
 	pop rdi ;Get image handle
-	;switch stack to initStack
-	mov rsp, initStackEnd
+
+	;now setup segments and jump to kernel
 	mov rax, efiMain
 	jmp rax
 
@@ -269,9 +279,58 @@ earlyEfiCall4:
 errorMsg:
 	db __utf16__ `Boot error occured\n\r\0`
 
+SECTION .text
+
+efiFini:
+	mov rax, gdtr
+	lgdt [rax]
+
+	mov eax, 0x10
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+
+	mov rcx, rsp
+	mov rdx, .cont
+	push rax ;SS
+	push rcx ;RSP
+	pushfq
+	push 0x08 ;CS
+	push rdx ;RIP
+	iretq
+
+	.cont:
+	;remove unused pml4t entries
+	mov rdx, 0xFFFFFF7FBFDFE000
+	xor eax, eax
+	lea rcx, [rdx + (510 * 8)]
+	.start:
+		mov [rdx], rax
+		add rdx, 8
+		cmp rdx, rcx
+		jne .start
+
+	rep ret
+
 SECTION .data
 
-bootInfo: dq 0
+idtr:
+	dw 0
+	dq 0
+
+gdtr:
+	dw (gdtEnd - gdt - 1)
+	dq gdt
+
+gdt:
+	;entry 0x00: dummy
+	dq 0
+	;entry 0x08: 64 bit kernel text
+	dq (1 << 53) | (1 << 47) | (1 << 43) | (1 << 44)
+	;entry 0x10: data
+	dq (1 << 47) | (1 << 44) | (1 << 41)
+gdtEnd:
 
 nxEnabled: dd 0
 

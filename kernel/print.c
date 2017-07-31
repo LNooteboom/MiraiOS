@@ -2,10 +2,11 @@
 
 #include <stdint.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <sched/spinlock.h>
 #include <console.h>
 
-struct console *currentConsole;
+struct console *currentConsole = NULL;
 
 static void __putc(char c) {
 	currentConsole->putc(currentConsole, c);
@@ -117,6 +118,7 @@ void putc(char c) {
 void puts(const char *text) {
 	if (!currentConsole)
 		return;
+	
 	acquireSpinlock(&currentConsole->lock);
 	while (*text) {
 		__putc(*text);

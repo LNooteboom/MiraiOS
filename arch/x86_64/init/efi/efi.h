@@ -38,6 +38,14 @@ typedef struct {
 } EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL;
 
 typedef struct {
+	uint32_t type;
+	uint64_t physicalStart;
+	uint64_t virtualStart;
+	uint64_t nrofPages;
+	uint64_t attribute;
+} EFI_MEMORY_DESCRIPTOR;
+
+typedef struct {
 	EFI_TABLE_HEADER Hdr;
 	EFI_FUNC RaiseTPL;
 	EFI_FUNC RestoreTPL;
@@ -103,5 +111,53 @@ typedef struct {
 	uint64_t NumberOfTableEntries;
 	void *ConfigurationTable;
 } EFI_SYSTEM_TABLE;
+
+typedef struct {
+	uint32_t data1;
+	uint16_t data2;
+	uint16_t data3;
+	uint8_t data4[8];
+} EFI_GUID;
+
+
+typedef enum {
+	PixelRedGreenBlueReserved8BitPerColor,
+	PixelBlueGreenRedReserved8BitPerColor,
+	PixelBitMask,
+	PixelBltOnly,
+	PixelFormatMax
+} EFI_GRAPHICS_PIXEL_FORMAT;
+
+typedef struct {
+	uint32_t RedMask;
+	uint32_t GreenMask;
+	uint32_t BlueMask;
+	uint32_t ReservedMask;
+} EFI_PIXEL_BITMASK;
+
+typedef struct {
+	uint32_t Version;
+	uint32_t HorizontalResolution;
+	uint32_t VerticalResolution;
+	EFI_GRAPHICS_PIXEL_FORMAT PixelFormat;
+	EFI_PIXEL_BITMASK PixelInformation;
+	uint32_t PixelsPerScanLine;
+} EFI_GRAPHICS_OUTPUT_MODE_INFORMATION;
+
+typedef struct {
+	uint32_t MaxMode;
+	uint32_t Mode;
+	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Info;
+	uint64_t SizeOfInfo;
+	uint64_t FrameBufferBase;
+	uint64_t FrameBufferSize;
+} EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE;
+
+typedef struct {
+	EFI_FUNC QueryMode;
+	EFI_FUNC SetMode;
+	EFI_FUNC Blt;
+	EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE *Mode;
+} EFI_GRAPHICS_OUTPUT_PROTCOL;
 
 #endif

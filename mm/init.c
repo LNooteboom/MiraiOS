@@ -7,6 +7,7 @@
 
 void mmInit(void) {
 	mmInitPaging();
+	while (1);
 	initHeap();
 }
 
