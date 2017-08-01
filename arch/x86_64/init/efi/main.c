@@ -3,13 +3,11 @@
 #include <stdbool.h>
 #include <mm/paging.h>
 #include <arch/bootinfo.h>
-
-#include <arch/map.h>
+#include <mm/memset.h>
 
 extern void efiFini(void);
 extern void kmain(void);
 
-void *testString = "H\0e\0l\0l\0o\0 \0f\0r\0o\0m\0 \0C\0!\0\0";
 char *errorString = "E\0F\0I\0 \0e\0r\0r\0o\0r\0 \0o\0c\0c\0u\0r\0e\0d\0!\0\0";
 
 struct bootInfo bootInfo;
@@ -22,6 +20,13 @@ EFI_GUID efiGopGuid = {
 	.data2 = 0x23DC,
 	.data3 = 0x4A38,
 	.data4 = {0x96, 0xFB, 0x7A, 0xDE, 0xD0, 0x80, 0x51, 0x6A}
+};
+
+EFI_GUID efiAcpiTableGuid = {
+	.data1 = 0x8868E871,
+	.data2 = 0xE4F1,
+	.data3 = 0x11D3,
+	.data4 = {0xBC, 0x22, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81}
 };
 
 static int efiHandleMmap(uint64_t *mmapKey) {
@@ -102,12 +107,6 @@ static inline void efiGetShiftAndSize(uint32_t mask, uint8_t *shift, uint8_t *si
 
 static int efiHandleGop(void) {
 	EFI_GRAPHICS_OUTPUT_PROTCOL *prot;
-	//uint64_t nrofHandles;
-	//EFI_HANDLE *buffer;
-	//efiCall5(efiSystemTable->BootServices->LocateHandleBuffer, 2, (uint64_t)&efiGopGuid, 0, (uint64_t)&nrofHandles, (uint64_t)&buffer);
-	//efiCall6(efiSystemTable->BootServices->OpenProtocol, (uint64_t)buffer[0], (uint64_t)&efiGopGuid, (uint64_t)&prot, imageHandle, 0, 2);
-
-	
 	if (efiCall3(efiSystemTable->BootServices->LocateProtocol, (uint64_t)&efiGopGuid, 0, (uint64_t)&prot))
 		goto error;
 
@@ -149,6 +148,23 @@ static int efiHandleGop(void) {
 	return -1;
 }
 
+static int efiHandleRsdp(void) {
+	int acpiTableIndex = -1;
+	for (int i = 0; i < (int)efiSystemTable->NumberOfTableEntries; i++) {
+		if (!memcmp(&efiSystemTable->ConfigurationTable[i].VendorGuid, &efiAcpiTableGuid, sizeof(EFI_GUID))) {
+			continue;
+		}
+		acpiTableIndex = i;
+		break;
+	}
+	if (acpiTableIndex < 0) {
+		efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)errorString);
+		return -1;
+	}
+	bootInfo.rsdp = (uint64_t)efiSystemTable->ConfigurationTable[acpiTableIndex].VendorTable;
+	return 0;
+}
+
 void efiMain(EFI_HANDLE _imageHandle, EFI_SYSTEM_TABLE *_efiSystemTable) {
 	imageHandle = _imageHandle;
 	efiSystemTable = _efiSystemTable;
@@ -156,11 +172,12 @@ void efiMain(EFI_HANDLE _imageHandle, EFI_SYSTEM_TABLE *_efiSystemTable) {
 	if (efiHandleGop())
 		goto error;
 
+	if (efiHandleRsdp())
+		goto error;
+
 	uint64_t mmapKey;
 	if (efiHandleMmap(&mmapKey))
 		goto error;
-
-	//efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)testString);
 
 	//exit boot services
 	efiCall2(efiSystemTable->BootServices->ExitBootServices, (uint64_t)imageHandle, mmapKey);

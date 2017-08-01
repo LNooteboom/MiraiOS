@@ -36,6 +36,8 @@ STRUC BootInfo
 .fbResSize: resb 1
 .fbResShift: resb 1
 
+.rsdp: resq 1
+
 .size:
 ENDSTRUC
 

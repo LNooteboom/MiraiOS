@@ -34,9 +34,6 @@ void kmain(void) {
 	mmInit();
 	fbInit();
 	printk("Detected %dMiB of free memory.\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
-	/*while (1) {
-		asm ("hlt" : : "a"(0xEA));
-	}*/
 	
 	earlyArchInit();
 
@@ -53,6 +50,10 @@ void kmain(void) {
 		}
 	}
 	puts("Init complete.\n");
+	while (1) {
+		printk("c");
+		kthreadSleep(1000);
+	}
 	kthreadExit(NULL);
 }
 

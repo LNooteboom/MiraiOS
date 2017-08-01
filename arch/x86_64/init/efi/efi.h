@@ -95,6 +95,18 @@ typedef struct {
 } EFI_BOOT_SERVICES;
 
 typedef struct {
+	uint32_t data1;
+	uint16_t data2;
+	uint16_t data3;
+	uint8_t data4[8];
+} EFI_GUID;
+
+typedef struct {
+	EFI_GUID VendorGuid;
+	void *VendorTable;
+} EFI_CONFIGURATION_TABLE;
+
+typedef struct {
 	EFI_TABLE_HEADER Hdr;
 	void *FirmwareVendor;
 	uint32_t FirmwareRevision;
@@ -110,15 +122,8 @@ typedef struct {
 	EFI_BOOT_SERVICES *BootServices;
 
 	uint64_t NumberOfTableEntries;
-	void *ConfigurationTable;
+	EFI_CONFIGURATION_TABLE *ConfigurationTable;
 } EFI_SYSTEM_TABLE;
-
-typedef struct {
-	uint32_t data1;
-	uint16_t data2;
-	uint16_t data3;
-	uint8_t data4[8];
-} EFI_GUID;
 
 
 typedef enum {

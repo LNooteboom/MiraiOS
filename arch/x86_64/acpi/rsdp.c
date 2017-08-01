@@ -8,6 +8,7 @@
 #include <panic.h>
 #include "header.h"
 #include "acpi.h"
+#include <arch/bootinfo.h>
 
 #define RSDPTR_BOUNDARY 16
 
@@ -57,7 +58,13 @@ static struct RSDP *findRsdp(void) {
 }
 
 void acpiGetRsdt(struct acpiHeader **rsdt, bool *isXsdt) {
-	struct RSDP *rsdp = findRsdp();
+	struct RSDP *rsdp;
+	if (bootInfo.rsdp) {
+		rsdp = ioremap(bootInfo.rsdp, sizeof(struct RSDP));
+		printk("Using EFI configuration table for RSDP\n");
+	} else {
+		rsdp = findRsdp();
+	}
 	*isXsdt = (rsdp->revision >= 2);
 	//*isXsdt = false;
 
@@ -70,5 +77,8 @@ void acpiGetRsdt(struct acpiHeader **rsdt, bool *isXsdt) {
 		*rsdt = ioremap(rsdp->xsdtAddr, tableSize);
 	} else {
 		*rsdt = ioremap(rsdp->rsdtAddr, tableSize);
+	}
+	if (bootInfo.rsdp) {
+		iounmap(bootInfo.rsdp, sizeof(struct RSDP));
 	}
 }

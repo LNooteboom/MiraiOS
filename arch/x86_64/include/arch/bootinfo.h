@@ -37,6 +37,8 @@ struct bootInfo {
 	uint8_t fbBShift;
 	uint8_t fbResSize;
 	uint8_t fbResShift;
+
+	uint64_t rsdp;
 };
 
 extern struct bootInfo bootInfo;

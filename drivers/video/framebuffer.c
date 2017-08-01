@@ -36,6 +36,10 @@ static int fbPutc(struct console *con, char c) {
 		}
 
 		fb->cursorX += fb->bpp * 8;
+		if (fb->cursorX >= fb->xResolution * fb->bpp) {
+			fb->cursorX = 0;
+			fb->cursorY += FONT_HEIGHT;
+		}
 	} else if (c == '\n') {
 		fb->cursorX = 0;
 		fb->cursorY += FONT_HEIGHT;

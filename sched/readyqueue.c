@@ -54,7 +54,7 @@ thread_t readyQueuePop(void) {
 	thread_t ret = getThreadFromCPU(thisCPU);
 	releaseSpinlock(&thisCPU->readyListLock);
 	if (ret || nrofActiveCPUs < 2) {
-		releaseSpinlock(&thisCPU->readyListLock);
+		//releaseSpinlock(&thisCPU->readyListLock);
 		return ret;
 	}
 
@@ -75,12 +75,14 @@ thread_t readyQueuePop(void) {
 	if (busiestCPU) {
 		acquireSpinlock(&busiestCPU->readyListLock);
 		ret = getThreadFromCPU(busiestCPU);
-		acquireSpinlock(&ret->lock);
-		busiestCPU->threadLoad -= NROF_QUEUE_PRIORITIES - ret->priority;
-		acquireSpinlock(&thisCPU->readyListLock);
-		thisCPU->threadLoad += NROF_QUEUE_PRIORITIES - ret->priority;
-		releaseSpinlock(&thisCPU->readyListLock);
-		releaseSpinlock(&ret->lock);
+		if (ret) {
+			acquireSpinlock(&ret->lock);
+			busiestCPU->threadLoad -= NROF_QUEUE_PRIORITIES - ret->priority;
+			acquireSpinlock(&thisCPU->readyListLock);
+			thisCPU->threadLoad += NROF_QUEUE_PRIORITIES - ret->priority;
+			releaseSpinlock(&thisCPU->readyListLock);
+			releaseSpinlock(&ret->lock);
+		}
 		releaseSpinlock(&busiestCPU->readyListLock);
 		return ret;
 	}
