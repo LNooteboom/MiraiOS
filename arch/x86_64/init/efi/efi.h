@@ -166,4 +166,51 @@ typedef struct {
 	EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE *Mode;
 } EFI_GRAPHICS_OUTPUT_PROTCOL;
 
+
+typedef struct {
+	uint32_t Revision;
+	EFI_HANDLE ParentHandle;
+	EFI_SYSTEM_TABLE *SystemTable;
+	EFI_HANDLE DeviceHandle;
+	void *FilePath;
+	void *Reserved;
+	uint32_t LoadOptionsSize;
+	void *LoadOptions;
+	void *ImageBase;
+	uint64_t ImageSize;
+	uint32_t ImageCodeType;
+	uint32_t ImageDataType;
+	EFI_FUNC Unload;
+} EFI_LOADED_IMAGE_PROTOCOL;
+
+typedef struct {
+	uint64_t Revision;
+	EFI_FUNC OpenVolume;
+} EFI_SIMPLE_FILE_SYSTEM_PROTOCOL;
+
+typedef struct {
+	uint64_t Revision;
+	EFI_FUNC Open;
+	EFI_FUNC Close;
+	EFI_FUNC Delete;
+	EFI_FUNC Read;
+	EFI_FUNC Write;
+	EFI_FUNC GetPostion;
+	EFI_FUNC SetPosition;
+	EFI_FUNC GetInfo;
+	EFI_FUNC SetInfo;
+	EFI_FUNC Flush;
+} EFI_FILE_PROTOCOL;
+
+typedef struct {
+	uint64_t Size;
+	uint64_t FileSize;
+	uint64_t PhysicalSize;
+	char CreateTime[16];
+	char LastAccessTime[16];
+	char ModificationTime[16];
+	uint64_t attribute;
+	//filename following this struct
+} EFI_FILE_INFO;
+
 #endif

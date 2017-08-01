@@ -6,7 +6,7 @@ ifeq ($(CONFIG_EFI_STUB),y)
 
 $(shell mkdir -p $(DEPDIR)/$(d)/efi > /dev/null)
 
-obj-y += $(d)/efi/init.o $(d)/efi/main.o $(d)/efi/efiCall.o
+obj-y += $(d)/efi/init.o $(d)/efi/main.o $(d)/efi/efiCall.o $(d)/efi/initrd.o
 
 $(EFIBUILD): $(d)/efi/tools/build.c
 	@echo "(HOSTCC) $@"

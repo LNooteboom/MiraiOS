@@ -9,7 +9,7 @@ $(shell mkdir -p $(DEPDIR) > /dev/null)
 
 FLAG_WARNINGS := -Wall -Wextra
 FLAG_FREESTANDING := -ffreestanding -nostdlib -nostartfiles -fno-pie
-FLAG_KERNEL := -masm=intel -mno-red-zone
+FLAG_KERNEL := -masm=intel -mno-red-zone -fshort-wchar
 FLAG_MEMMODEL := -mcmodel=kernel
 FLAG_INCLUDES := -I$(KERNEL_ROOT)/include/ -I$(KERNEL_ROOT)/arch/${ARCH}/include
 FLAG_DEBUG := -g

@@ -11,6 +11,8 @@
 #include <irq.h>
 #include <drivers/video/framebuffer.h>
 
+#include <arch/bootinfo.h>
+
 //linker symbols
 extern moduleCall_t MODULE_INITS_0_START;
 extern moduleCall_t MODULE_INITS_1_START;
@@ -35,6 +37,7 @@ void kmain(void) {
 	mmInit();
 	fbInit();
 	printk("Detected %dMiB of free memory.\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
+	printk("%d: %s\n", bootInfo.initrdLen, bootInfo.initrd);
 	
 	earlyArchInit();
 

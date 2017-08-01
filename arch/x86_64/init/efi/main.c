@@ -8,7 +8,7 @@
 extern void efiFini(void);
 extern void kmain(void);
 
-char *errorString = "E\0F\0I\0 \0e\0r\0r\0o\0r\0 \0o\0c\0c\0u\0r\0e\0d\0!\0\0";
+uint16_t *errorString = L"EFI error occured!";
 
 struct bootInfo bootInfo;
 
@@ -168,6 +168,9 @@ static int efiHandleRsdp(void) {
 void efiMain(EFI_HANDLE _imageHandle, EFI_SYSTEM_TABLE *_efiSystemTable) {
 	imageHandle = _imageHandle;
 	efiSystemTable = _efiSystemTable;
+
+	if (efiHandleInitrd())
+		goto error;
 
 	if (efiHandleGop())
 		goto error;
