@@ -5,6 +5,8 @@
 #include <print.h>
 #include <mm/heap.h>
 
+#include <io.h>
+
 #define SCANCODE_MODIFIER	0xE0
 #define SCANCODE_RELEASED	0xF0
 
@@ -93,8 +95,17 @@ static void kbInterrupt(struct ps2Device *dev) {
 				data += (0x100 - 0x80);
 			}
 			keycode = (data < (sizeof(kbScanTable) / sizeof(kbScanTable[0]) )) ? kbScanTable[data] : KEY_RESERVED;
-			if (!kbDev->keyReleased)
+			if (!kbDev->keyReleased) {
 				printk("key: %d\n", keycode);
+				if (keycode == KEY_GRAVE) {
+					//reset
+					uint8_t good = 0x02;
+					while (good & 0x02)
+						good = in8(0x64);
+					out8(0x64, 0xFE);
+					asm ("hlt");
+				}
+			}
 
 			kbDev->keyReleased = false;
 			break;
