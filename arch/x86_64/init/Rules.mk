@@ -12,9 +12,13 @@ $(EFIBUILD): $(d)/efi/tools/build.c
 	@echo "(HOSTCC) $@"
 	@gcc -std=gnu99 -O2 -Wall -o $@ $<
 
+LDSCRIPT := $(d)/efi/efikernel.ld
+
 else
 
 obj-y += $(d)/boot.o $(d)/init.o
+
+LDSCRIPT := $(d)/multiboot.ld
 
 endif
 

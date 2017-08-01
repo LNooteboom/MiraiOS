@@ -10,6 +10,10 @@ extern kmain
 extern __stack_chk_guard
 extern VMEM_OFFSET
 
+extern BSS_END_ADDR
+extern VMEM_OFFSET
+extern KERNEL_START_ADDR
+
 STRUC BootInfo
 .mmap: resq 1
 .mmapLen: resq 1
@@ -35,6 +39,8 @@ STRUC BootInfo
 .fbBShift: resb 1
 .fbResSize: resb 1
 .fbResShift: resb 1
+
+.pad: resd 1
 
 .rsdp: resq 1
 
@@ -120,6 +126,17 @@ init64: ;We are now in 64-bit
 	mov [bootInfo + BootInfo.mmapLen], rcx ;store len
 	mov [bootInfo + BootInfo.mmap], rax ;store addr
 
+	mov rbp, BSS_END_ADDR
+	mov r13, KERNEL_START_ADDR
+	sub rbp, VMEM_OFFSET
+	sub r13, VMEM_OFFSET
+	test rbp, 0xFFF
+	jz .aligned
+		and rbp, ~0xFFF
+		add rbp, 0x1000
+	.aligned:
+
+
 	test ecx, ecx
 	jz .halt
 	xor r8d, r8d
@@ -127,6 +144,33 @@ init64: ;We are now in 64-bit
 		mov r10, [rdx + 12] ;size
 		mov r9, [rdx + 4] ;addr
 		mov r11d, [rdx + 20] ;type
+		
+		mov r12, r9
+		add r12, r10
+		;r12 = end
+		cmp r9, rbp
+		jae .ok
+			cmp r12, r13
+			jbe .ok
+			mov rbx, r13
+			sub rbx, r9
+			jns .z
+				xor ebx, ebx
+			.z:
+			shr rbx, 12
+			mov [rax + Mmap.addr], r9
+			mov [rax + Mmap.nrofPages], rbx
+			mov [rax + Mmap.attr], r11
+			add rax, Mmap.size 
+			inc qword [bootInfo + BootInfo.mmapLen]
+			sub r12, rbp
+			jns .z2
+				xor r12d, r12d
+			.z2:
+			mov r9, rbp
+			mov r10, r12
+
+		.ok:
 
 		shr r10, 12 ;convert size to nrofpages
 		test r9, r9

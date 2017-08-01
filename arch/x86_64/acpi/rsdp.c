@@ -79,6 +79,6 @@ void acpiGetRsdt(struct acpiHeader **rsdt, bool *isXsdt) {
 		*rsdt = ioremap(rsdp->rsdtAddr, tableSize);
 	}
 	if (bootInfo.rsdp) {
-		iounmap(bootInfo.rsdp, sizeof(struct RSDP));
+		iounmap(rsdp, sizeof(struct RSDP));
 	}
 }

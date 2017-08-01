@@ -30,4 +30,6 @@ struct framebuffer {
 	struct fbColorInfo colorInfo;
 };
 
+int fbInit(void);
+
 #endif

@@ -12,7 +12,9 @@
 extern char font8x16[];
 
 void putPix(struct framebuffer *fb, char *addr, uint32_t col) {
-	write32(addr, col);
+	if (fb->isRGB) {
+		write32(addr, col);
+	}
 }
 
 static int fbPutc(struct console *con, char c) {
@@ -67,8 +69,7 @@ int fbInit(void) {
 	bootFB->xResolution = bootInfo.fbXRes;
 	bootFB->yResolution = bootInfo.fbYres;
 	bootFB->isRGB = bootInfo.fbIsRgb;
-	//bootFB->bpp = bootInfo.fbBpp / 8;
-	bootFB->bpp = 4;
+	bootFB->bpp = bootInfo.fbBpp / 8;
 
 	if (!bootInfo.fbIsRgb) {
 		bootFB->colorInfo.rShift = bootInfo.fbRShift;

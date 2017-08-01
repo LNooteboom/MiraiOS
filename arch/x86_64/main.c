@@ -18,7 +18,7 @@ unsigned int nrofCPUs = 0;
 unsigned int nrofActiveCPUs = 1;
 struct cpuInfo *cpuInfos = NULL;
 
-bool perCpuTimer = true;
+bool perCpuTimer = false;
 
 extern void jiffyIrq(void);
 extern void reschedIPI(void);

@@ -9,6 +9,7 @@
 #include <mm/physpaging.h>
 #include <modules.h>
 #include <irq.h>
+#include <drivers/video/framebuffer.h>
 
 //linker symbols
 extern moduleCall_t MODULE_INITS_0_START;
@@ -50,10 +51,6 @@ void kmain(void) {
 		}
 	}
 	puts("Init complete.\n");
-	while (1) {
-		printk("c");
-		kthreadSleep(1000);
-	}
 	kthreadExit(NULL);
 }
 
