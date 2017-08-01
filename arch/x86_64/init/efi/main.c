@@ -4,6 +4,8 @@
 #include <mm/paging.h>
 #include <arch/bootinfo.h>
 
+#include <arch/map.h>
+
 void *testString = "H\0e\0l\0l\0o\0 \0f\0r\0o\0m\0 \0C\0!\0\0";
 char *errorString = "E\0F\0I\0 \0e\0r\0r\0o\0r\0 \0o\0c\0c\0u\0r\0e\0d\0!\0\0";
 
@@ -45,8 +47,10 @@ static int efiHandleMmap(uint64_t *mmapKey) {
 	//translate mmap
 	uint64_t mmapLen = mmapSize / mmapDescSize;
 	struct mmapEntry *newMmap = (struct mmapEntry *)mmapBuf;
+	
+	uint64_t test = 0;
 	for (uint64_t i = 0; i < mmapLen; i++) {
-		EFI_MEMORY_DESCRIPTOR *oldMmap = (EFI_MEMORY_DESCRIPTOR *)&mmapBuf[i * mmapDescSize];
+		EFI_MEMORY_DESCRIPTOR *oldMmap = (EFI_MEMORY_DESCRIPTOR *)(&mmapBuf[i * mmapDescSize]);
 		physPage_t addr = oldMmap->physicalStart;
 		uint64_t nrofPages = oldMmap->nrofPages;
 		uint32_t attr;
@@ -54,6 +58,7 @@ static int efiHandleMmap(uint64_t *mmapKey) {
 			case 3: //efiBootServicesCode
 			case 4: //efiBootServicesData
 			case 7: //efiConventionalMemory
+				test = i;
 				attr = 1; //type = usable
 				break;
 			case 9: //efiACPIReclaimMemory
@@ -67,10 +72,10 @@ static int efiHandleMmap(uint64_t *mmapKey) {
 		newMmap[i].nrofPages = nrofPages;
 		newMmap[i].attr = attr;
 	}
+
 	bootInfo.mmap = newMmap;
 	bootInfo.mmapLen = mmapLen;
 	bootInfo.lowMemReservedEnd = (void*)0x1000; //only reserve BDA page
-
 
 	return 0;
 
@@ -96,6 +101,12 @@ static inline void efiGetShiftAndSize(uint32_t mask, uint8_t *shift, uint8_t *si
 
 static int efiHandleGop(void) {
 	EFI_GRAPHICS_OUTPUT_PROTCOL *prot;
+	//uint64_t nrofHandles;
+	//EFI_HANDLE *buffer;
+	//efiCall5(efiSystemTable->BootServices->LocateHandleBuffer, 2, (uint64_t)&efiGopGuid, 0, (uint64_t)&nrofHandles, (uint64_t)&buffer);
+	//efiCall6(efiSystemTable->BootServices->OpenProtocol, (uint64_t)buffer[0], (uint64_t)&efiGopGuid, (uint64_t)&prot, imageHandle, 0, 2);
+
+	
 	if (efiCall3(efiSystemTable->BootServices->LocateProtocol, (uint64_t)&efiGopGuid, 0, (uint64_t)&prot))
 		goto error;
 
@@ -103,8 +114,8 @@ static int efiHandleGop(void) {
 	bootInfo.fbSize = prot->Mode->FrameBufferSize;
 	bootInfo.fbXRes = prot->Mode->Info->HorizontalResolution;
 	bootInfo.fbYres = prot->Mode->Info->VerticalResolution;
-	bootInfo.fbBpp = 4;
-	bootInfo.fbPitch = prot->Mode->Info->PixelsPerScanLine / 4;
+	bootInfo.fbBpp = 32;
+	bootInfo.fbPitch = prot->Mode->Info->PixelsPerScanLine * 4;
 	switch (prot->Mode->Info->PixelFormat) {
 		case PixelRedGreenBlueReserved8BitPerColor:
 			bootInfo.fbIsRgb = false;
@@ -129,7 +140,7 @@ static int efiHandleGop(void) {
 		default:
 			goto error;
 	}
-	
+
 	return 0;
 
 	error:
@@ -148,7 +159,7 @@ void efiMain(EFI_HANDLE _imageHandle, EFI_SYSTEM_TABLE *_efiSystemTable) {
 	if (efiHandleMmap(&mmapKey))
 		goto error;
 
-	efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)testString);
+	//efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)testString);
 
 	//exit boot services
 	efiCall2(efiSystemTable->BootServices->ExitBootServices, (uint64_t)imageHandle, mmapKey);

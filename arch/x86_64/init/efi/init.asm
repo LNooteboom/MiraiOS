@@ -1,6 +1,5 @@
 BITS 64
 
-global bootInfo:data
 global __init:function
 
 global initStackEnd:data
@@ -17,6 +16,11 @@ extern BSS_END_ADDR
 extern VMEM_OFFSET
 
 extern efiMain
+
+extern efiCall2
+global hexprint2:function
+
+extern currentConsole
 
 %include "arch/x86_64/init/efi/efi.inc"
 
@@ -162,7 +166,7 @@ preparePageTables: ;base in rbp, nrof page tables in rbx, mmap info in [rsp]
 		jb .start2
 
 	
-	mov rdx, BSS_END_ADDR
+	mov rdx, DATA_END_ADDR
 	sub rdx, TEXT_END_ADDR
 	test r13d, r13d
 	jz .noNX
@@ -179,7 +183,49 @@ preparePageTables: ;base in rbp, nrof page tables in rbx, mmap info in [rsp]
 		add rax, 0x1000
 		cmp rcx, rdx
 		jb .start3
-	ret
+
+	;allocate BSS
+	mov r12, rdi
+	push 0 ;output
+	xor esi, esi ;allocate any
+	mov edx, 2 ;type = efiLoaderData
+	mov rcx, BSS_END_ADDR
+	sub rcx, DATA_END_ADDR
+	test rcx, 0xFFF
+	jz .aligned
+		and rcx, ~0xFFF
+		add rcx, 0x1000
+	.aligned:
+	shr rcx, 12
+	add rcx, 4
+	;rcx = nrof pages
+	mov r8, rsp ;memory pointer
+	mov rdi, [r15 + efiBootTable.allocatePages]
+	call earlyEfiCall4
+	test rax, rax
+	jnz bootError
+	pop rax ;physical bss start is in rax
+
+	mov rdx, BSS_END_ADDR
+	sub rdx, DATA_END_ADDR
+	test r13d, r13d
+	jz .noNX2
+		mov r8, (1 << 63) ;nx bit
+		or rax, r8
+	.noNX2:
+	or rax, 3
+	xor ecx, ecx
+
+	.start4:
+		mov [r12], rax
+
+		add rcx, 0x1000
+		add r12, 8
+		add rax, 0x1000
+		cmp rcx, rdx
+		jb .start4
+
+	rep ret
 
 getNrofKernelPages: ;(void)
 	mov rax, BSS_END_ADDR
@@ -281,6 +327,52 @@ errorMsg:
 
 SECTION .text
 
+hexprint2:
+	push rbx
+	push r12
+	push r14
+
+	mov r12, rdi
+	mov r14, rsi
+	mov ebx, 15*4
+	.start:
+		mov rdi, r12
+		mov ecx, ebx
+
+		shr rdi, cl
+		and rdi, 0x0F
+		cmp edi, 10
+		jae .h
+			add edi, __utf16__ '0'
+			jmp .e
+		.h:
+			add edi, __utf16__ 'A' - 10
+		.e:
+
+		call putc2
+		sub ebx, 4
+		jns .start
+
+	pop r12
+	pop rbx
+	mov edi, __utf16__ `\n`
+	call putc2
+	mov edi, __utf16__ `\r`
+	;mov edi, __utf16__ `-`
+	call putc2
+	pop r14
+	ret
+
+putc2:
+	and edi, 0xFFFF
+	push rdi
+	mov rdx, rsp
+	mov rsi, [r14 + efiSysTable.conOut]
+	mov rdi, [rsi + 8]
+	call efiCall2
+	add rsp, 8
+	ret
+
 efiFini:
 	mov rax, gdtr
 	lgdt [rax]
@@ -302,14 +394,14 @@ efiFini:
 
 	.cont:
 	;remove unused pml4t entries
-	mov rdx, 0xFFFFFF7FBFDFE000
-	xor eax, eax
-	lea rcx, [rdx + (510 * 8)]
-	.start:
-		mov [rdx], rax
-		add rdx, 8
-		cmp rdx, rcx
-		jne .start
+	;mov rdx, 0xFFFFFF7FBFDFE000
+	;xor eax, eax
+	;lea rcx, [rdx + (510 * 8)]
+	;.start:
+	;	mov [rdx], rax
+	;	add rdx, 8
+	;	cmp rdx, rcx
+	;	jne .start
 
 	rep ret
 

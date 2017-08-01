@@ -32,10 +32,11 @@ thread_t mainThread;
 void kmain(void) {
 	initInterrupts();
 	mmInit();
-	while (1);
 	fbInit();
 	printk("Detected %dMiB of free memory.\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
-	while (1);
+	while (1) {
+		asm ("hlt" : : "a"(0xEA));
+	}
 	
 	earlyArchInit();
 

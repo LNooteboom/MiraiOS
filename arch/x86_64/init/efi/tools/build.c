@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-#define NROF_SECTIONS 4
+#define NROF_SECTIONS 3
 #define VMEM_OFFSET 0xFFFFFFFF80000000
 
 struct peSect {
@@ -198,7 +198,7 @@ static void parsePHEnt(struct elfPHEntry *entry) {
 		fprintf(stderr, "Error: Too many kernel sections\n");
 		return;
 	}
-	entry->pVAddr += 0x1000;
+	entry->pVAddr += 0x1000; //increment because virtual addresses cant be zero
 	if (entry->flags & 1) {
 		if (entry->pVAddr < VMEM_OFFSET) {
 			strcpy(peHdr.sects[curPESection].name, ".setup");
@@ -218,7 +218,7 @@ static void parsePHEnt(struct elfPHEntry *entry) {
 		return;
 	}
 	if (entry->flags & 2) { //Has write permission
-		entry->pVAddr -= VMEM_OFFSET + 0x01000000;
+		/*entry->pVAddr -= VMEM_OFFSET + 0x01000000;
 		strcpy(peHdr.sects[curPESection].name, ".data");
 		peHdr.sects[curPESection].virtualSize = entry->pFileSz;
 		peHdr.sects[curPESection].virtualAddress = entry->pVAddr;
@@ -232,13 +232,25 @@ static void parsePHEnt(struct elfPHEntry *entry) {
 			return;
 
 		strcpy(peHdr.sects[curPESection].name, ".bss");
-		peHdr.sects[curPESection].virtualSize = entry->pMemSz - entry->pFileSz;
+		peHdr.sects[curPESection].virtualSize = align(entry->pMemSz - entry->pFileSz);
 		peHdr.sects[curPESection].virtualAddress = align(entry->pVAddr + entry->pFileSz);
 		peHdr.sects[curPESection].rawSize = align(entry->pMemSz - entry->pFileSz);
+		//peHdr.sects[curPESection].rawSize = 0;
+		//peHdr.sects[curPESection].rawPointer = align(entry->pOffset + entry->pFileSz) + 0x1000;
 		peHdr.sects[curPESection].characteristics = 0xc0000080;
-		peHdr.sizeOfUninitializedData += align(entry->pMemSz - entry->pFileSz);
+		peHdr.sizeOfUninitializedData += align(entry->pMemSz - entry->pFileSz);*/
 
-		uint64_t end = align(entry->pMemSz) + entry->pVAddr + 0x1000;
+		entry->pVAddr -= VMEM_OFFSET + 0x01000000;
+		strcpy(peHdr.sects[curPESection].name, ".data");
+		peHdr.sects[curPESection].virtualSize = entry->pFileSz;
+		peHdr.sects[curPESection].virtualAddress = entry->pVAddr;
+		peHdr.sects[curPESection].rawSize = align(entry->pFileSz);
+		peHdr.sects[curPESection].rawPointer = align(entry->pOffset) + 0x1000; //add pe header size to offset
+		peHdr.sects[curPESection].characteristics = 0xc0000040;
+		peHdr.sizeOfInitializedData += align(entry->pFileSz);
+		curPESection++;
+
+		uint64_t end = align(entry->pFileSz) + entry->pVAddr + 0x1000;
 		if (end > imageEnd)
 			imageEnd = end;
 		curPESection++;

@@ -4,6 +4,7 @@ global efiCall2:function
 global efiCall3:function
 global efiCall4:function
 global efiCall5:function
+global efiCall6:function
 
 SECTION .text
 
@@ -56,4 +57,17 @@ efiCall5:
 	mov rcx, rsi
 	call rdi
 	add rsp, 40
+	ret
+
+efiCall6:
+	sub rsp, 56
+	mov rax, [rsp + 64] ;get arg on stack
+	mov [rsp + 40], rax
+	mov [rsp + 32], r9
+	mov r9, r8
+	mov r8, rcx
+	;mov rdx, rdx
+	mov rcx, rsi
+	call rdi
+	add rsp, 56
 	ret

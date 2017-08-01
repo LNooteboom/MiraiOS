@@ -5,9 +5,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <arch/bootinfo.h>
+
 void mmInit(void) {
 	mmInitPaging();
-	while (1);
 	initHeap();
 }
 

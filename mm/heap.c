@@ -10,6 +10,8 @@
 #include <sched/spinlock.h>
 #include <print.h>
 
+#include <arch/bootinfo.h>
+
 #define VHEAPLIMIT	0xFFFFFFFFE0000000
 #define HEAP_ALIGN	16
 

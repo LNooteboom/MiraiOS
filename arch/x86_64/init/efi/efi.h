@@ -13,6 +13,7 @@ int64_t efiCall2(EFI_FUNC func, uint64_t a1, uint64_t a2);
 int64_t efiCall3(EFI_FUNC func, uint64_t a1, uint64_t a2, uint64_t a3);
 int64_t efiCall4(EFI_FUNC func, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4);
 int64_t efiCall5(EFI_FUNC func, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5);
+int64_t efiCall6(EFI_FUNC func, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5, uint64_t a6);
 
 typedef void *EFI_HANDLE;
 

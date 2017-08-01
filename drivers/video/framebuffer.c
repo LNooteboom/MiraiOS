@@ -12,9 +12,10 @@
 extern char font8x16[];
 
 static void putPix(struct framebuffer *fb, char *addr, uint32_t col) {
-	if (fb->isRGB) {
-		write32(addr, col);
-	}
+	//if (fb->isRGB) {
+		//write32(addr, col);
+	//}
+	addr[2] = col;
 }
 
 static int fbPutc(struct console *con, char c) {
@@ -27,9 +28,9 @@ static int fbPutc(struct console *con, char c) {
 			char line = font8x16[index++];
 			for (unsigned int x = 0; x < 8; x++) {
 				if (line & 1) {
-					putPix(fb, pos, ~0);
+					putPix(fb, pos, 0xFF);
 				} else {
-					putPix(fb, pos, 0);
+					putPix(fb, pos, 0x40);
 				}
 				pos += fb->bpp;
 				line >>= 1;
@@ -47,8 +48,9 @@ static int fbPutc(struct console *con, char c) {
 
 int fbInit(void) {
 	//check if bootfb exists
-	if (!bootInfo.fbAddr)
+	if (!bootInfo.fbAddr) {
 		return -EIO;
+	}
 	char *vmem = ioremap(bootInfo.fbAddr, bootInfo.fbSize);
 	struct framebuffer *bootFB = kmalloc(sizeof(struct framebuffer));
 	if (!bootFB || !vmem)
@@ -64,7 +66,8 @@ int fbInit(void) {
 	bootFB->xResolution = bootInfo.fbXRes;
 	bootFB->yResolution = bootInfo.fbYres;
 	bootFB->isRGB = bootInfo.fbIsRgb;
-	bootFB->bpp = bootInfo.fbBpp / 8;
+	//bootFB->bpp = bootInfo.fbBpp / 8;
+	bootFB->bpp = 4;
 
 	if (!bootInfo.fbIsRgb) {
 		bootFB->colorInfo.rShift = bootInfo.fbRShift;

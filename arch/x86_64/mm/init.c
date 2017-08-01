@@ -38,6 +38,10 @@ void mmInitPaging(void) {
 
 		if (first && nrofPages >= NROF_PAGE_STACKS + 1) {
 			uintptr_t bssEnd = (uintptr_t)&BSS_END_ADDR;
+			if (bssEnd & 0xFFF) {
+				bssEnd &= ~0xFFF;
+				bssEnd += 0x1000;
+			}
 			size_t ptRoomAvail = LARGEPAGE_SIZE - (bssEnd & (LARGEPAGE_SIZE - 1));
 			if (ptRoomAvail < NROF_PAGE_STACKS * PAGE_SIZE) {
 				//create new page table
