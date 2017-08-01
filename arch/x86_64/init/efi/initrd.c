@@ -2,12 +2,13 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <arch/bootinfo.h>
+#include <mm/memset.h>
 
 extern EFI_HANDLE imageHandle;
 extern EFI_SYSTEM_TABLE *efiSystemTable;
 
 //char initrdPath[] = "\\\0i\0n\0i\0t\0r\0d\0\0";
-uint16_t initrdPath[] = L"\\initrd";
+uint16_t initrdPath[] = L"initrd";
 uint16_t initrdFail[] = L"Failed to load initrd!";
 
 EFI_GUID efiLoadedImageGuid = {
@@ -44,10 +45,32 @@ int efiHandleInitrd(void) {
 	EFI_FILE_PROTOCOL *rootProt;
 	if (efiCall2(fsProt->OpenVolume, (uint64_t)fsProt, (uint64_t)&rootProt))
 		goto error;
+
+	//make filename relative to kernel location
+	size_t kernelPathSize = loadedImageProt->FilePath->Length - sizeof(EFI_DEVICE_PATH_PROTOCOL);
+	uint16_t *kernelPath = (uint16_t*)(loadedImageProt->FilePath + 1);
+	//find last backslash in kernelPath
+	for (int i = (kernelPathSize / 2) - 1; i >= 0; i--) {
+		if (kernelPath[i] == L'\\') {
+			kernelPathSize = (i + 1) * 2;
+			break;
+		}
+	}
+	size_t initrdPathSize = kernelPathSize + sizeof(initrdPath);
+	uint16_t *newInitrdPath;
+	if (efiCall3(efiSystemTable->BootServices->AllocatePool, 2, initrdPathSize, (uint64_t)&newInitrdPath))
+		goto error;
+	memcpy(newInitrdPath, kernelPath, kernelPathSize);
+	//copy const initrd
+	memcpy(&newInitrdPath[kernelPathSize / 2], initrdPath, sizeof(initrdPath));
+
 	//open file
 	EFI_FILE_PROTOCOL *initrdProt;
-	if (efiCall5(rootProt->Open, (uint64_t)rootProt, (uint64_t)&initrdProt, (uint64_t)initrdPath, 1, 0))
+	if (efiCall5(rootProt->Open, (uint64_t)rootProt, (uint64_t)&initrdProt, (uint64_t)newInitrdPath, 1, 0))
 		goto error;
+	//deallocate path buffer
+	efiCall1(efiSystemTable->BootServices->FreePool, (uint64_t)newInitrdPath);
+
 	//get size
 	//allocate buffer
 	uint64_t initrdInfoSize = sizeof(EFI_FILE_INFO) + sizeof(initrdPath);

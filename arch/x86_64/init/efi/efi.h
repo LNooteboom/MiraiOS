@@ -168,11 +168,17 @@ typedef struct {
 
 
 typedef struct {
+	uint8_t Type;
+	uint8_t SubType;
+	uint16_t Length;
+} EFI_DEVICE_PATH_PROTOCOL;
+
+typedef struct {
 	uint32_t Revision;
 	EFI_HANDLE ParentHandle;
 	EFI_SYSTEM_TABLE *SystemTable;
 	EFI_HANDLE DeviceHandle;
-	void *FilePath;
+	EFI_DEVICE_PATH_PROTOCOL *FilePath;
 	void *Reserved;
 	uint32_t LoadOptionsSize;
 	void *LoadOptions;
