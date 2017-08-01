@@ -11,11 +11,8 @@
 
 extern char font8x16[];
 
-static void putPix(struct framebuffer *fb, char *addr, uint32_t col) {
-	//if (fb->isRGB) {
-		//write32(addr, col);
-	//}
-	addr[2] = col;
+void putPix(struct framebuffer *fb, char *addr, uint32_t col) {
+	write32(addr, col);
 }
 
 static int fbPutc(struct console *con, char c) {
@@ -28,9 +25,9 @@ static int fbPutc(struct console *con, char c) {
 			char line = font8x16[index++];
 			for (unsigned int x = 0; x < 8; x++) {
 				if (line & 1) {
-					putPix(fb, pos, 0xFF);
+					putPix(fb, pos, 0xAAAAAA);
 				} else {
-					putPix(fb, pos, 0x40);
+					putPix(fb, pos, 0x000000);
 				}
 				pos += fb->bpp;
 				line >>= 1;

@@ -34,9 +34,9 @@ void kmain(void) {
 	mmInit();
 	fbInit();
 	printk("Detected %dMiB of free memory.\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
-	while (1) {
+	/*while (1) {
 		asm ("hlt" : : "a"(0xEA));
-	}
+	}*/
 	
 	earlyArchInit();
 

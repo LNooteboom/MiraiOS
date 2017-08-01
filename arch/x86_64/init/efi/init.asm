@@ -120,6 +120,8 @@ __init:
 	mov rsi, r14
 	pop rdi ;Get image handle
 
+	mov rsp, initStackEnd
+
 	;now setup segments and jump to kernel
 	mov rax, efiMain
 	jmp rax
@@ -224,6 +226,17 @@ preparePageTables: ;base in rbp, nrof page tables in rbx, mmap info in [rsp]
 		add rax, 0x1000
 		cmp rcx, rdx
 		jb .start4
+
+	;map lowmem pde entries
+	mov eax, 0x83 ;add size flag
+	xor edx, edx
+	.start5:
+		mov [rbp + 0x2000 + rdx], rax
+
+		add rdx, 8
+		add rax, 0x1000
+		cmp rdx, 0x40 ;add 8 entries (16MB / 2MB)
+		jne .start5
 
 	rep ret
 

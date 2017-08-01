@@ -113,7 +113,6 @@ excPF:
     ;print error message
     mov rdi, PFmsg
     call puts
-	jmp $
 
     ;print return addr
     mov rdi, addressText ;"At: "

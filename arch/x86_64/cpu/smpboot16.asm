@@ -5,8 +5,8 @@ BITS 16
 
 infoStart:
 nxEnabled:		dw 0
-contAddr:		dd 0
 pml4tAddr:		dd 0
+contAddr:		dq 0
 
 start:
 	cli
@@ -45,11 +45,21 @@ start:
 	lgdt [gdtr]
 
 	;prepare jumpvect
-	mov eax, [contAddr]
+	;mov eax, [contAddr]
+	xor eax, eax
+	mov ax, cs
+	shl eax, 4
+	add eax, .cont
 	mov [jumpVect], eax
+
+	mov eax, [contAddr]
 
 	db 0x66
 	jmp far [jumpVect]
+
+	.cont: ;64 bit code
+	db 0x48, 0x98 ;REX.W + CDQE
+	db 0xFF, 0xE0 ;jmp rax
 
 ALIGN 4
 jumpVect:

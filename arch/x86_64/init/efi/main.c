@@ -6,6 +6,9 @@
 
 #include <arch/map.h>
 
+extern void efiFini(void);
+extern void kmain(void);
+
 void *testString = "H\0e\0l\0l\0o\0 \0f\0r\0o\0m\0 \0C\0!\0\0";
 char *errorString = "E\0F\0I\0 \0e\0r\0r\0o\0r\0 \0o\0c\0c\0u\0r\0e\0d\0!\0\0";
 
@@ -48,7 +51,6 @@ static int efiHandleMmap(uint64_t *mmapKey) {
 	uint64_t mmapLen = mmapSize / mmapDescSize;
 	struct mmapEntry *newMmap = (struct mmapEntry *)mmapBuf;
 	
-	uint64_t test = 0;
 	for (uint64_t i = 0; i < mmapLen; i++) {
 		EFI_MEMORY_DESCRIPTOR *oldMmap = (EFI_MEMORY_DESCRIPTOR *)(&mmapBuf[i * mmapDescSize]);
 		physPage_t addr = oldMmap->physicalStart;
@@ -58,7 +60,6 @@ static int efiHandleMmap(uint64_t *mmapKey) {
 			case 3: //efiBootServicesCode
 			case 4: //efiBootServicesData
 			case 7: //efiConventionalMemory
-				test = i;
 				attr = 1; //type = usable
 				break;
 			case 9: //efiACPIReclaimMemory

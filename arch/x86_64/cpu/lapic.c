@@ -25,8 +25,9 @@
 struct smpbootInfo {
 	uint16_t jump;
 	uint16_t nxEnabled;
-	uint32_t contAddr;
 	uint32_t pml4tAddr;
+	void *contAddr;
+	
 } __attribute__((packed));
 
 
@@ -154,7 +155,7 @@ void lapicDoSMPBoot(void) {
 	volatile struct smpbootInfo *info = (struct smpbootInfo *)0xFFFFFFFF80070000;
 	size_t s = (size_t)(&smpboot16end) - (size_t)(&smpboot16start);
 	memcpy(info, &smpboot16start, s);
-	info->contAddr = (uint32_t)((uintptr_t)&smpbootStart - (uintptr_t)&VMEM_OFFSET);
+	info->contAddr = smpbootStart;
 	info->pml4tAddr = cr3;
 	info->nxEnabled = nxEnabled;
 
