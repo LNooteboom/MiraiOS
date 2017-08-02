@@ -7,6 +7,8 @@ typedef void *EFI_FUNC;
 
 typedef int64_t EFI_STATUS;
 
+int efiHandleInitrd(void);
+
 int64_t efiCall0(EFI_FUNC func);
 int64_t efiCall1(EFI_FUNC func, uint64_t a1);
 int64_t efiCall2(EFI_FUNC func, uint64_t a1, uint64_t a2);
@@ -170,7 +172,7 @@ typedef struct {
 typedef struct {
 	uint8_t Type;
 	uint8_t SubType;
-	uint16_t Length;
+	uint8_t Length[2];
 } EFI_DEVICE_PATH_PROTOCOL;
 
 typedef struct {
