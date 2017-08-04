@@ -37,7 +37,7 @@ void kmain(void) {
 	mmInit();
 	fbInit();
 	printk("Detected %dMiB of free memory.\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
-	printk("%d: %s\n", bootInfo.initrdLen, bootInfo.initrd);
+	//printk("%d: %s\n", bootInfo.initrdLen, bootInfo.initrd);
 	
 	earlyArchInit();
 
@@ -46,6 +46,8 @@ void kmain(void) {
 	kthreadCreateFromMain(&mainThread);
 
 	archInit();
+
+	ramfsInit();
 
 	//execute moduleInits
 	for (int level = 0; level < NROF_MODULE_INIT_LEVELS; level++) {

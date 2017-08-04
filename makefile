@@ -64,6 +64,10 @@ dir := $(KERNEL_ROOT)/sched
 $(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
 include $(dir)/Rules.mk
 
+dir := $(KERNEL_ROOT)/fs
+$(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
+include $(dir)/Rules.mk
+
 dir := $(KERNEL_ROOT)/drivers
 $(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
 include $(dir)/Rules.mk
