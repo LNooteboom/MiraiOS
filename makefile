@@ -68,6 +68,10 @@ dir := $(KERNEL_ROOT)/drivers
 $(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
 include $(dir)/Rules.mk
 
+dir := $(KERNEL_ROOT)/lib
+$(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
+include $(dir)/Rules.mk
+
 $(KERNEL): $(obj-y) $(tools) $(LDSCRIPT)
 	@echo "(LD) $@"
 	@$(LD) -z max-page-size=0x1000 -T $(LDSCRIPT) $(obj-y)
