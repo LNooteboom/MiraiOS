@@ -76,7 +76,7 @@ dir := $(KERNEL_ROOT)/lib
 $(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
 include $(dir)/Rules.mk
 
-$(KERNEL): $(obj-y) $(tools) $(LDSCRIPT)
+$(KERNEL): $(obj-y) $(tools) $(LDSCRIPT) config
 	@echo "(LD) $@"
 	@$(LD) -z max-page-size=0x1000 -T $(LDSCRIPT) $(obj-y)
 

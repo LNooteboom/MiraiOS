@@ -51,6 +51,7 @@ static void *heapAlloc(size_t size, memArea_t *heap, size_t heapSize) {
 			foundMem = true;
 			break;
 		} else if (*newHeader == 0) {
+			printk("Heap is corrupted!\n");
 			break;
 		} else {
 			newHeader = (void*)(newHeader) + (*newHeader & ~1);
@@ -67,9 +68,12 @@ static void *heapAlloc(size_t size, memArea_t *heap, size_t heapSize) {
 
 	if (totalSize != oldSize) {
 		//split and create new header for other area
-		memArea_t *freeHeader = (void*)(newHeader) + *newHeader;
-		*freeHeader = oldSize - totalSize;
-		*freeFooter = *freeHeader;
+		//memArea_t *freeHeader = (void*)(newHeader) + *newHeader;
+		//*freeHeader = oldSize - totalSize;
+		//*freeFooter = *freeHeader;
+		*freeFooter = oldSize - totalSize;
+		memArea_t *freeHeader = getHeaderFromFooter(freeFooter);
+		*freeHeader = *freeFooter;
 	}
 
 	*newHeader |= 1;

@@ -36,36 +36,37 @@ char cpioEndName[10] = "TRAILER!!!";
 
 static int ramfsCreate(struct inode **out, struct inode *dir, struct dirEntry *entry, uint32_t type);
 /*static int ramfsLink(struct inode *dir, struct inode *inode, struct dirEntry *newEntry);
-static int ramfsUnlink(struct inode *dir, struct dirEntry *entry);
+static int ramfsUnlink(struct inode *dir, struct dirEntry *entry);*/
 
-static int ramfsOpen(struct file *output, struct inode *inode);
+static int ramfsOpen(struct file *output, struct dirEntry *entry);
 static ssize_t ramfsRead(struct file *file, void *buffer, size_t bufSize);
-static ssize_t ramfsWrite(struct file *file, void *buffer, size_t bufSize);*/
+static ssize_t ramfsWrite(struct file *file, void *buffer, size_t bufSize);
 
-struct superBlock ramfsSuperBlock = {
+static struct superBlock ramfsSuperBlock = {
 	.fsID = 1
 };
 
-struct inodeOps ramfsInodeOps = {
+static struct inodeOps ramfsInodeOps = {
 	.create = ramfsCreate,
 	//.link = ramfsLink,
 	//.unlink = ramfsUnlink
 };
 
-struct fileOps ramfsFileOps = {
-	//.open = ramfsOpen,
-	//.read = ramfsRead,
-	//.write = ramfsWrite
+static struct fileOps ramfsFileOps = {
+	.open = ramfsOpen,
+	.read = ramfsRead,
+	.write = ramfsWrite
 };
 
 static int ramfsCreateDirEnt(struct inode *dir, struct dirEntry *entry) {
 	struct ramfsInode *dir2 = (struct ramfsInode *)dir;
+	asm ("xchg bx, bx");
 	if (!dir2 || (dir2->base.type & ITYPE_MASK) != ITYPE_DIR) {
 		return -EINVAL;
 	}
 	acquireSpinlock(&dir2->base.lock);
 	if (!dir2->fileAddr) {
-		dir2->fileAddr = allocKPages(PAGE_SIZE, PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE);
+		dir2->fileAddr = allocKPages(PAGE_SIZE, PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE);
 		if (!dir2->fileAddr) {
 			return -ENOMEM;
 		}
@@ -77,13 +78,13 @@ static int ramfsCreateDirEnt(struct inode *dir, struct dirEntry *entry) {
 			//next page already exists
 			return -ENOMEM;
 		}
-		allocPageAt((void *)pageAddr, PAGE_SIZE, PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE);
+		allocPageAt((void *)pageAddr, PAGE_SIZE, PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE);
 		dir2->nrofPages++;
 	}
 	unsigned int nrofDirEntries = dir2->base.fileSize / sizeof(struct dirEntry);
 	struct dirEntry *dirEnts = dir2->fileAddr;
 	//now copy direntry
-	//memcpy(&dirEnts[nrofDirEntries], entry, sizeof(struct dirEntry));
+	memcpy(&dirEnts[nrofDirEntries], entry, sizeof(struct dirEntry));
 	dirEnts[nrofDirEntries].parent = (struct inode *)dir2;
 	dir2->base.fileSize += sizeof(struct dirEntry);
 	releaseSpinlock(&dir2->base.lock);
@@ -105,7 +106,11 @@ static int ramfsCreate(struct inode **out, struct inode *dir, struct dirEntry *e
 
 	entry->inode = (struct inode *)newInode;
 	fsAddInode((struct inode *)newInode);
-	ramfsCreateDirEnt(dir, entry);
+	int error;
+	if (error = ramfsCreateDirEnt(dir, entry)) {
+		kfree(newInode);
+		return error;
+	}
 	if (out) {
 		*out = (struct inode *)newInode;
 	}
@@ -118,27 +123,43 @@ static int ramfsLink(struct inode *dir, struct inode *inode, struct dirEntry *ne
 
 static int ramfsUnlink(struct inode *dir, struct dirEntry *entry) {
 	return 0;
-}
+}*/
 
-static int ramfsOpen(struct file *output, struct inode *inode) {
+static int ramfsOpen(struct file *output, struct dirEntry *entry) {
+	output->path = entry;
+	if (!entry->inode) {
+		return -EINVAL;
+	}
+	output->inode = entry->inode;
+	output->fOps = &ramfsFileOps;
+	output->refCount = 1;
+	output->lock = 0;
+	output->offset = 0;
 	return 0;
 }
 
 static ssize_t ramfsRead(struct file *file, void *buffer, size_t bufSize) {
-	return 0;
+	struct ramfsInode *inode = (struct ramfsInode *)file->inode;
+	size_t bytesLeft = inode->base.fileSize - file->offset;
+	if (bufSize > bytesLeft) {
+		bufSize = bytesLeft;
+	}
+	char *begin = &((char *)inode->fileAddr)[file->offset];
+	memcpy(buffer, begin, bufSize);
+	return bytesLeft;
 }
 
 static ssize_t ramfsWrite(struct file *file, void *buffer, size_t bufSize) {
 	return 0;
-}*/
+}
 
 static uint32_t parseHex(char *str) {
 	uint32_t result = 0;
 	for (int i = 0; i < 8; i++) {
 		if (str[i] > 'A') {
-			result += (str[i] - 'A' + 10) << (7 - i);
+			result += (str[i] - 'A' + 10) << (28 - (i*4));
 		} else {
-			result += (str[i] - '0') << (7 - i);
+			result += (str[i] - '0') << (28 - (i*4));
 		}
 	}
 	return result;
@@ -169,28 +190,33 @@ static int parseInitrd(struct ramfsInode *rootInode) {
 			if (!entryName) {
 				return -ENOMEM;
 			}
-			//memcpy(entryName, name, nameLen);
+			memcpy(entryName, name, nameLen);
 			entryName[nameLen] = 0; //add null terminator
 			dEnt.name = entryName;
 			printk("Add file: %s\n", dEnt.name);
 		} else {
+			if (memcmp(name, cpioEndName, sizeof(cpioEndName))) {
+				break;
+			}
 			//use inline name
-			//memcpy(dEnt.inlineName, name, nameLen);
+			memcpy(dEnt.inlineName, name, nameLen);
 			dEnt.inlineName[nameLen] = 0;
-			//printk("Add file (inline): %c\n", *name);
-			puts(&dEnt.inlineName[0]);
+			printk("Add file (inline): %s\n", name);
 		}
 		dEnt.nameLen = nameLen;
 		struct ramfsInode *newInode;
 		int error = ramfsCreate((struct inode **)(&newInode), (struct inode *)rootInode, &dEnt, ITYPE_FILE);
-		while (1);
 		if (error) {
 			return error;
 		}
-		newInode->fileAddr = name + nameLen + 1;
+		newInode->fileAddr = name + nameLen;
 		uint32_t fileSize = parseHex(initrdHeader->filesize);
 		newInode->base.fileSize = fileSize;
-		curPosition += sizeof(struct cpioHeader) + nameLen + 1 + fileSize;
+		curPosition += sizeof(struct cpioHeader) + nameLen + fileSize;
+		if (curPosition & 3) {
+			curPosition &= ~3;
+			curPosition += 4;
+		}
 	}
 	return 0;
 }
@@ -208,7 +234,7 @@ int ramfsInit(void) {
 		return -ENOMEM;
 	}*/
 	//create root inode
-	struct ramfsInode *rootInode = kmalloc(sizeof(struct inode));
+	struct ramfsInode *rootInode = kmalloc(sizeof(struct ramfsInode));
 	if (!rootInode) {
 		//deallocPages(rootContents, PAGE_SIZE);
 		return -ENOMEM;
@@ -222,5 +248,5 @@ int ramfsInit(void) {
 	mountRoot(&rootInode->base);
 	ramfsSuperBlock.curInodeID = 2;
 
-	return parseInitrd((struct ramfsInode *)rootDir);
+	return parseInitrd(rootInode);
 }

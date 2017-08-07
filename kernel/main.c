@@ -47,7 +47,9 @@ void kmain(void) {
 
 	archInit();
 
-	ramfsInit();
+	if (ramfsInit()) {
+		printk("ramfs error");
+	}
 
 	//execute moduleInits
 	for (int level = 0; level < NROF_MODULE_INIT_LEVELS; level++) {
@@ -56,6 +58,8 @@ void kmain(void) {
 		}
 	}
 	puts("Init complete.\n");
+
+	fstest();
 	kthreadExit(NULL);
 }
 

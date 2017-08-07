@@ -9,6 +9,9 @@ extern void efiFini(void);
 extern void kmain(void);
 
 uint16_t *errorString = L"EFI error occured!";
+uint16_t *mmapError = L"MMAP error occured!";
+uint16_t *gopError = L"GOP error occured!";
+uint16_t *rsdpError = L"RSDP error occured!";
 
 struct bootInfo bootInfo;
 
@@ -43,12 +46,14 @@ static int efiHandleMmap(uint64_t *mmapKey) {
 		if (!ret) {
 			break;
 		}
+		ret &= 0xFFFFFFFF;
 		if (ret == 5) {
 			//Buffer too small
 			efiCall2(efiSystemTable->BootServices->FreePages, (uint64_t)mmapBuf, mmapSize / PAGE_SIZE);
 			mmapSize += PAGE_SIZE;
 			continue;
 		}
+		hexprint2(ret, efiSystemTable);
 		goto error;
 	}
 
@@ -86,7 +91,7 @@ static int efiHandleMmap(uint64_t *mmapKey) {
 	return 0;
 
 	error:
-	efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)errorString);
+	efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)mmapError);
 	return -1;
 }
 
@@ -144,7 +149,7 @@ static int efiHandleGop(void) {
 	return 0;
 
 	error:
-	efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)errorString);
+	efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)gopError);
 	return -1;
 }
 
@@ -158,7 +163,7 @@ static int efiHandleRsdp(void) {
 		break;
 	}
 	if (acpiTableIndex < 0) {
-		efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)errorString);
+		efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)rsdpError);
 		return -1;
 	}
 	bootInfo.rsdp = (uint64_t)efiSystemTable->ConfigurationTable[acpiTableIndex].VendorTable;

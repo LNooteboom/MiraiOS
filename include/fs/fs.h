@@ -50,7 +50,7 @@ struct inodeOps {
 };
 
 struct fileOps {
-	int (*open)(struct file *output, struct inode *inode);
+	int (*open)(struct file *output, struct dirEntry *entry);
 	ssize_t (*read)(struct file *file, void *buffer, size_t bufSize);
 	ssize_t (*write)(struct file *file, void *buffer, size_t bufSize);
 };
@@ -86,7 +86,7 @@ struct dirEntry { //64 bytes
 	};
 };
 
-extern struct inode *rootDir;
+extern struct dirEntry rootDir;
 
 int fsAddInode(struct inode *inode);
 int mountRoot(struct inode *rootInode);
