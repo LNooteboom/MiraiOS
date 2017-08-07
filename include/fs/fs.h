@@ -11,6 +11,10 @@
 #define ITYPE_DIR	1
 #define ITYPE_FILE	2
 
+#define SEEK_SET	0
+#define SEEK_CUR	1
+#define SEEK_END	2
+
 typedef int64_t ssize_t;
 
 struct inode;
@@ -44,15 +48,16 @@ struct inodeAttributes {
 
 struct inodeOps {
 	//directory operations
-	int (*create)(struct inode **out, struct inode *dir, struct dirEntry *entry, uint32_t type);
+	int (*create)(struct inode *dir, const char *name, uint32_t type);
 	int (*link)(struct inode *dir, struct inode *inode, struct dirEntry *newEntry);
 	int (*unlink)(struct inode *dir, struct dirEntry *entry);
 };
 
 struct fileOps {
-	int (*open)(struct file *output, struct dirEntry *entry);
+	int (*open)(struct inode *dir, struct file *output, const char *name);
 	ssize_t (*read)(struct file *file, void *buffer, size_t bufSize);
-	ssize_t (*write)(struct file *file, void *buffer, size_t bufSize);
+	int (*write)(struct file *file, void *buffer, size_t bufSize);
+	int (*seek)(struct file *file, int64_t offset, int whence);
 };
 
 struct inode {

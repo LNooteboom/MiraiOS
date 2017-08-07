@@ -53,7 +53,6 @@ static int efiHandleMmap(uint64_t *mmapKey) {
 			mmapSize += PAGE_SIZE;
 			continue;
 		}
-		hexprint2(ret, efiSystemTable);
 		goto error;
 	}
 

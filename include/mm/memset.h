@@ -15,7 +15,7 @@ static inline void memset(volatile void *str, char c, size_t n) {
 /*
 Copies n bytes of data from src to dst
 */
-static inline void memcpy(volatile void *dst, volatile void *src, size_t n) {
+static inline void memcpy(volatile void *dst, const void *src, size_t n) {
 	asm volatile ("rep movsb": "+S"(src), "+D"(dst), "+c"(n) : : "memory");
 }
 
@@ -30,6 +30,14 @@ static inline bool memcmp(const void *a, const void *b, size_t n) {
 		}
 	}
 	return true;
+}
+
+static inline size_t strlen(const char *str) {
+	size_t result = 0;
+	while (*str++) {
+		result++;
+	}
+	return result;
 }
 
 #endif

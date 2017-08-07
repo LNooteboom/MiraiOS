@@ -5,5 +5,6 @@
 #define EINVAL		2
 #define EBUSY		3
 #define EIO			4
+#define ENOENT		5
 
 #endif

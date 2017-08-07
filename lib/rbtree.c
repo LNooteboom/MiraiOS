@@ -131,7 +131,7 @@ void rbInsert(struct rbNode **root, struct rbNode *newNode) {
 			rbRightRotate(root, grandParent);
 			
 		} else {
-			if (newNode->value >= parent->value) {
+			if (newNode->value < parent->value) {
 				//right rotate parent
 				rbRightRotate(root, parent);
 			}

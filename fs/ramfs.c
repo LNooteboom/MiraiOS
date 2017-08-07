@@ -32,15 +32,16 @@ struct cpioHeader {
 };
 
 char cpioMagic[6] = "070701";
-char cpioEndName[10] = "TRAILER!!!";
+char cpioEndName[] = "TRAILER!!!";
 
-static int ramfsCreate(struct inode **out, struct inode *dir, struct dirEntry *entry, uint32_t type);
+static int ramfsCreate(struct inode *dir, const char *name, uint32_t type);
 /*static int ramfsLink(struct inode *dir, struct inode *inode, struct dirEntry *newEntry);
 static int ramfsUnlink(struct inode *dir, struct dirEntry *entry);*/
 
-static int ramfsOpen(struct file *output, struct dirEntry *entry);
+static int ramfsOpen(struct inode *dir, struct file *output, const char *name);
 static ssize_t ramfsRead(struct file *file, void *buffer, size_t bufSize);
-static ssize_t ramfsWrite(struct file *file, void *buffer, size_t bufSize);
+static int ramfsWrite(struct file *file, void *buffer, size_t bufSize);
+static int ramfsSeek(struct file *file, int64_t offset, int whence);
 
 static struct superBlock ramfsSuperBlock = {
 	.fsID = 1
@@ -55,12 +56,12 @@ static struct inodeOps ramfsInodeOps = {
 static struct fileOps ramfsFileOps = {
 	.open = ramfsOpen,
 	.read = ramfsRead,
-	.write = ramfsWrite
+	.write = ramfsWrite,
+	.seek = ramfsSeek
 };
 
 static int ramfsCreateDirEnt(struct inode *dir, struct dirEntry *entry) {
 	struct ramfsInode *dir2 = (struct ramfsInode *)dir;
-	asm ("xchg bx, bx");
 	if (!dir2 || (dir2->base.type & ITYPE_MASK) != ITYPE_DIR) {
 		return -EINVAL;
 	}
@@ -91,7 +92,22 @@ static int ramfsCreateDirEnt(struct inode *dir, struct dirEntry *entry) {
 	return 0;
 }
 
-static int ramfsCreate(struct inode **out, struct inode *dir, struct dirEntry *entry, uint32_t type) {
+static int _ramfsCreate(struct inode **out, struct inode *dir, const char *name, uint32_t type) {
+	struct dirEntry entry;
+	entry.nameLen = strlen(name);
+	if (entry.nameLen > 31) {
+		entry.name = kmalloc(entry.nameLen + 1);
+		if (!entry.name) {
+			return -ENOMEM;
+		}
+		memcpy(entry.name, name, entry.nameLen);
+		entry.name[entry.nameLen] = 0;
+	} else {
+		memcpy(entry.inlineName, name, entry.nameLen);
+		entry.inlineName[entry.nameLen] = 0;
+	}
+	
+
 	struct ramfsInode *newInode = kmalloc(sizeof(struct ramfsInode));
 	if (!newInode) {
 		return -ENOMEM;
@@ -104,10 +120,10 @@ static int ramfsCreate(struct inode **out, struct inode *dir, struct dirEntry *e
 	newInode->base.fOps = &ramfsFileOps;
 	newInode->base.attr.accessPermissions = 0664;
 
-	entry->inode = (struct inode *)newInode;
+	entry.inode = (struct inode *)newInode;
 	fsAddInode((struct inode *)newInode);
-	int error;
-	if (error = ramfsCreateDirEnt(dir, entry)) {
+	int error = ramfsCreateDirEnt(dir, &entry);
+	if (error) {
 		kfree(newInode);
 		return error;
 	}
@@ -115,6 +131,10 @@ static int ramfsCreate(struct inode **out, struct inode *dir, struct dirEntry *e
 		*out = (struct inode *)newInode;
 	}
 	return 0;
+}
+
+static int ramfsCreate(struct inode *dir, const char *name, uint32_t type) {
+	return _ramfsCreate(NULL, dir, name, type);
 }
 /*
 static int ramfsLink(struct inode *dir, struct inode *inode, struct dirEntry *newEntry) {
@@ -125,11 +145,36 @@ static int ramfsUnlink(struct inode *dir, struct dirEntry *entry) {
 	return 0;
 }*/
 
-static int ramfsOpen(struct file *output, struct dirEntry *entry) {
-	output->path = entry;
-	if (!entry->inode) {
-		return -EINVAL;
+static int ramfsOpen(struct inode *dir, struct file *output, const char *name) {
+	struct dirEntry *entry = NULL;
+	if (!dir) {
+		//get root dir
+		entry = &rootDir;
+	} else {
+		size_t nameLen = strlen(name);
+		struct dirEntry *dirEntries = ((struct ramfsInode *)dir)->fileAddr;
+		for (unsigned int i = 0; i < dir->fileSize / sizeof(struct dirEntry); i++) {
+			if (dirEntries[i].nameLen != nameLen) {
+				continue;
+			}
+			const char *entryName;
+			if (nameLen > 31) {
+				entryName = dirEntries[i].name;
+			} else {
+				entryName = dirEntries[i].inlineName;
+			}
+			if (!memcmp(entryName, name, nameLen)) {
+				continue;
+			}
+			//found
+			entry = &dirEntries[i];
+			break;
+		}
+		if (!entry) {
+			return -ENOENT;
+		}
 	}
+	output->path = entry;
 	output->inode = entry->inode;
 	output->fOps = &ramfsFileOps;
 	output->refCount = 1;
@@ -146,17 +191,85 @@ static ssize_t ramfsRead(struct file *file, void *buffer, size_t bufSize) {
 	}
 	char *begin = &((char *)inode->fileAddr)[file->offset];
 	memcpy(buffer, begin, bufSize);
+	file->offset += bufSize;
 	return bytesLeft;
 }
 
-static ssize_t ramfsWrite(struct file *file, void *buffer, size_t bufSize) {
+static int ramfsWrite(struct file *file, void *buffer, size_t bufSize) {
+	struct ramfsInode *inode = (struct ramfsInode *)file->inode;
+	uint32_t pageSpaceLeft = 0;
+	if (inode->base.fileSize) {
+		pageSpaceLeft = (inode->nrofPages * PAGE_SIZE) - inode->base.fileSize;
+	}
+	if (bufSize > pageSpaceLeft) {
+		unsigned long nrofNewPages = (bufSize - pageSpaceLeft) / PAGE_SIZE;
+		if ((bufSize - pageSpaceLeft) % PAGE_SIZE) {
+			nrofNewPages++;
+		}
+		unsigned long nrofOldPages = inode->nrofPages;
+		void *newAddr = allocKPages((nrofOldPages + nrofNewPages) * PAGE_SIZE, 0);
+		if (!newAddr) {
+			return -ENOMEM;
+		}
+		uintptr_t curAddr = (uintptr_t)newAddr;
+		//copy page mappings
+		for (unsigned long i = 0; i < nrofOldPages; i++) {
+			physPage_t phys = mmGetPageEntry((uintptr_t)inode->fileAddr + i * PAGE_SIZE);
+			mmMapPage(curAddr, phys, PAGE_FLAG_WRITE);
+			curAddr += PAGE_SIZE;
+		}
+		//map new pages
+		for (unsigned long i = 0; i < nrofNewPages; i++) {
+			mmSetPageFlags(curAddr, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
+			curAddr += PAGE_SIZE;
+		}
+		//clear old mapping
+		for (unsigned long i = 0; i < nrofOldPages; i++) {
+			mmUnmapPage((uintptr_t)inode->fileAddr + i * PAGE_SIZE);
+		}
+		inode->fileAddr = newAddr;
+		inode->nrofPages = nrofOldPages + nrofNewPages;
+	}
+	
+	memcpy(&((char *)inode->fileAddr)[inode->base.fileSize], buffer, bufSize);
+	inode->base.fileSize += bufSize;
+	file->offset += bufSize;
+	return 0;
+}
+
+static int ramfsSeek(struct file *file, int64_t offset, int whence) {
+	int64_t newOffset;
+	switch (whence) {
+		case SEEK_SET:
+			if (offset < 0 || offset > (int64_t)file->inode->fileSize) {
+				return -EINVAL;
+			}
+			file->offset = offset;
+			break;
+		case SEEK_CUR:
+			newOffset = file->offset + offset;
+			if (newOffset < 0 || newOffset > (int64_t)file->inode->fileSize) {
+				return -EINVAL;
+			} 
+			file->offset = newOffset;
+			break;
+		case SEEK_END:
+			newOffset = file->inode->fileSize + offset;
+			if (newOffset < 0 || newOffset > (int64_t)file->inode->fileSize) {
+				return -EINVAL;
+			} 
+			file->offset = newOffset;
+			break;
+		default:
+			return -EINVAL;
+	}
 	return 0;
 }
 
 static uint32_t parseHex(char *str) {
 	uint32_t result = 0;
 	for (int i = 0; i < 8; i++) {
-		if (str[i] > 'A') {
+		if (str[i] >= 'A') {
 			result += (str[i] - 'A' + 10) << (28 - (i*4));
 		} else {
 			result += (str[i] - '0') << (28 - (i*4));
@@ -172,40 +285,21 @@ static int parseInitrd(struct ramfsInode *rootInode) {
 	unsigned long curPosition = 0;
 	while (curPosition < bootInfo.initrdLen) {
 		initrdHeader = (struct cpioHeader *)(&initrd[curPosition]);
-		if (!memcmp(&initrdHeader->magic, cpioMagic, 6)) {
-			printk("Invalid CPIO header!");
+		if (!memcmp(initrdHeader->magic, cpioMagic, 6)) {
+			printk("Invalid CPIO header: %s\n", initrdHeader->magic);
 			return -EINVAL;
 		}
 		uint32_t nameLen = parseHex(initrdHeader->namesize);
 		char *name = &initrd[curPosition + sizeof(struct cpioHeader)];
-		if (nameLen == 10 && memcmp(name, cpioEndName, 10)) {
+		if (nameLen == sizeof(cpioEndName) && memcmp(name, cpioEndName, sizeof(cpioEndName))) {
 			break;
 		}
+		
 		//TODO add support for directories and hardlinks
 
-		//create dir entry
-		struct dirEntry dEnt;
-		if (nameLen > 31) {
-			char *entryName = kmalloc(nameLen + 1);
-			if (!entryName) {
-				return -ENOMEM;
-			}
-			memcpy(entryName, name, nameLen);
-			entryName[nameLen] = 0; //add null terminator
-			dEnt.name = entryName;
-			printk("Add file: %s\n", dEnt.name);
-		} else {
-			if (memcmp(name, cpioEndName, sizeof(cpioEndName))) {
-				break;
-			}
-			//use inline name
-			memcpy(dEnt.inlineName, name, nameLen);
-			dEnt.inlineName[nameLen] = 0;
-			printk("Add file (inline): %s\n", name);
-		}
-		dEnt.nameLen = nameLen;
+		printk("Add file: %s\n", name);
 		struct ramfsInode *newInode;
-		int error = ramfsCreate((struct inode **)(&newInode), (struct inode *)rootInode, &dEnt, ITYPE_FILE);
+		int error = _ramfsCreate((struct inode **)(&newInode), (struct inode *)rootInode, name, ITYPE_FILE);
 		if (error) {
 			return error;
 		}
@@ -227,16 +321,9 @@ int ramfsInit(void) {
 	if (!bootInfo.initrd) {
 		return 0;
 	}
-	//initialize initrd
-	//create root directory
-	/*struct dirEntry *rootContents = allocKPages(PAGE_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_CLEAN);
-	if (!rootContents) {
-		return -ENOMEM;
-	}*/
 	//create root inode
 	struct ramfsInode *rootInode = kmalloc(sizeof(struct ramfsInode));
 	if (!rootInode) {
-		//deallocPages(rootContents, PAGE_SIZE);
 		return -ENOMEM;
 	}
 	memset(rootInode, 0, sizeof(struct ramfsInode));
