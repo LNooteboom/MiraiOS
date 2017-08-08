@@ -49,8 +49,8 @@ struct inodeAttributes {
 struct inodeOps {
 	//directory operations
 	int (*create)(struct inode *dir, const char *name, uint32_t type);
-	int (*link)(struct inode *dir, struct inode *inode, struct dirEntry *newEntry);
-	int (*unlink)(struct inode *dir, struct dirEntry *entry);
+	int (*link)(struct inode *dir, struct inode *inode, const char *name);
+	int (*unlink)(struct inode *dir, const char *name);
 };
 
 struct fileOps {
@@ -94,6 +94,7 @@ struct dirEntry { //64 bytes
 extern struct dirEntry rootDir;
 
 int fsAddInode(struct inode *inode);
+int fsDeleteInode(struct inode *inode);
 int mountRoot(struct inode *rootInode);
 
 #endif
