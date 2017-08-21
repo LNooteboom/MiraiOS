@@ -18,6 +18,8 @@
 #define AREA_SIZE	(~(HEAP_ALIGN - 1))
 #define AREA_INUSE	(1 << 0)
 
+#define MAX_ALLOC	4096
+
 typedef uint64_t memArea_t;
 
 memArea_t *heapStart = (void*)(0xFFFFFFFFC0000000);
@@ -46,7 +48,7 @@ static void *heapAlloc(size_t size, memArea_t *heap, size_t heapSize) {
 
 	memArea_t *newHeader = heap;
 	bool foundMem = false;
-	while ( (uintptr_t)(newHeader) < (uintptr_t)(heap) + heapSize){
+	while ( (uintptr_t)(newHeader) < (uintptr_t)(heap) + heapSize - sizeof(memArea_t)){
 		if ( !(*newHeader & AREA_INUSE) && *newHeader >= totalSize) {
 			foundMem = true;
 			break;
@@ -114,6 +116,10 @@ static void heapFree(void *addr, memArea_t *heap, size_t heapSize) {
 
 void *kmalloc(size_t size) {
 	if (size == 0) {
+		return NULL;
+	}
+	if (size > MAX_ALLOC) {
+		printk("kmalloc: too big alloc!\n");
 		return NULL;
 	}
 	if (size % HEAP_ALIGN) {
@@ -215,10 +221,10 @@ void *krealloc(void *addr, size_t newSize) {
 	//memArea_t *nextHeader = curFooter + 1;
 	if (*nextHeader & AREA_INUSE || (*nextHeader & AREA_SIZE) < moreNeeded) {
 		//alloc new area, copy and free old area
+		releaseSpinlock(&heapLock);
 		void *newAddr = kmalloc(newSize);
 		memcpy(newAddr, addr, oldSize);
 		kfree(addr);
-		releaseSpinlock(&heapLock);
 		return newAddr;
 	}
 	memArea_t *nextFooter = getFooterFromHeader(nextHeader);

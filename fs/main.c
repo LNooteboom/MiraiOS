@@ -5,56 +5,84 @@
 
 struct rbNode *activeInodes;
 
-//struct inode *rootDir;
-struct dirEntry rootDir;
+struct inode *rootDir;
 
 char testString[] = "Test string!";
 
-int fsAddInode(struct inode *node) {
-	rbInsert(&activeInodes, &node->rbHeader);
-	return 0;
-}
-
-int fsDeleteInode(struct inode *inode) {
-	rbDelete(&activeInodes, inode->rbHeader.value);
-	return 0;
-}
-
 int mountRoot(struct inode *rootInode) {
-	fsAddInode(rootInode);
-	rootDir.inode = rootInode;
+	rootDir = rootInode;
 	return 0;
 }
+/*
+static int findSlash(const char *str, size_t len, int pos) {
+	for (int i = pos; i < len; i++) {
+		if (str[i] == '/') {
+			return i;
+		}
+	}
+	return -1;
+}
+
+struct inode *getBaseDir(struct inode *cwd, const char *path) {
+	char name[256];
+	size_t pathLen = strlen(path);
+	int curNameStart = 0;
+	int curNameEnd;
+	struct inode *curDir = cwd;
+	while ((curNameEnd = findSlash(path, pathLen, curNameStart)) >= 0) {
+		if (curNameEnd == curNameStart) {
+			//empty name
+			curNameStart++;
+			continue;
+		}
+		int curNameLen = curNameEnd - curNameStart;
+		if (curNameLen >= 255) {
+			//name too long
+			printk("Entry in path too long: %s", path);
+			return NULL;
+		}
+
+		memcpy(name, &path[curNameStart], curNameLen);
+		name[curNameLen] = 0;
+
+		curNameStart = curNameEnd + 1;
+	}
+}*/
 
 static void listFiles(struct inode *dir) {
-	struct file dfile;
-	dir->fOps->open(NULL, &dfile, NULL);
-	struct dirEntry entries[16];
-	ssize_t read = dfile.fOps->read(&dfile, entries, 16 * sizeof(struct dirEntry));
-	for (unsigned int i = 0; i < read / sizeof(struct dirEntry); i++) {
-		printk("%s\n", entries[i].inlineName);
+	struct cachedDir *cd = dir->cachedData;
+	printk("files:\n");
+	for (unsigned int i = 0; i < cd->nrofEntries; i++) {
+		struct dirEntry *entry = &cd->entries[i];
+		char *name;
+		if (entry->nameLen > 31) {
+			name = entry->name;
+		} else {
+			name = entry->inlineName;
+		}
+		printk("->%s\n", name);
 	}
 }
 
 void fstest(void) {
 	struct file newFile;
-	rootDir.inode->iOps->create(rootDir.inode, "newfile.txt", ITYPE_FILE);
-	rootDir.inode->fOps->open(rootDir.inode, &newFile, "newfile.txt");
-	newFile.fOps->write(&newFile, testString, sizeof(testString));
-	listFiles(rootDir.inode);
+	int error = fsCreate(&newFile, rootDir, "newfile.txt", ITYPE_FILE);
+	fsWrite(&newFile, testString, sizeof(testString));
+	listFiles(rootDir);
 
 	struct file newFile2;
-	rootDir.inode->fOps->open(rootDir.inode, &newFile2, "newfile.txt");
+	struct dirEntry *entry = dirCacheLookup(rootDir, "newfile.txt");
+	if (!entry) {
+		printk("Entry not found!\n");
+		return;
+	}
+	fsOpen(entry, &newFile2);
 	char buf[64];
-	newFile2.fOps->read(&newFile2, buf, 64);
+	fsRead(&newFile2, buf, 64);
 	printk("contents: %s\n", buf);
 	
-	rootDir.inode->iOps->link(rootDir.inode, newFile2.inode, "newfile2.txt");
-	rootDir.inode->iOps->unlink(rootDir.inode, "newfile.txt");
-	//printk("deleted\n");
-	listFiles(rootDir.inode);
-	struct file newFile3;
-	rootDir.inode->fOps->open(rootDir.inode, &newFile3, "newfile2.txt");
-	newFile3.fOps->read(&newFile3, buf, 64);
-	printk("contents: %s\n", buf);
+	fsLink(rootDir, newFile2.inode, "newfile2.txt");
+	listFiles(rootDir);
+	fsUnlink(entry);
+	listFiles(rootDir);
 }

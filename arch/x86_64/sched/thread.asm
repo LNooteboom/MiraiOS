@@ -25,6 +25,8 @@ global reschedIPI:function
 global migrateMainStack:function
 global kthreadStop:function
 
+global jiffyCounter:data
+
 SECTION .text
 
 ;thread stack layout:
@@ -186,8 +188,10 @@ jiffyIrq:
 	jne .noIPI
 		mov edi, 0xC3
 		xor esi, esi
-		call lapicSendIPIToAll
+		call lapicSendIPIToAll ;send resched IPI
 	.noIPI:
+
+	inc qword [jiffyCounter]
 
 	;Restore mandatory registers
 	mov rax, [rsp + 0x40]
@@ -417,3 +421,7 @@ nextThread: ;r15 = old thread
 	mov r15, [rsp]
 	add rsp, 0x78
 	iretq
+
+SECTION .bss
+
+jiffyCounter: resq 1

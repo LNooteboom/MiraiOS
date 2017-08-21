@@ -6,6 +6,7 @@
 #include <time.h>
 #include <lib/rbtree.h>
 #include <sched/spinlock.h>
+#include <fs/direntry.h>
 
 #define ITYPE_MASK	7
 #define ITYPE_DIR	1
@@ -14,6 +15,9 @@
 #define SEEK_SET	0
 #define SEEK_CUR	1
 #define SEEK_END	2
+
+#define RAMFS_PRESENT	1 //always set if inode belongs to ramfs
+#define RAMFS_INITRD	2 //set if file comes from initrd
 
 typedef int64_t ssize_t;
 
@@ -46,55 +50,61 @@ struct inodeAttributes {
 	time_t accessTime;
 };
 
-struct inodeOps {
+struct dirOps {
 	//directory operations
+	struct inode *(*lookup)(struct inode *dir, const char *name);
 	int (*create)(struct inode *dir, const char *name, uint32_t type);
+	int (*open)(struct inode *file, struct file *output);
 	int (*link)(struct inode *dir, struct inode *inode, const char *name);
 	int (*unlink)(struct inode *dir, const char *name);
 };
 
 struct fileOps {
-	int (*open)(struct inode *dir, struct file *output, const char *name);
 	ssize_t (*read)(struct file *file, void *buffer, size_t bufSize);
 	int (*write)(struct file *file, void *buffer, size_t bufSize);
 	int (*seek)(struct file *file, int64_t offset, int whence);
 };
 
 struct inode {
-	struct rbNode rbHeader; //value = (fsIndex << 32) | inodeIndex
+	//struct rbNode rbHeader; //value = (fsIndex << 32) | inodeIndex
+	uint32_t inodeID;
 
 	unsigned int type;
 	unsigned int refCount;
 	unsigned int nrofLinks;
+	
+	unsigned int ramfs;
 
-	uint64_t fileSize;
+	uint64_t fileSize; //unused for dirs
 
-	const struct superBlock *superBlock;
-	const struct inodeOps *iOps;
-	const struct fileOps *fOps;
+	struct superBlock *superBlock;
 
-	spinlock_t lock;
+	spinlock_t lock; //used for both the inode and cachedData
 	struct inodeAttributes attr;
 
-	//void *privateData;
+	bool cacheDirty;
+	void *cachedData;
+	size_t cachedDataSize;
 };
 
-struct dirEntry { //64 bytes
-	struct inode *inode;
-	struct inode *parent;
-	struct superBlock *superBlock;
-	uint32_t refCount;
-	uint32_t nameLen;
-	union {
-		char *name;
-		char inlineName[32];
-	};
-};
+extern struct inode *rootDir;
 
-extern struct dirEntry rootDir;
-
-int fsAddInode(struct inode *inode);
-int fsDeleteInode(struct inode *inode);
 int mountRoot(struct inode *rootInode);
+
+
+int fsOpen(struct dirEntry *file, struct file *output);
+
+int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t type);
+
+int fsLink(struct inode *dir, struct inode *inode, const char *name);
+
+int fsUnlink(struct dirEntry *entry);
+
+
+ssize_t fsRead(struct file *file, void *buffer, size_t bufSize);
+
+int fsWrite(struct file *file, void *buffer, size_t bufSize);
+
+int fsSeek(struct file *file, int64_t offset, int whence);
 
 #endif

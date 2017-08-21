@@ -1,10 +1,12 @@
 #include <fs/fs.h>
-#include "ramfs.h"
+#include <stdint.h>
+#include <stddef.h>
 #include <arch/bootinfo.h>
 #include <errno.h>
-#include <print.h>
-#include <mm/memset.h>
 #include <mm/heap.h>
+#include <mm/paging.h>
+#include <mm/memset.h>
+#include <print.h>
 
 struct cpioHeader {
 	char magic[6];
@@ -42,7 +44,7 @@ static uint32_t parseHex(char *str) {
 	return result;
 }
 
-static int parseInitrd(struct ramfsInode *rootInode) {
+static int parseInitrd(struct inode *rootInode) {
 	//char *initrd = bootInfo.initrd;
 	char *initrd = ioremap((uintptr_t)bootInfo.initrd, bootInfo.initrdLen);
 	struct cpioHeader *initrdHeader;
@@ -59,23 +61,26 @@ static int parseInitrd(struct ramfsInode *rootInode) {
 			break;
 		}
 		
-		//TODO add support for directories and hardlinks
+		//TODO add support for directories (and hardlinks?)
 
 		printk("Add file: %s\n", name);
-		struct ramfsInode *newInode;
-		int error = _ramfsCreate((struct inode **)(&newInode), (struct inode *)rootInode, name, ITYPE_FILE);
+		struct inode *newInode = kmalloc(sizeof(struct inode));
+		newInode->cachedData = name + nameLen;
+		uint32_t fileSize = parseHex(initrdHeader->filesize);
+		newInode->fileSize = fileSize;
+
+		int error = fsLink(rootInode, newInode, name);
 		if (error) {
 			return error;
 		}
-		newInode->fileAddr = name + nameLen;
-		uint32_t fileSize = parseHex(initrdHeader->filesize);
-		newInode->base.fileSize = fileSize;
+
 		curPosition += sizeof(struct cpioHeader) + nameLen + fileSize;
 		if (curPosition & 3) {
 			curPosition &= ~3;
 			curPosition += 4;
 		}
 	}
+	
 	return 0;
 }
 
@@ -86,17 +91,21 @@ int ramfsInit(void) {
 		return 0;
 	}
 	//create root inode
-	struct ramfsInode *rootInode = kmalloc(sizeof(struct ramfsInode));
+	struct inode *rootInode = kmalloc(sizeof(struct inode));
 	if (!rootInode) {
 		return -ENOMEM;
 	}
-	memset(rootInode, 0, sizeof(struct ramfsInode));
-	rootInode->base.type = ITYPE_DIR;
-	rootInode->base.iOps = &ramfsInodeOps;
-	rootInode->base.fOps = &ramfsFileOps;
-	rootInode->base.attr.accessPermissions = 0664;
-	rootInode->base.rbHeader.value = ((uint64_t)ramfsSuperBlock.fsID << 32) | 1;
-	mountRoot(&rootInode->base);
+	memset(rootInode, 0, sizeof(struct inode));
+
+	rootInode->inodeID = 1;
+	rootInode->type = ITYPE_DIR;
+	rootInode->refCount = 1;
+	rootInode->nrofLinks = 1;
+	rootInode->ramfs = RAMFS_PRESENT;
+	rootInode->superBlock = &ramfsSuperBlock;
+	rootInode->attr.accessPermissions = 0664;
+
+	mountRoot(rootInode);
 	ramfsSuperBlock.curInodeID = 2;
 
 	return parseInitrd(rootInode);

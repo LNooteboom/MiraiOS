@@ -6,5 +6,8 @@
 #define EBUSY		3
 #define EIO			4
 #define ENOENT		5
+#define EISDIR		6
+#define ENOSYS		7
+#define EROFS		8
 
 #endif

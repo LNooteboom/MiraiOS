@@ -51,6 +51,8 @@ struct threadInfo {
 
 typedef struct threadInfo *thread_t;
 
+extern unsigned long jiffyCounter;
+
 /*
 Creates a new kernel thread
 */
