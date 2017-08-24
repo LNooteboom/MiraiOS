@@ -6,23 +6,13 @@
 #include <print.h>
 
 int dirCacheAdd(struct dirEntry **newEntry, struct inode *dir) {
-	//spinlock on dir must already be acquired
+	//spinlock on dir must already be acquired, this applies to all functions in this file
 	struct cachedDir *new;
 
 	if (!dir->cachedData) {
-		if (dir->ramfs) {
-			//dir cache was created new, initialize cachedDir struct
-			new = kmalloc(sizeof(struct cachedDir));
-			if (!new) {
-				return -ENOMEM;
-			}
-			dir->cachedDataSize = sizeof(struct cachedDir);
-			new->nrofEntries = 0;
-		} else {
-			//load dircache from fs
-			printk("Error creating dirCache: unimplemented");
-			return -ENOSYS;
-		}
+		//load dircache from fs
+		printk("Error creating dirCache: unimplemented");
+		return -ENOSYS;
 	} else {
 		new = krealloc(dir->cachedData, dir->cachedDataSize + sizeof(struct dirEntry));
 		if (!new) {
@@ -37,6 +27,7 @@ int dirCacheAdd(struct dirEntry **newEntry, struct inode *dir) {
 	struct dirEntry *newEntry2 = &new->entries[new->nrofEntries];
 	memcpy(newEntry2, *newEntry, sizeof(struct dirEntry));
 	newEntry2->index = new->nrofEntries++;
+	newEntry2->parent = dir;
 	*newEntry = newEntry2;
 
 	return 0;
@@ -44,25 +35,14 @@ int dirCacheAdd(struct dirEntry **newEntry, struct inode *dir) {
 
 int dirCacheRemove(struct dirEntry *entry) {
 	struct inode *dir = entry->parent;
-
-	acquireSpinlock(&dir->lock);
-
 	struct cachedDir *cd = dir->cachedData;
 
 	memcpy(entry, entry + 1, (cd->nrofEntries - entry->index - 1) * sizeof(struct dirEntry)); //copy backwards so memcpy is safe
 
 	cd->nrofEntries--;
-	if (!cd->nrofEntries) {
-		kfree(cd);
-		dir->cachedData = NULL;
-		dir->cachedDataSize = 0;
-	} else {
-		dir->cachedDataSize -= sizeof(struct dirEntry);
-		dir->cachedData = krealloc(cd, dir->cachedDataSize - sizeof(struct dirEntry));
-	}
+	dir->cachedDataSize -= sizeof(struct dirEntry);
+	dir->cachedData = krealloc(cd, dir->cachedDataSize);
 	dir->cacheDirty = true;
-
-	releaseSpinlock(&dir->lock);
 
 	return 0;
 }
@@ -103,5 +83,34 @@ int dirCacheDelete(struct inode *dir) {
 		}
 	}
 	kfree(cd);
+	return 0;
+}
+
+int dirCacheInit(struct inode *dir, struct inode *parentDir) {
+	struct cachedDir *cd = kmalloc(sizeof(struct cachedDir));
+	if (!cd) {
+		return -ENOMEM;
+	}
+	dir->cachedData = cd;
+	dir->cachedDataSize = sizeof(struct cachedDir);
+
+	//"." entry, points to same dir
+	cd->nrofEntries = 2;
+	cd->entries[0].inode = dir;
+	cd->entries[0].parent = dir;
+	cd->entries[0].index = 0;
+	cd->entries[0].nameLen = 1;
+	cd->entries[0].inlineName[0] = '.';
+	cd->entries[0].inlineName[1] = 0;
+
+	//".." entry¸ points to parent dir
+	cd->entries[1].inode = parentDir;
+	cd->entries[1].parent = dir;
+	cd->entries[1].index = 0;
+	cd->entries[1].nameLen = 2;
+	cd->entries[1].inlineName[0] = '.';
+	cd->entries[1].inlineName[1] = '.';
+	cd->entries[1].inlineName[2] = 0;
+
 	return 0;
 }

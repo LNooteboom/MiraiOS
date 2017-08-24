@@ -1,7 +1,9 @@
 #include <fs/fs.h>
 
 #include <mm/paging.h>
+#include <errno.h>
 #include <print.h>
+#include <mm/memset.h>
 
 struct rbNode *activeInodes;
 
@@ -13,9 +15,9 @@ int mountRoot(struct inode *rootInode) {
 	rootDir = rootInode;
 	return 0;
 }
-/*
+
 static int findSlash(const char *str, size_t len, int pos) {
-	for (int i = pos; i < len; i++) {
+	for (unsigned int i = pos; i < len; i++) {
 		if (str[i] == '/') {
 			return i;
 		}
@@ -23,66 +25,63 @@ static int findSlash(const char *str, size_t len, int pos) {
 	return -1;
 }
 
-struct inode *getBaseDir(struct inode *cwd, const char *path) {
+static struct dirEntry *getDirEntryFromPath(struct inode *cwd, const char *path, int *fileNameIndex) {
 	char name[256];
 	size_t pathLen = strlen(path);
-	int curNameStart = 0;
-	int curNameEnd;
-	struct inode *curDir = cwd;
-	while ((curNameEnd = findSlash(path, pathLen, curNameStart)) >= 0) {
-		if (curNameEnd == curNameStart) {
-			//empty name
-			curNameStart++;
+	int curNameStart;
+	int curNameEnd = -1; //points to next slash
+	struct inode *curDir = (cwd)? cwd : rootDir;
+
+	while (true) {
+		int slash = findSlash(path, pathLen, curNameEnd + 1);
+		if (slash < 0 || slash == (int)pathLen - 1) {
+			if (fileNameIndex) {
+				*fileNameIndex = curNameEnd + 1;
+				return (struct dirEntry *)curDir;
+			} else {
+				acquireSpinlock(&curDir->lock);
+				struct dirEntry *file = dirCacheLookup(curDir, &path[curNameEnd + 1]);
+				//struct inode *ret = (file)? file->inode : NULL;
+				//releaseSpinlock(&curDir->lock);
+				return file; //SPINLOCK MUST BE RELEASED BY THE CALLER
+			}
+		} else if (slash == 0) {
+			curDir = rootDir; //path starts with a slash, use rootdir
+			curNameEnd = 0;
 			continue;
 		}
-		int curNameLen = curNameEnd - curNameStart;
-		if (curNameLen >= 255) {
-			//name too long
-			printk("Entry in path too long: %s", path);
+		curNameStart = curNameEnd + 1;
+		curNameEnd = slash;
+
+		int len = curNameEnd - curNameStart;
+		if (!len) {
+			continue; //skip double slash
+		}
+		memcpy(name, &path[curNameStart], len);
+		name[len] = 0;
+
+		acquireSpinlock(&curDir->lock);
+		struct dirEntry *entry = dirCacheLookup(curDir, name);
+		if (!entry || (entry->inode->type & ITYPE_MASK) != ITYPE_DIR) {
+			releaseSpinlock(&curDir->lock);
 			return NULL;
 		}
-
-		memcpy(name, &path[curNameStart], curNameLen);
-		name[curNameLen] = 0;
-
-		curNameStart = curNameEnd + 1;
-	}
-}*/
-
-static void listFiles(struct inode *dir) {
-	struct cachedDir *cd = dir->cachedData;
-	printk("files:\n");
-	for (unsigned int i = 0; i < cd->nrofEntries; i++) {
-		struct dirEntry *entry = &cd->entries[i];
-		char *name;
-		if (entry->nameLen > 31) {
-			name = entry->name;
-		} else {
-			name = entry->inlineName;
-		}
-		printk("->%s\n", name);
+		curDir = entry->inode;
+		releaseSpinlock(&curDir->lock);
+		
 	}
 }
 
-void fstest(void) {
-	struct file newFile;
-	int error = fsCreate(&newFile, rootDir, "newfile.txt", ITYPE_FILE);
-	fsWrite(&newFile, testString, sizeof(testString));
-	listFiles(rootDir);
-
-	struct file newFile2;
-	struct dirEntry *entry = dirCacheLookup(rootDir, "newfile.txt");
+struct inode *getInodeFromPath(struct inode *cwd, const char *path) {
+	struct dirEntry *entry = getDirEntryFromPath(cwd, path, NULL);
 	if (!entry) {
-		printk("Entry not found!\n");
-		return;
+		return NULL;
 	}
-	fsOpen(entry, &newFile2);
-	char buf[64];
-	fsRead(&newFile2, buf, 64);
-	printk("contents: %s\n", buf);
-	
-	fsLink(rootDir, newFile2.inode, "newfile2.txt");
-	listFiles(rootDir);
-	fsUnlink(entry);
-	listFiles(rootDir);
+	struct inode *ret = entry->inode;
+	releaseSpinlock(&entry->parent->lock);
+	return ret;
+}
+
+struct inode *getBaseDirFromPath(struct inode *cwd, int *fileNameIndex, const char *path) {
+	return (struct inode *)getDirEntryFromPath(cwd, path, fileNameIndex);
 }

@@ -7,6 +7,12 @@
 #include <print.h>
 
 int fsLink(struct inode *dir, struct inode *inode, const char *name) {
+	acquireSpinlock(&inode->lock);
+	if (inode->nrofLinks && (inode->type & ITYPE_MASK) == ITYPE_DIR) {
+		releaseSpinlock(&inode->lock);
+		return -EINVAL; //hardlinks are not allowed for dirs
+	}
+
 	struct dirEntry entry;
 	size_t nameLen = strlen(name);
 	if (nameLen <= 31) {
@@ -25,25 +31,30 @@ int fsLink(struct inode *dir, struct inode *inode, const char *name) {
 
 	entry.nameLen = nameLen;
 	entry.inode = inode;
-	entry.parent = dir;
-	entry.superBlock = dir->superBlock;
+	
 	inode->nrofLinks += 1;
 	struct dirEntry *pEntry = &entry;
 	dirCacheAdd(&pEntry, dir);
 
 	releaseSpinlock(&dir->lock);
+	releaseSpinlock(&inode->lock);
 	
 	return 0;
 }
 
-int fsUnlink(struct dirEntry *entry) {
+int fsUnlink(struct inode *dir, const char *name) {
+	acquireSpinlock(&dir->lock);
+	struct dirEntry *entry = dirCacheLookup(dir, name);
+
 	if (!entry) {
+		releaseSpinlock(&dir->lock);
 		return -ENOENT;
 	}
 
 	struct inode *inode = entry->inode;
 	if (!inode->ramfs) { //temp
 		printk("Error deleting inode: unimplemented");
+		releaseSpinlock(&dir->lock);
 		return -ENOSYS;
 	}
 	
@@ -72,5 +83,7 @@ int fsUnlink(struct dirEntry *entry) {
 	}
 	//delete direntry
 	dirCacheRemove(entry);
+
+	releaseSpinlock(&dir->lock);
 	return 0;
 }

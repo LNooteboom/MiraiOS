@@ -8,7 +8,7 @@
 struct dirEntry {
 	struct inode *inode;
 	struct inode *parent;
-	struct superBlock *superBlock;
+	uint64_t unused;
 	uint32_t index;
 	uint32_t nameLen;
 	union {
@@ -20,7 +20,7 @@ struct dirEntry {
 struct cachedDir {
 	unsigned int nrofEntries;
 
-	struct dirEntry entries[1]; //must be last
+	struct dirEntry entries[2]; //can be more than 2, must be last
 };
 
 int dirCacheAdd(struct dirEntry **newEntry, struct inode *dir);
@@ -30,5 +30,7 @@ int dirCacheRemove(struct dirEntry *entry);
 struct dirEntry *dirCacheLookup(struct inode *dir, const char *name);
 
 int dirCacheDelete(struct inode *dir);
+
+int dirCacheInit(struct inode *dir, struct inode *parentDir);
 
 #endif

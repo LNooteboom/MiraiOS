@@ -13,10 +13,6 @@
 
 #define TIMESLICE_BASE	(JIFFY_HZ / 10)
 
-#define THRD_SUCCESS	0
-#define THRD_NOMEM		-1
-#define THRD_BAD_PARAM	-2
-
 enum threadState {
 	THREADSTATE_FINISHED,
 	THREADSTATE_RUNNING,

@@ -7,6 +7,7 @@
 #include <mm/paging.h>
 #include <mm/memset.h>
 #include <print.h>
+#include <modules.h>
 
 struct cpioHeader {
 	char magic[6];
@@ -65,9 +66,15 @@ static int parseInitrd(struct inode *rootInode) {
 
 		printk("Add file: %s\n", name);
 		struct inode *newInode = kmalloc(sizeof(struct inode));
+		memset(newInode, 0, sizeof(struct inode));
+
 		newInode->cachedData = name + nameLen;
 		uint32_t fileSize = parseHex(initrdHeader->filesize);
 		newInode->fileSize = fileSize;
+		newInode->ramfs = RAMFS_PRESENT | RAMFS_INITRD;
+		newInode->type = ITYPE_FILE;
+		newInode->superBlock = &ramfsSuperBlock;
+		rootInode->attr.accessPermissions = 0664;
 
 		int error = fsLink(rootInode, newInode, name);
 		if (error) {
@@ -105,8 +112,12 @@ int ramfsInit(void) {
 	rootInode->superBlock = &ramfsSuperBlock;
 	rootInode->attr.accessPermissions = 0664;
 
+	dirCacheInit(rootInode, rootInode);
+
 	mountRoot(rootInode);
 	ramfsSuperBlock.curInodeID = 2;
 
 	return parseInitrd(rootInode);
 }
+
+MODULE_INIT_LEVEL(ramfsInit, 0);

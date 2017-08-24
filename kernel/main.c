@@ -47,19 +47,19 @@ void kmain(void) {
 
 	archInit();
 
-	if (ramfsInit()) {
-		printk("ramfs error");
+	//initialize fs
+	for (moduleCall_t *i = moduleInitLevels[0]; i < moduleInitLevels[1]; i++) {
+		(*i)();
 	}
 
-	//execute moduleInits
-	for (int level = 0; level < NROF_MODULE_INIT_LEVELS; level++) {
+	//initialize drivers
+	for (int level = 1; level < NROF_MODULE_INIT_LEVELS; level++) {
 		for (moduleCall_t *i = moduleInitLevels[level]; i < moduleInitLevels[level + 1]; i++) {
 			(*i)();
 		}
 	}
 	puts("Init complete.\n");
 
-	fstest();
 	kthreadExit(NULL);
 }
 

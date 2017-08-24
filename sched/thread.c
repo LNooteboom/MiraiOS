@@ -5,7 +5,7 @@
 #include <print.h>
 #include <sched/readyqueue.h>
 #include <stdbool.h>
-
+#include <errno.h>
 #include <mm/pagemap.h>
 #include <arch/cpu.h>
 
@@ -25,7 +25,7 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 	//alloc thread stack
 	uintptr_t stackBottom = (uintptr_t)(allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE));
 	if (!stackBottom) {
-		return THRD_NOMEM;
+		return -ENOMEM;
 	}
 	struct threadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct threadInfo));
 	if (thread) {
@@ -57,14 +57,14 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 	//now push it to the scheduling queue
 	readyQueuePush(thrd); //initializes nextThread and prevThread
 	
-	return THRD_SUCCESS;
+	return 0;
 }
 
 int kthreadCreateFromMain(thread_t *thread) {
 	//alloc thread stack
 	uintptr_t stackBottom = (uintptr_t)(allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE));
 	if (!stackBottom) {
-		return THRD_NOMEM;
+		return -ENOMEM;
 	}
 	struct threadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct threadInfo));
 	*thread = thrd;
@@ -87,7 +87,7 @@ int kthreadCreateFromMain(thread_t *thread) {
 
 	setCurrentThread(thrd);
 	
-	return THRD_SUCCESS;
+	return 0;
 }
 
 thread_t kthreadSwitch(thread_t oldThread, bool higherThreadReleased) {

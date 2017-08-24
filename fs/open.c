@@ -4,25 +4,19 @@
 #include <mm/memset.h>
 #include <print.h>
 
-int fsOpen(struct dirEntry *file, struct file *output) {
-	if (!file->inode) {
-		return -EINVAL;
-	}
+int fsOpen(struct inode *inode, struct file *output) {
 
-	if ((file->inode->type & ITYPE_MASK) == ITYPE_DIR) {
+	if ((inode->type & ITYPE_MASK) == ITYPE_DIR) {
 		return -EISDIR;
 	}
-	acquireSpinlock(&file->inode->lock);
+	acquireSpinlock(&inode->lock);
 
-	file->inode->refCount++;
-	output->path = file;
-	output->inode = file->inode;
-	//output->fOps = file->inode->fOps;
-	output->refCount = 1;
+	inode->refCount++;
+	output->inode = inode;
 	output->lock = 0;
 	output->offset = 0;
 
-	releaseSpinlock(&file->inode->lock);
+	releaseSpinlock(&inode->lock);
 
 	return 0;
 }
@@ -64,15 +58,15 @@ int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t 
 	dir->superBlock->curInodeID += 1;
 	newInode->superBlock = dir->superBlock;
 	newInode->type = type;
-	//newInode->dOps = dir->dOps;
-	//newInode->fOps = dir->fOps;
 	newInode->attr.accessPermissions = 0664;
 	newInode->nrofLinks = 1;
 	newInode->ramfs = dir->ramfs;
 
+	if ((type & ITYPE_MASK) == ITYPE_DIR) {
+		dirCacheInit(newInode, dir);
+	}
+
 	entry.inode = newInode;
-	entry.parent = dir;
-	entry.superBlock = dir->superBlock;
 
 	if (!newInode->ramfs) {
 		//fsAddInode(newInode);
@@ -89,11 +83,8 @@ int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t 
 		}
 		return error;
 	}
-	if (output) {
-		output->path = newEntry;
+	if (output && (newInode->type & ITYPE_MASK) == ITYPE_FILE) {
 		output->inode = newInode;
-		//output->fOps = newInode->fOps;
-		output->refCount = 1;
 		output->lock = 0;
 		output->offset = 0;
 	}

@@ -193,12 +193,11 @@ void *krealloc(void *addr, size_t newSize) {
 	acquireSpinlock(&heapLock);
 	//get entry after current one
 	memArea_t *curHeader = (memArea_t*)(addr) - 1;
-	memArea_t *nextHeader = getFooterFromHeader(curHeader);
-	nextHeader++;
+	memArea_t *nextHeader = getFooterFromHeader(curHeader) + 1;
 	size_t oldSize = (*curHeader & AREA_SIZE) - (sizeof(memArea_t) * 2);
 	if (newSize <= oldSize) {
 		//shrink
-		size_t diff = oldSize - newSize;
+		size_t diff = oldSize - newSize + (sizeof(memArea_t) * 2);
 		if (diff < HEAP_ALIGN * 4) {
 			releaseSpinlock(&heapLock);
 			return addr;
@@ -208,9 +207,16 @@ void *krealloc(void *addr, size_t newSize) {
 		*curFooter = *curHeader;
 
 		memArea_t *newHeader = curFooter + 1;
-		*newHeader = diff;
-		memArea_t *newFooter = getFooterFromHeader(newHeader);
-		*newFooter = *newHeader;
+		if (*nextHeader & AREA_INUSE) {
+			*newHeader = diff;
+			memArea_t *newFooter = getFooterFromHeader(newHeader);
+			*newFooter = *newHeader;
+		} else {
+			//merge
+			memArea_t *nextFooter = getFooterFromHeader(nextHeader);
+			*newHeader = *nextHeader + diff;
+			*nextFooter = *newHeader;
+		}
 		releaseSpinlock(&heapLock);
 		return addr;
 	}

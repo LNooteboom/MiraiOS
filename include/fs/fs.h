@@ -25,13 +25,8 @@ struct inode;
 struct dirEntry;
 
 struct file {
-	struct dirEntry *path;
-	struct inode *inode;
-
-	const struct fileOps *fOps;
-
-	unsigned int refCount;
 	spinlock_t lock;
+	struct inode *inode;
 	uint64_t offset;
 };
 
@@ -89,22 +84,55 @@ struct inode {
 
 extern struct inode *rootDir;
 
+/*
+Mounts the root directory
+*/
 int mountRoot(struct inode *rootInode);
 
+/*
+Parses a file/directory path and returns the inode or NULL if not found
+*/
+struct inode *getInodeFromPath(struct inode *cwd, const char *path);
 
-int fsOpen(struct dirEntry *file, struct file *output);
+/*
+Parses a file/directory path and returns the inode of the base directory and an index to the file name
+Useful for fsCreate/fsLink.
+*/
+struct inode *getBaseDirFromPath(struct inode *cwd, int *fileNameIndex, const char *path);
 
+/*
+Opens a file
+*/
+int fsOpen(struct inode *inode, struct file *output);
+
+/*
+Creates a file or directory
+*/
 int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t type);
 
+/*
+Creates a directory entry for a specified inode
+*/
 int fsLink(struct inode *dir, struct inode *inode, const char *name);
 
-int fsUnlink(struct dirEntry *entry);
+/*
+Removes a directory entry (and the inode if nrofLinks == 0)
+*/
+int fsUnlink(struct inode *dir, const char *name);
 
-
+/*
+Reads from a file, returns nrof bytes read
+*/
 ssize_t fsRead(struct file *file, void *buffer, size_t bufSize);
 
+/*
+Writes to a file
+*/
 int fsWrite(struct file *file, void *buffer, size_t bufSize);
 
+/*
+Sets the current offset of a file stream
+*/
 int fsSeek(struct file *file, int64_t offset, int whence);
 
 #endif
