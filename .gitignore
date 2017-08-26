@@ -14,6 +14,8 @@ miraiBoot
 miraiBoot.efi
 efibuild
 
+config
+
 GPATH
 GRTAGS
 GTAGS
