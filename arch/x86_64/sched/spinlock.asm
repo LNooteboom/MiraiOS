@@ -4,6 +4,8 @@ global releaseSpinlock:function
 extern puts
 extern hexprintln64
 
+extern panic
+
 SECTION .text
 
 acquireSpinlock:
@@ -25,7 +27,7 @@ acquireSpinlock:
 		pause
 		test [rdi], dword 1
 		jz .lock
-		cmp ecx, 1000000
+		cmp ecx, 0x7FFFFFFF ;10000000000
 		jae .error
 		jmp .spin
 
@@ -44,11 +46,12 @@ acquireSpinlock:
 .error:
 	xchg bx, bx
 	mov rdi, spinlockStuckMsg
-	call puts
-	mov rdi, [rsp]
-	call hexprintln64
-	cli
-	hlt
+	;call puts
+	;mov rdi, [rsp]
+	;call hexprintln64
+	;cli
+	;hlt
+	call panic
 
 releaseSpinlock:
 	xor eax, eax

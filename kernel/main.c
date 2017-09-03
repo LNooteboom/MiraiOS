@@ -11,8 +11,6 @@
 #include <irq.h>
 #include <drivers/video/framebuffer.h>
 
-#include <arch/bootinfo.h>
-
 //linker symbols
 extern moduleCall_t MODULE_INITS_0_START;
 extern moduleCall_t MODULE_INITS_1_START;
@@ -32,6 +30,12 @@ uintptr_t __stack_chk_guard;
 
 thread_t mainThread;
 
+static void executeModuleCallLevel(unsigned int level) {
+	for (moduleCall_t *i = moduleInitLevels[level]; i < moduleInitLevels[level + 1]; i++) {
+		(*i)();
+	}
+}
+
 void kmain(void) {
 	initInterrupts();
 	mmInit();
@@ -48,16 +52,13 @@ void kmain(void) {
 	archInit();
 
 	//initialize fs
-	for (moduleCall_t *i = moduleInitLevels[0]; i < moduleInitLevels[1]; i++) {
-		(*i)();
-	}
+	executeModuleCallLevel(0);
 
 	//initialize drivers
-	for (int level = 1; level < NROF_MODULE_INIT_LEVELS; level++) {
-		for (moduleCall_t *i = moduleInitLevels[level]; i < moduleInitLevels[level + 1]; i++) {
-			(*i)();
-		}
-	}
+	executeModuleCallLevel(1);
+	executeModuleCallLevel(2);
+	executeModuleCallLevel(3);
+
 	puts("Init complete.\n");
 
 	kthreadExit(NULL);

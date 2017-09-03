@@ -1,5 +1,6 @@
 #include <fs/fs.h>
 #include <fs/direntry.h>
+#include <fs/devfile.h>
 #include <errno.h>
 #include <mm/memset.h>
 #include <mm/heap.h>
@@ -42,6 +43,24 @@ int fsLink(struct inode *dir, struct inode *inode, const char *name) {
 	return 0;
 }
 
+static void deleteInode(struct inode *inode) {
+	if (inode->ramfs) {
+		//delete cache
+		if (inode->cachedData) {
+			if ((inode->type & ITYPE_MASK) == ITYPE_DIR) {
+				dirCacheDelete(inode);
+			} else if (!(inode->ramfs & RAMFS_INITRD)) {
+				//file
+				deallocPages(inode->cachedData, inode->cachedDataSize);
+			}
+		}
+		//delete inode
+		kfree(inode);
+	} else {
+		//call fs drivers
+	}
+}
+
 int fsUnlink(struct inode *dir, const char *name) {
 	acquireSpinlock(&dir->lock);
 	struct dirEntry *entry = dirCacheLookup(dir, name);
@@ -62,21 +81,15 @@ int fsUnlink(struct inode *dir, const char *name) {
 
 	inode->nrofLinks--;
 	if (!inode->nrofLinks) {
-		releaseSpinlock(&inode->lock);
-		if (inode->ramfs) {
-			//delete cache
-			if (inode->cachedData) {
-				if ((inode->type & ITYPE_MASK) == ITYPE_DIR) {
-					dirCacheDelete(inode);
-				} else if (!(inode->ramfs & RAMFS_INITRD)) {
-					//file
-					deallocPages(inode->cachedData, inode->cachedDataSize);
-				}
+		if ((inode->type & ITYPE_MASK) == ITYPE_CHAR) {
+			struct devFileOps *ops = inode->ops;
+			if (ops && ops->del) {
+				ops->del(inode);
 			}
-			//delete inode
-			kfree(inode);
+			releaseSpinlock(&inode->lock);
 		} else {
-			//call fs drivers
+			releaseSpinlock(&inode->lock);
+			deleteInode(inode);
 		}
 	} else {
 		releaseSpinlock(&inode->lock);

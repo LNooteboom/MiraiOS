@@ -36,7 +36,9 @@ bool sleepSkipTime(thread_t curThread) {
 			} else {
 				sleepQueue.first = thrd->nextThread;
 			}
-			if (thrd == sleepQueue.last) {
+			if (thrd->nextThread) {
+				thrd->nextThread->prevThread = thrd->prevThread;
+			} else {
 				sleepQueue.last = thrd->prevThread;
 			}
 

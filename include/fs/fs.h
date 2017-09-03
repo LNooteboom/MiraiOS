@@ -11,6 +11,7 @@
 #define ITYPE_MASK	7
 #define ITYPE_DIR	1
 #define ITYPE_FILE	2
+#define ITYPE_CHAR	3
 
 #define SEEK_SET	0
 #define SEEK_CUR	1
@@ -18,16 +19,23 @@
 
 #define RAMFS_PRESENT	1 //always set if inode belongs to ramfs
 #define RAMFS_INITRD	2 //set if file comes from initrd
+#define RAMFS_DEVFILE	3
 
 typedef int64_t ssize_t;
 
 struct inode;
 struct dirEntry;
+struct devFileOps;
 
 struct file {
 	spinlock_t lock;
 	struct inode *inode;
 	uint64_t offset;
+};
+
+struct userDentry {
+	struct inode *inode;
+	char name[256];
 };
 
 struct superBlock {
@@ -44,8 +52,7 @@ struct inodeAttributes {
 	time_t modificationTime;
 	time_t accessTime;
 };
-
-struct dirOps {
+/*struct dirOps {
 	//directory operations
 	struct inode *(*lookup)(struct inode *dir, const char *name);
 	int (*create)(struct inode *dir, const char *name, uint32_t type);
@@ -58,7 +65,7 @@ struct fileOps {
 	ssize_t (*read)(struct file *file, void *buffer, size_t bufSize);
 	int (*write)(struct file *file, void *buffer, size_t bufSize);
 	int (*seek)(struct file *file, int64_t offset, int whence);
-};
+};*/
 
 struct inode {
 	//struct rbNode rbHeader; //value = (fsIndex << 32) | inodeIndex
@@ -80,6 +87,8 @@ struct inode {
 	bool cacheDirty;
 	void *cachedData;
 	size_t cachedDataSize;
+
+	struct devFileOps *ops; //used for device files only
 };
 
 extern struct inode *rootDir;
@@ -110,6 +119,8 @@ Creates a file or directory
 */
 int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t type);
 
+int fsGetDirEntry(struct inode *dir, int index, struct userDentry *dentry);
+
 /*
 Creates a directory entry for a specified inode
 */
@@ -134,5 +145,7 @@ int fsWrite(struct file *file, void *buffer, size_t bufSize);
 Sets the current offset of a file stream
 */
 int fsSeek(struct file *file, int64_t offset, int whence);
+
+int fsIoctl(struct file *file, unsigned long request, ...);
 
 #endif

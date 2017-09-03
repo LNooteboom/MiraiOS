@@ -90,3 +90,32 @@ int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t 
 	}
 	return 0;
 }
+
+int fsGetDirEntry(struct inode *dir, int index, struct userDentry *dentry) {
+	acquireSpinlock(&dir->lock);
+
+	if ((dir->type & ITYPE_MASK) != ITYPE_DIR) {
+		releaseSpinlock(&dir->lock);
+		return -EINVAL;
+	}
+	struct cachedDir *cd = dir->cachedData;
+	if (!cd) {
+		//load from fs
+		return -ENOSYS;
+	}
+	if (index >= cd->nrofEntries) {
+		return -EINVAL;
+	}
+
+	char *name = cd->entries[index].inlineName;
+	size_t len = cd->entries[index].nameLen;
+	if (len > 31) {
+		name = cd->entries[index].name;
+	}
+	memcpy(&dentry->name, name, len);
+	dentry->name[len] = 0;
+	dentry->inode = cd->entries[index].inode;
+
+	releaseSpinlock(&dir->lock);
+	return 0;
+}

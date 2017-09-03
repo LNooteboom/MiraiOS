@@ -1,4 +1,5 @@
 #include <fs/fs.h>
+#include <fs/devfile.h>
 #include <mm/memset.h>
 #include <mm/paging.h>
 #include <mm/heap.h>
@@ -23,6 +24,17 @@ ssize_t fsRead(struct file *file, void *buffer, size_t bufSize) {
 	acquireSpinlock(&file->lock);
 	struct inode *inode = file->inode;
 	acquireSpinlock(&inode->lock);
+
+	if ((inode->type & ITYPE_MASK) == ITYPE_CHAR) {
+		ssize_t ret = -ENOSYS;
+		struct devFileOps *ops = inode->ops;
+		if (ops && ops->read) {
+			ret = ops->read(file, buffer, bufSize);
+		}
+		releaseSpinlock(&inode->lock);
+		releaseSpinlock(&file->lock);
+		return ret;
+	}
 
 	size_t bytesLeft = inode->fileSize - file->offset;
 	if (bytesLeft > bufSize) {
@@ -80,6 +92,17 @@ int fsWrite(struct file *file, void *buffer, size_t bufSize) {
 	acquireSpinlock(&file->lock);
 	struct inode *inode = file->inode;
 	acquireSpinlock(&inode->lock);
+
+	if ((inode->type & ITYPE_MASK) == ITYPE_CHAR) {
+		int ret = -ENOSYS;
+		struct devFileOps *ops = inode->ops;
+		if (ops && ops->write) {
+			ret = ops->write(file, buffer, bufSize);
+		}
+		releaseSpinlock(&inode->lock);
+		releaseSpinlock(&file->lock);
+		return ret;
+	}
 
 	if (inode->ramfs & RAMFS_INITRD) {
 		releaseSpinlock(&inode->lock);
@@ -228,4 +251,23 @@ int fsSeek(struct file *file, int64_t offset, int whence) {
 	releaseSpinlock(&file->inode->lock);
 	releaseSpinlock(&file->lock);
 	return error;
+}
+
+int fsIoctl(struct file *file, unsigned long request, ...) {
+	va_list args;
+	va_start(args, request);
+	acquireSpinlock(&file->lock);
+	acquireSpinlock(&file->inode->lock);
+
+	struct devFileOps *ops = file->inode->ops;
+	int ret = -ENOSYS;
+	if ((file->inode->type & ITYPE_MASK) == ITYPE_CHAR && ops && ops->ioctl) {
+		ret = ops->ioctl(file, request, args);
+	}
+
+	releaseSpinlock(&file->inode->lock);
+	releaseSpinlock(&file->lock);
+	va_end(args);
+
+	return ret;
 }
