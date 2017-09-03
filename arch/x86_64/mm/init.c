@@ -38,17 +38,14 @@ void mmInitPaging(void) {
 
 		if (first && nrofPages >= NROF_PAGE_STACKS + 1) {
 			uintptr_t bssEnd = (uintptr_t)&BSS_END_ADDR;
-			if (bssEnd & 0xFFF) {
-				bssEnd &= ~0xFFF;
-				bssEnd += 0x1000;
+			if (bssEnd % LARGEPAGE_SIZE) {
+				bssEnd -= bssEnd % LARGEPAGE_SIZE;
+				bssEnd += LARGEPAGE_SIZE;
 			}
-			size_t ptRoomAvail = LARGEPAGE_SIZE - (bssEnd & (LARGEPAGE_SIZE - 1));
-			if (ptRoomAvail < NROF_PAGE_STACKS * PAGE_SIZE) {
-				//create new page table
-				mmSetPageEntry(bssEnd, 1, addr | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE);
-				addr += PAGE_SIZE;
-				nrofPages--;
-			}
+			mmSetPageEntry(bssEnd, 1, addr | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE);
+			addr += PAGE_SIZE;
+			nrofPages--;
+
 			uintptr_t zeroBuffer = bssEnd;
 			bssEnd += PAGE_SIZE;
 			for (int j = 0; j < NROF_PAGE_STACKS; j++) {
@@ -60,6 +57,9 @@ void mmInitPaging(void) {
 			mmInitPhysPaging(bssEnd, zeroBuffer, 0);
 			first = false;
 		}
+
+		totalPhysPages += nrofPages;
+		//freePhysPages += nrofPages;
 
 		//dealloc highmem
 		while (nrofPages) {

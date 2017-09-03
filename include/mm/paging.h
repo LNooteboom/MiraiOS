@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdatomic.h>
 
 typedef uintptr_t physPage_t;
 typedef uint64_t pageFlags_t;
@@ -23,6 +24,9 @@ typedef uint64_t pageFlags_t;
 #define PAGE_FLAG_ALLOCED	(1 << 11)
 
 extern char VMEM_OFFSET;
+
+extern unsigned long totalPhysPages;
+extern atomic_ulong freePhysPages;
 
 /*
 Allocates a set of contiguous virtual pages in kernel memory

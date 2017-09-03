@@ -30,7 +30,7 @@ physPage_t allocLargePhysPage(void);
 /*
 Allocates a zeroed large page and returns its physical address
 */
-physPage_t allocLargeCleanPhysPage(void);
+//physPage_t allocLargeCleanPhysPage(void);
 
 /*
 Deallocates a small page

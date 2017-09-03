@@ -43,6 +43,9 @@ static void getRsdtEntry(unsigned int index, char *name, size_t *len, uint64_t *
 		return;
 	}
 	struct acpiHeader *header = ioremap(paddr2, sizeof(struct acpiHeader));
+	if (!header) {
+		panic("ioremap failed\n");
+	}
 	memcpy(name, header->sig, ACPI_SIG_LEN);
 	*len = header->length;
 	iounmap(header, sizeof(struct acpiHeader));

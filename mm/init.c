@@ -9,6 +9,7 @@
 
 void mmInit(void) {
 	mmInitPaging();
+	mmInitVirtPaging();
 	initHeap();
 }
 

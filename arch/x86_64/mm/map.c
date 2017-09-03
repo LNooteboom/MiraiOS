@@ -17,6 +17,17 @@ static const uintptr_t pageLevelBase[NROF_PAGE_LEVELS] = {
 	0xFFFFFF7FBFDFE000	//PML4T
 };
 
+uintptr_t getAddrFromPte(pte_t *pte, uint8_t level) {
+	uintptr_t ret = (uintptr_t)pte;
+	ret = ret << (PAGE_BIT_WIDTH * (level + 1));
+	if (ret & (1UL << 47)) {
+		ret |= 0xFFFFUL << 48;
+	} else {
+		ret &= ~(0xFFFFUL << 48);
+	}
+	return ret;
+}
+
 /*
 Finds the entry in the page table at a specified level and sets it to a specified value.
 */
@@ -68,6 +79,7 @@ void mmMapPage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {
 			//Page entry higher does not exist
 			physPage_t page = allocCleanPhysPage();
+			freePhysPages--;
 			*entry = page | PAGE_FLAG_PRESENT | flags;
 		}
 	}
@@ -90,6 +102,7 @@ void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {
 			//Page entry higher does not exist
 			physPage_t page = allocCleanPhysPage();
+			freePhysPages--;
 			*entry = page | PAGE_FLAG_PRESENT | flags;
 		}
 	}
@@ -109,6 +122,7 @@ void mmSetPageFlags(uintptr_t vaddr, pageFlags_t flags) {
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {
 			//Page entry higher does not exist
 			physPage_t page = allocCleanPhysPage();
+			freePhysPages--;
 			*entry = page | PAGE_FLAG_PRESENT | flags;
 		}
 	}

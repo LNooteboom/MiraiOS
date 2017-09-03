@@ -22,6 +22,8 @@ Finds the entry in the page table at a specified level and returns it.
 */
 pte_t *mmGetEntry(uintptr_t addr, uint8_t level);
 
+uintptr_t getAddrFromPte(pte_t *pte, uint8_t level);
+
 void mmUnmapBootPages(void);
 
 #endif

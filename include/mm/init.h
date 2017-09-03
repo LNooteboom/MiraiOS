@@ -5,7 +5,7 @@
 #include <stddef.h>
 
 /*
-These 'variables' are linker symbols and have no value, they will give a page fault upon read/write.
+These 'variables' are linker symbols and have no value
 */
 extern char BSS_END_ADDR;
 extern char KERNEL_START_ADDR;
@@ -20,5 +20,7 @@ void mmInit(void);
 This function pushes all the pages in *mmap on the internal page stack
 */
 void mmInitPaging(void);
+
+void mmInitVirtPaging(void);
 
 #endif

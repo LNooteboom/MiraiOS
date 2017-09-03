@@ -145,6 +145,7 @@ void hexprint64(uint64_t value) {
 }
 
 void hexprintln64(uint64_t value) {
+	if (!currentConsole) return;
 	hexprint64(value);
 	__putc('\n');
 }
