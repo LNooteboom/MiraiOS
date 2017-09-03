@@ -14,29 +14,29 @@
 
 typedef physPage_t stackEntry_t;
 
-struct pageStack {
+struct PageStack {
 	physPage_t prevStack;
 	stackEntry_t pages[PAGE_STACK_LENGTH];
 };
 
-struct pageStackInfo {
-	struct pageStack *stack;
+struct PageStackInfo {
+	struct PageStack *stack;
 	int32_t sp;
 	uint64_t nrofPages;
 	spinlock_t lock;
 };
 
-static struct pageStackInfo smallPages;
-static struct pageStackInfo largePages;
-static struct pageStackInfo smallCleanPages;
-static struct pageStackInfo largeCleanPages;
+static struct PageStackInfo smallPages;
+static struct PageStackInfo largePages;
+static struct PageStackInfo smallCleanPages;
+static struct PageStackInfo largeCleanPages;
 
 static uintptr_t freeBufferSmall;
 static spinlock_t freeBufferSmallLock;
 static uintptr_t freeBufferLarge;
 static spinlock_t freeBufferLargeLock;
 
-static stackEntry_t popPage(struct pageStackInfo *pages) {
+static stackEntry_t popPage(struct PageStackInfo *pages) {
 	stackEntry_t newPage = 0;
 	acquireSpinlock(&(pages->lock));
 	if (pages->sp >= 0 && pages->sp < PAGE_STACK_LENGTH - 1) {
@@ -68,7 +68,7 @@ static stackEntry_t popPage(struct pageStackInfo *pages) {
 	return newPage;
 }
 
-static void pushPage(struct pageStackInfo *pages, stackEntry_t newPage) {
+static void pushPage(struct PageStackInfo *pages, stackEntry_t newPage) {
 	acquireSpinlock(&(pages->lock));
 	pages->nrofPages++;
 	if (pages->sp >= -1 && pages->sp < PAGE_STACK_LENGTH - 1) {
@@ -97,7 +97,7 @@ Divides a large page into smaller pages
 returns the first small page and pushes the rest on the page stack
 returns the first page != 0 if successful
 */
-static physPage_t splitLargePage(struct pageStackInfo *_largePages, struct pageStackInfo *_smallPages) {
+static physPage_t splitLargePage(struct PageStackInfo *_largePages, struct PageStackInfo *_smallPages) {
 	physPage_t largePage = popPage(_largePages);
 	if (!largePage) {
 		return 0;
@@ -120,16 +120,16 @@ void mmInitPhysPaging(uintptr_t firstStack, uintptr_t freeMemBufferSmall, uintpt
 	freeBufferSmall = freeMemBufferSmall;
 	freeBufferLarge = freeMemBufferLarge;
 
-	smallPages.stack = (struct pageStack*)(firstStack);
+	smallPages.stack = (struct PageStack*)(firstStack);
 	smallPages.sp = -1;
 	
-	largePages.stack = (struct pageStack*)(firstStack + PAGE_SIZE);
+	largePages.stack = (struct PageStack*)(firstStack + PAGE_SIZE);
 	largePages.sp = -1;
 
-	smallCleanPages.stack = (struct pageStack*)(firstStack + PAGE_SIZE * 2);
+	smallCleanPages.stack = (struct PageStack*)(firstStack + PAGE_SIZE * 2);
 	smallCleanPages.sp = -1;
 
-	largeCleanPages.stack = (struct pageStack*)(firstStack + PAGE_SIZE * 3);
+	largeCleanPages.stack = (struct PageStack*)(firstStack + PAGE_SIZE * 3);
 	largeCleanPages.sp = -1;
 }
 

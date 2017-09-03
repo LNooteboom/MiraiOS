@@ -4,7 +4,7 @@
 #include <mm/memset.h>
 #include <print.h>
 
-int fsOpen(struct inode *inode, struct file *output) {
+int fsOpen(struct Inode *inode, struct File *output) {
 
 	if ((inode->type & ITYPE_MASK) == ITYPE_DIR) {
 		return -EISDIR;
@@ -21,8 +21,8 @@ int fsOpen(struct inode *inode, struct file *output) {
 	return 0;
 }
 
-int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t type) {
-	struct dirEntry entry;
+int fsCreate(struct File *output, struct Inode *dir, const char *name, uint32_t type) {
+	struct DirEntry entry;
 
 	entry.nameLen = strlen(name);
 	if (entry.nameLen > 31) {
@@ -39,9 +39,9 @@ int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t 
 
 	acquireSpinlock(&dir->lock);
 
-	struct inode *newInode;
+	struct Inode *newInode;
 	if (dir->ramfs) {
-		newInode = kmalloc(sizeof(struct inode));
+		newInode = kmalloc(sizeof(struct Inode));
 		if (!newInode) {
 			return -ENOMEM;
 		}
@@ -52,7 +52,7 @@ int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t 
 		return -ENOSYS;
 	}
 
-	memset(newInode, 0, sizeof(struct inode));
+	memset(newInode, 0, sizeof(struct Inode));
 
 	newInode->inodeID = dir->superBlock->curInodeID;
 	dir->superBlock->curInodeID += 1;
@@ -71,7 +71,7 @@ int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t 
 	if (!newInode->ramfs) {
 		//fsAddInode(newInode);
 	}
-	struct dirEntry *newEntry = &entry;
+	struct DirEntry *newEntry = &entry;
 	int error = dirCacheAdd(&newEntry, dir);
 
 	releaseSpinlock(&dir->lock);
@@ -91,14 +91,14 @@ int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t 
 	return 0;
 }
 
-int fsGetDirEntry(struct inode *dir, int index, struct userDentry *dentry) {
+int fsGetDirEntry(struct Inode *dir, unsigned int index, struct UserDentry *dentry) {
 	acquireSpinlock(&dir->lock);
 
 	if ((dir->type & ITYPE_MASK) != ITYPE_DIR) {
 		releaseSpinlock(&dir->lock);
 		return -EINVAL;
 	}
-	struct cachedDir *cd = dir->cachedData;
+	struct CachedDir *cd = dir->cachedData;
 	if (!cd) {
 		//load from fs
 		return -ENOSYS;

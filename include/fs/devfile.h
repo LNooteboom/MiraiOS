@@ -5,13 +5,13 @@
 #include <stdarg.h>
 #include <fs/fs.h>
 
-struct devFileOps {
-	ssize_t (*read)(struct file *file, void *buffer, size_t bufSize);
-	int (*write)(struct file *file, void *buffer, size_t bufSize);
-	int (*ioctl)(struct file *file, unsigned long request, va_list args);
-	int (*del)(struct inode *inode);
+struct DevFileOps {
+	ssize_t (*read)(struct File *file, void *buffer, size_t bufSize);
+	int (*write)(struct File *file, void *buffer, size_t bufSize);
+	int (*ioctl)(struct File *file, unsigned long request, va_list args);
+	int (*del)(struct Inode *inode);
 };
 
-int fsCreateCharDev(struct inode *dir, const char *name, struct devFileOps *ops);
+int fsCreateCharDev(struct Inode *dir, const char *name, struct DevFileOps *ops);
 
 #endif

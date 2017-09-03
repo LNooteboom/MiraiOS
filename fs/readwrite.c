@@ -8,26 +8,26 @@
 #include <sched/thread.h> //for jiffyCounter
 #include <print.h>
 
-struct cfEntry { //describes 1 page of file data
+struct CfEntry { //describes 1 page of file data
 	void *addr;
 	uint64_t fileOffset;
 	bool dirty;
 	uint32_t lastAccessed;
 };
 
-struct cachedFile {
+struct CachedFile {
 	unsigned int nrofEntries;
-	struct cfEntry entries[1];
+	struct CfEntry entries[1];
 };
 
-ssize_t fsRead(struct file *file, void *buffer, size_t bufSize) {
+ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 	acquireSpinlock(&file->lock);
-	struct inode *inode = file->inode;
+	struct Inode *inode = file->inode;
 	acquireSpinlock(&inode->lock);
 
 	if ((inode->type & ITYPE_MASK) == ITYPE_CHAR) {
 		ssize_t ret = -ENOSYS;
-		struct devFileOps *ops = inode->ops;
+		struct DevFileOps *ops = inode->ops;
 		if (ops && ops->read) {
 			ret = ops->read(file, buffer, bufSize);
 		}
@@ -50,11 +50,11 @@ ssize_t fsRead(struct file *file, void *buffer, size_t bufSize) {
 		return bytesLeft;
 	}
 
-	struct cachedFile *cf = inode->cachedData;
+	struct CachedFile *cf = inode->cachedData;
 
 	size_t bytesCopied = 0;
 	while (bytesLeft) {
-		struct cfEntry *entry = NULL;
+		struct CfEntry *entry = NULL;
 		uint64_t offset;
 		for (unsigned int i = 0; i < cf->nrofEntries; i++) {
 			offset = cf->entries[i].fileOffset;
@@ -88,14 +88,14 @@ ssize_t fsRead(struct file *file, void *buffer, size_t bufSize) {
 	return bytesCopied;
 }
 
-int fsWrite(struct file *file, void *buffer, size_t bufSize) {
+int fsWrite(struct File *file, void *buffer, size_t bufSize) {
 	acquireSpinlock(&file->lock);
-	struct inode *inode = file->inode;
+	struct Inode *inode = file->inode;
 	acquireSpinlock(&inode->lock);
 
 	if ((inode->type & ITYPE_MASK) == ITYPE_CHAR) {
 		int ret = -ENOSYS;
-		struct devFileOps *ops = inode->ops;
+		struct DevFileOps *ops = inode->ops;
 		if (ops && ops->write) {
 			ret = ops->write(file, buffer, bufSize);
 		}
@@ -110,7 +110,7 @@ int fsWrite(struct file *file, void *buffer, size_t bufSize) {
 		return -EROFS;
 	}
 
-	struct cachedFile *cf = inode->cachedData;
+	struct CachedFile *cf = inode->cachedData;
 	
 	while (bufSize) {
 		inode->cacheDirty = true;
@@ -123,8 +123,8 @@ int fsWrite(struct file *file, void *buffer, size_t bufSize) {
 			size_t newCFSize;
 			if (file->offset) {
 				//create new cf entries
-				newCFSize = inode->cachedDataSize + (sizeof(struct cfEntry) * nrofPages);
-				struct cachedFile *newCF = krealloc(cf, newCFSize);
+				newCFSize = inode->cachedDataSize + (sizeof(struct CfEntry) * nrofPages);
+				struct CachedFile *newCF = krealloc(cf, newCFSize);
 				if (!newCF) {
 					releaseSpinlock(&inode->lock);
 					releaseSpinlock(&file->lock);
@@ -133,7 +133,7 @@ int fsWrite(struct file *file, void *buffer, size_t bufSize) {
 				cf = newCF;
 			} else {
 				//create new cf
-				newCFSize = sizeof(struct cachedFile) + (nrofPages - 1) * sizeof(struct cfEntry);
+				newCFSize = sizeof(struct CachedFile) + (nrofPages - 1) * sizeof(struct CfEntry);
 				cf = kmalloc(newCFSize);
 				if (!cf) {
 					releaseSpinlock(&inode->lock);
@@ -175,7 +175,7 @@ int fsWrite(struct file *file, void *buffer, size_t bufSize) {
 		}
 
 		//find entry
-		struct cfEntry *entry = NULL;
+		struct CfEntry *entry = NULL;
 		uint64_t offset;
 		for (unsigned int i = 0; i < cf->nrofEntries; i++) {
 			offset = cf->entries[i].fileOffset;
@@ -213,7 +213,7 @@ int fsWrite(struct file *file, void *buffer, size_t bufSize) {
 	return 0;
 }
 
-int fsSeek(struct file *file, int64_t offset, int whence) {
+int fsSeek(struct File *file, int64_t offset, int whence) {
 	acquireSpinlock(&file->lock);
 	acquireSpinlock(&file->inode->lock);
 
@@ -253,13 +253,13 @@ int fsSeek(struct file *file, int64_t offset, int whence) {
 	return error;
 }
 
-int fsIoctl(struct file *file, unsigned long request, ...) {
+int fsIoctl(struct File *file, unsigned long request, ...) {
 	va_list args;
 	va_start(args, request);
 	acquireSpinlock(&file->lock);
 	acquireSpinlock(&file->inode->lock);
 
-	struct devFileOps *ops = file->inode->ops;
+	struct DevFileOps *ops = file->inode->ops;
 	int ret = -ENOSYS;
 	if ((file->inode->type & ITYPE_MASK) == ITYPE_CHAR && ops && ops->ioctl) {
 		ret = ops->ioctl(file, request, args);

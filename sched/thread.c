@@ -17,7 +17,7 @@ extern void kthreadInit(thread_t thread, void *(*start)(void *), void *arg);
 
 void deallocThread(thread_t thread) {
 	//hexprintln64(thread);
-	uintptr_t stackBottom = (uintptr_t)(thread) - (THREAD_STACK_SIZE - sizeof(struct threadInfo));
+	uintptr_t stackBottom = (uintptr_t)(thread) - (THREAD_STACK_SIZE - sizeof(struct ThreadInfo));
 	deallocPages((void*)stackBottom, THREAD_STACK_SIZE);
 }
 
@@ -27,7 +27,7 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 	if (!stackBottom) {
 		return -ENOMEM;
 	}
-	struct threadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct threadInfo));
+	struct ThreadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct ThreadInfo));
 	if (thread) {
 		*thread = thrd;
 	}
@@ -66,7 +66,7 @@ int kthreadCreateFromMain(thread_t *thread) {
 	if (!stackBottom) {
 		return -ENOMEM;
 	}
-	struct threadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct threadInfo));
+	struct ThreadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct ThreadInfo));
 	*thread = thrd;
 	migrateMainStack(thrd);
 

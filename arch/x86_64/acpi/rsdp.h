@@ -18,6 +18,6 @@ struct RSDP {
 	uint8_t reserved[3];
 } __attribute__ ((packed));
 
-void acpiGetRsdt(struct acpiHeader **rsdt, bool *isXsdt);
+void acpiGetRsdt(struct AcpiHeader **rsdt, bool *isXsdt);
 
 #endif

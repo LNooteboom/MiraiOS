@@ -5,9 +5,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
-struct dirEntry {
-	struct inode *inode;
-	struct inode *parent;
+struct DirEntry {
+	struct Inode *inode;
+	struct Inode *parent;
 	uint64_t unused;
 	uint32_t index;
 	uint32_t nameLen;
@@ -17,20 +17,20 @@ struct dirEntry {
 	};
 };
 
-struct cachedDir {
+struct CachedDir {
 	unsigned int nrofEntries;
 
-	struct dirEntry entries[2]; //can be more than 2, must be last
+	struct DirEntry entries[2]; //can be more than 2, must be last
 };
 
-int dirCacheAdd(struct dirEntry **newEntry, struct inode *dir);
+int dirCacheAdd(struct DirEntry **newEntry, struct Inode *dir);
 
-int dirCacheRemove(struct dirEntry *entry);
+int dirCacheRemove(struct DirEntry *entry);
 
-struct dirEntry *dirCacheLookup(struct inode *dir, const char *name);
+struct DirEntry *dirCacheLookup(struct Inode *dir, const char *name);
 
-int dirCacheDelete(struct inode *dir);
+int dirCacheDelete(struct Inode *dir);
 
-int dirCacheInit(struct inode *dir, struct inode *parentDir);
+int dirCacheInit(struct Inode *dir, struct Inode *parentDir);
 
 #endif

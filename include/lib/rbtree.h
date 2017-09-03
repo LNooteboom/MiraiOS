@@ -27,18 +27,18 @@ SOFTWARE.
 
 #include <stdbool.h>
 
-struct rbNode {
-	struct rbNode *parent;
-	struct rbNode *leftChild;
-	struct rbNode *rightChild;
+struct RbNode {
+	struct RbNode *parent;
+	struct RbNode *leftChild;
+	struct RbNode *rightChild;
 	unsigned long value;
 	bool isRed;
 };
 
-struct rbNode *rbSearch(struct rbNode *root, unsigned long value);
+struct RbNode *rbSearch(struct RbNode *root, unsigned long value);
 
-void rbInsert(struct rbNode **root, struct rbNode *newNode);
+void rbInsert(struct RbNode **root, struct RbNode *newNode);
 
-struct rbNode *rbDelete(struct rbNode **root, unsigned long value);
+struct RbNode *rbDelete(struct RbNode **root, unsigned long value);
 
 #endif

@@ -3,11 +3,11 @@
 
 #include <sched/spinlock.h>
 
-struct console {
-	int (*putc)(struct console *con, char c);
+struct Console {
+	int (*putc)(struct Console *con, char c);
 	spinlock_t lock;
 };
 
-int registerConsole(struct console *con);
+int registerConsole(struct Console *con);
 
 #endif

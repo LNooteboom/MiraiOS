@@ -23,27 +23,27 @@
 
 typedef int64_t ssize_t;
 
-struct inode;
-struct dirEntry;
-struct devFileOps;
+struct Inode;
+struct DirEntry;
+struct DevFileOps;
 
-struct file {
+struct File {
 	spinlock_t lock;
-	struct inode *inode;
+	struct Inode *inode;
 	uint64_t offset;
 };
 
-struct userDentry {
-	struct inode *inode;
+struct UserDentry {
+	struct Inode *inode;
 	char name[256];
 };
 
-struct superBlock {
+struct SuperBlock {
 	unsigned int fsID;
 	unsigned int curInodeID;
 };
 
-struct inodeAttributes {
+struct InodeAttributes {
 	uint32_t ownerID;
 	uint32_t groupID;
 	uint16_t accessPermissions;
@@ -52,23 +52,9 @@ struct inodeAttributes {
 	time_t modificationTime;
 	time_t accessTime;
 };
-/*struct dirOps {
-	//directory operations
-	struct inode *(*lookup)(struct inode *dir, const char *name);
-	int (*create)(struct inode *dir, const char *name, uint32_t type);
-	int (*open)(struct inode *file, struct file *output);
-	int (*link)(struct inode *dir, struct inode *inode, const char *name);
-	int (*unlink)(struct inode *dir, const char *name);
-};
 
-struct fileOps {
-	ssize_t (*read)(struct file *file, void *buffer, size_t bufSize);
-	int (*write)(struct file *file, void *buffer, size_t bufSize);
-	int (*seek)(struct file *file, int64_t offset, int whence);
-};*/
-
-struct inode {
-	//struct rbNode rbHeader; //value = (fsIndex << 32) | inodeIndex
+struct Inode {
+	//struct RbNode rbHeader; //value = (fsIndex << 32) | inodeIndex
 	uint32_t inodeID;
 
 	unsigned int type;
@@ -79,73 +65,73 @@ struct inode {
 
 	uint64_t fileSize; //unused for dirs
 
-	struct superBlock *superBlock;
+	struct SuperBlock *superBlock;
 
 	spinlock_t lock; //used for both the inode and cachedData
-	struct inodeAttributes attr;
+	struct InodeAttributes attr;
 
 	bool cacheDirty;
 	void *cachedData;
 	size_t cachedDataSize;
 
-	struct devFileOps *ops; //used for device files only
+	struct DevFileOps *ops; //used for device files only
 };
 
-extern struct inode *rootDir;
+extern struct Inode *rootDir;
 
 /*
 Mounts the root directory
 */
-int mountRoot(struct inode *rootInode);
+int mountRoot(struct Inode *rootInode);
 
 /*
 Parses a file/directory path and returns the inode or NULL if not found
 */
-struct inode *getInodeFromPath(struct inode *cwd, const char *path);
+struct Inode *getInodeFromPath(struct Inode *cwd, const char *path);
 
 /*
 Parses a file/directory path and returns the inode of the base directory and an index to the file name
 Useful for fsCreate/fsLink.
 */
-struct inode *getBaseDirFromPath(struct inode *cwd, int *fileNameIndex, const char *path);
+struct Inode *getBaseDirFromPath(struct Inode *cwd, int *fileNameIndex, const char *path);
 
 /*
 Opens a file
 */
-int fsOpen(struct inode *inode, struct file *output);
+int fsOpen(struct Inode *inode, struct File *output);
 
 /*
 Creates a file or directory
 */
-int fsCreate(struct file *output, struct inode *dir, const char *name, uint32_t type);
+int fsCreate(struct File *output, struct Inode *dir, const char *name, uint32_t type);
 
-int fsGetDirEntry(struct inode *dir, int index, struct userDentry *dentry);
+int fsGetDirEntry(struct Inode *dir, unsigned int index, struct UserDentry *dentry);
 
 /*
 Creates a directory entry for a specified inode
 */
-int fsLink(struct inode *dir, struct inode *inode, const char *name);
+int fsLink(struct Inode *dir, struct Inode *inode, const char *name);
 
 /*
 Removes a directory entry (and the inode if nrofLinks == 0)
 */
-int fsUnlink(struct inode *dir, const char *name);
+int fsUnlink(struct Inode *dir, const char *name);
 
 /*
 Reads from a file, returns nrof bytes read
 */
-ssize_t fsRead(struct file *file, void *buffer, size_t bufSize);
+ssize_t fsRead(struct File *file, void *buffer, size_t bufSize);
 
 /*
 Writes to a file
 */
-int fsWrite(struct file *file, void *buffer, size_t bufSize);
+int fsWrite(struct File *file, void *buffer, size_t bufSize);
 
 /*
 Sets the current offset of a file stream
 */
-int fsSeek(struct file *file, int64_t offset, int whence);
+int fsSeek(struct File *file, int64_t offset, int whence);
 
-int fsIoctl(struct file *file, unsigned long request, ...);
+int fsIoctl(struct File *file, unsigned long request, ...);
 
 #endif

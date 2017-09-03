@@ -9,7 +9,7 @@
 #include <print.h>
 #include <modules.h>
 
-struct cpioHeader {
+struct CpioHeader {
 	char magic[6];
 	char ino[8];
 	char mode[8];
@@ -29,7 +29,7 @@ struct cpioHeader {
 static char cpioMagic[6] = "070701";
 static char cpioEndName[] = "TRAILER!!!";
 
-struct superBlock ramfsSuperBlock = {
+struct SuperBlock ramfsSuperBlock = {
 	.fsID = 1
 };
 
@@ -45,19 +45,19 @@ static uint32_t parseHex(char *str) {
 	return result;
 }
 
-static int parseInitrd(struct inode *rootInode) {
+static int parseInitrd(struct Inode *rootInode) {
 	//char *initrd = bootInfo.initrd;
 	char *initrd = ioremap((uintptr_t)bootInfo.initrd, bootInfo.initrdLen);
-	struct cpioHeader *initrdHeader;
+	struct CpioHeader *initrdHeader;
 	unsigned long curPosition = 0;
 	while (curPosition < bootInfo.initrdLen) {
-		initrdHeader = (struct cpioHeader *)(&initrd[curPosition]);
+		initrdHeader = (struct CpioHeader *)(&initrd[curPosition]);
 		if (!memcmp(initrdHeader->magic, cpioMagic, 6)) {
 			printk("Invalid CPIO header: %s\n", initrdHeader->magic);
 			return -EINVAL;
 		}
 		uint32_t nameLen = parseHex(initrdHeader->namesize);
-		char *name = &initrd[curPosition + sizeof(struct cpioHeader)];
+		char *name = &initrd[curPosition + sizeof(struct CpioHeader)];
 		if (nameLen == sizeof(cpioEndName) && memcmp(name, cpioEndName, sizeof(cpioEndName))) {
 			break;
 		}
@@ -65,8 +65,8 @@ static int parseInitrd(struct inode *rootInode) {
 		//TODO add support for directories (and hardlinks?)
 
 		printk("Add file: %s\n", name);
-		struct inode *newInode = kmalloc(sizeof(struct inode));
-		memset(newInode, 0, sizeof(struct inode));
+		struct Inode *newInode = kmalloc(sizeof(struct Inode));
+		memset(newInode, 0, sizeof(struct Inode));
 
 		newInode->cachedData = name + nameLen;
 		uint32_t fileSize = parseHex(initrdHeader->filesize);
@@ -81,7 +81,7 @@ static int parseInitrd(struct inode *rootInode) {
 			return error;
 		}
 
-		curPosition += sizeof(struct cpioHeader) + nameLen + fileSize;
+		curPosition += sizeof(struct CpioHeader) + nameLen + fileSize;
 		if (curPosition & 3) {
 			curPosition &= ~3;
 			curPosition += 4;
@@ -98,11 +98,11 @@ int ramfsInit(void) {
 		return 0;
 	}
 	//create root inode
-	struct inode *rootInode = kmalloc(sizeof(struct inode));
+	struct Inode *rootInode = kmalloc(sizeof(struct Inode));
 	if (!rootInode) {
 		return -ENOMEM;
 	}
-	memset(rootInode, 0, sizeof(struct inode));
+	memset(rootInode, 0, sizeof(struct Inode));
 
 	rootInode->inodeID = 1;
 	rootInode->type = ITYPE_DIR;

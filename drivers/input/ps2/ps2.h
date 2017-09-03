@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-struct ps2Controller {
-	struct ps2Device *dev;
+struct Ps2Controller {
+	struct Ps2Device *dev;
 	uint32_t id;
 	bool connected;
 
@@ -19,24 +19,24 @@ struct ps2Controller {
 	uint8_t (*read)(void);
 };
 
-struct ps2Device {
+struct Ps2Device {
 	//controller this device belongs to
-	struct ps2Controller *controller;
-	const struct ps2Driver *drv;
+	struct Ps2Controller *controller;
+	const struct Ps2Driver *drv;
 
 	int interruptCount;
 };
 
-struct ps2Driver {
+struct Ps2Driver {
 	uint32_t *IDs;
 	int IDsLen;
 
-	void (*interrupt)(struct ps2Device *dev);
+	void (*interrupt)(struct Ps2Device *dev);
 
-	struct ps2Device *(*newDevice)(struct ps2Controller *controller);
-	void (*deleteDevice)(struct ps2Device *dev);
+	struct Ps2Device *(*newDevice)(struct Ps2Controller *controller);
+	void (*deleteDevice)(struct Ps2Device *dev);
 };
 
-void ps2RegisterDriver(const struct ps2Driver *drv);
+void ps2RegisterDriver(const struct Ps2Driver *drv);
 
 #endif

@@ -13,7 +13,7 @@
 #define NROF_PAGE_STACKS 4
 
 void mmInitPaging(void) {
-	struct mmapEntry *mmap = bootInfo.mmap;
+	struct MmapEntry *mmap = bootInfo.mmap;
 	unsigned int len = bootInfo.mmapLen;
 	bool first = true;
 	

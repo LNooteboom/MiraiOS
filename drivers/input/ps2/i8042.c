@@ -42,7 +42,7 @@ static spinlock_t i8042Lock;
 
 static bool i8042CmdSent = true;
 
-static struct ps2Controller i8042Port1;
+static struct Ps2Controller i8042Port1;
 
 static void i8042Error(const char *msg) {
 	printk("[i8042] %s\n", msg);
@@ -129,7 +129,7 @@ static void i8042InterruptPort1(void) {
 	}
 }
 
-void ps2RegisterDriver(const struct ps2Driver *drv) {
+void ps2RegisterDriver(const struct Ps2Driver *drv) {
 	if (i8042Port1.connected) {
 		for (int i = 0; i < drv->IDsLen; i++) {
 			if (drv->IDs[i] == i8042Port1.id) {

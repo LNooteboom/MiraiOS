@@ -13,7 +13,7 @@ uint16_t *mmapError = L"MMAP error occured!";
 uint16_t *gopError = L"GOP error occured!";
 uint16_t *rsdpError = L"RSDP error occured!";
 
-struct bootInfo bootInfo;
+struct BootInfo bootInfo;
 
 EFI_HANDLE imageHandle;
 EFI_SYSTEM_TABLE *efiSystemTable;
@@ -58,7 +58,7 @@ static int efiHandleMmap(uint64_t *mmapKey) {
 
 	//translate mmap
 	uint64_t mmapLen = mmapSize / mmapDescSize;
-	struct mmapEntry *newMmap = (struct mmapEntry *)mmapBuf;
+	struct MmapEntry *newMmap = (struct MmapEntry *)mmapBuf;
 	
 	for (uint64_t i = 0; i < mmapLen; i++) {
 		EFI_MEMORY_DESCRIPTOR *oldMmap = (EFI_MEMORY_DESCRIPTOR *)(&mmapBuf[i * mmapDescSize]);

@@ -6,7 +6,7 @@
 #include <console.h>
 
 
-struct fbColorInfo {
+struct FbColorInfo {
 	uint8_t rSize;
 	uint8_t rShift;
 	uint8_t gSize;
@@ -15,8 +15,8 @@ struct fbColorInfo {
 	uint8_t bShift;
 };
 
-struct framebuffer {
-	struct console con;
+struct Framebuffer {
+	struct Console con;
 	unsigned int cursorX;
 	unsigned int cursorY;
 
@@ -27,7 +27,7 @@ struct framebuffer {
 	uint32_t bpp;
 
 	bool isRGB;
-	struct fbColorInfo colorInfo;
+	struct FbColorInfo colorInfo;
 };
 
 int fbInit(void);

@@ -20,21 +20,21 @@
 #define IORED_FLAG_MASK		(1 << 16)
 #define IORED_DELMODE_SHIFT 8
 
-struct isaOverride {
+struct IsaOverride {
 	uint16_t source;
 	uint16_t flags;
 	uint32_t GSI;
 };
 
 static unsigned int isaListLen = 0;
-static struct isaOverride *isaOverrides = NULL;
+static struct IsaOverride *isaOverrides = NULL;
 
 unsigned int nrofIOApics = 0;
-struct ioApicInfo *ioApicInfos = NULL;
+struct IoApicInfo *ioApicInfos = NULL;
 
 static interrupt_t gsiToVec[256];
 
-static struct ioApicInfo *findApic(unsigned int irq) {
+static struct IoApicInfo *findApic(unsigned int irq) {
 	for (unsigned int i = 0; i < nrofIOApics; i++) {
 		if (irq >= ioApicInfos[i].gsiBase && irq < ioApicInfos[i].gsiBase + ioApicInfos[i].gsiLength) {
 			return &(ioApicInfos[i]);
@@ -84,7 +84,7 @@ int routeIrqLine(interrupt_t vec, unsigned int irq, unsigned int flags) {
 	}
 	gsiToVec[irq] = vec;
 
-	struct ioApicInfo *ioApic = findApic(irq);
+	struct IoApicInfo *ioApic = findApic(irq);
 	if (!ioApic) {
 		printk("Could not find APIC for irq: %d", irq);
 		return 1;
@@ -120,7 +120,7 @@ void unrouteIrqLine(unsigned int irq, bool isa) {
 			}
 		}
 	}
-	struct ioApicInfo *ioApic = findApic(irq);
+	struct IoApicInfo *ioApic = findApic(irq);
 	if (!ioApic) {
 		return;
 	}
@@ -133,8 +133,8 @@ void unrouteIrqLine(unsigned int irq, bool isa) {
 int addISAOverride(uint32_t dst, uint16_t src, uint16_t flags) {
 	if (isaListLen % ISA_LIST_INC == 0) {
 		//alloc more room
-		struct isaOverride *oldOverrides = isaOverrides;
-		isaOverrides = krealloc(isaOverrides, (isaListLen + ISA_LIST_INC) * sizeof(struct isaOverride));
+		struct IsaOverride *oldOverrides = isaOverrides;
+		isaOverrides = krealloc(isaOverrides, (isaListLen + ISA_LIST_INC) * sizeof(struct IsaOverride));
 		if (isaOverrides == NULL) {
 			isaOverrides = oldOverrides;
 			return -1;

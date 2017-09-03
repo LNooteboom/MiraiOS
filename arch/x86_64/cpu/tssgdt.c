@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-void tssGdtInit(struct cpuInfo *info) {
+void tssGdtInit(struct CpuInfo *info) {
 	info->gdt[0] = 0; 																//NULL entry
 	info->gdt[1] = GDT_LONG | GDT_PRESENT | GDT_CODE;								//0x08 64-bit kernel text
 	info->gdt[2] = GDT_PRESENT | GDT_DATA | GDT_WRITE;								//0x10 data
@@ -12,7 +12,7 @@ void tssGdtInit(struct cpuInfo *info) {
 
 	//0x28&30 tss entry
 	uintptr_t tssAddr = (uintptr_t)(&(info->tss));
-	uint64_t tssSize = sizeof(struct cpuTSS);
+	uint64_t tssSize = sizeof(struct CpuTSS);
 	uint32_t tssAddr15 = tssAddr & 0xFFFF;
 	uint64_t tssAddr23 = (tssAddr >> 16) & 0xFF;
 	uint64_t tssAddr31 = (tssAddr >> 24) & 0xFF;
@@ -28,11 +28,11 @@ void tssGdtInit(struct cpuInfo *info) {
 }
 
 void tssSetIST(int ist, void *addr) {
-	struct cpuInfo *cpuInfoNull = NULL;
+	struct CpuInfo *cpuInfoNull = NULL;
 	doPcpuWrite64((uint64_t)(&cpuInfoNull->tss.ist[ist - 1]), (uint64_t)addr);
 }
 
 void tssSetRSP0(void *rsp) {
-	struct cpuInfo *cpuInfoNull = NULL;
+	struct CpuInfo *cpuInfoNull = NULL;
 	doPcpuWrite64((uint64_t)(&cpuInfoNull->tss.rsp[0]), (uint64_t)rsp);
 }

@@ -7,14 +7,14 @@
 #include <mm/paging.h>
 #include <print.h>
 
-int fsLink(struct inode *dir, struct inode *inode, const char *name) {
+int fsLink(struct Inode *dir, struct Inode *inode, const char *name) {
 	acquireSpinlock(&inode->lock);
 	if (inode->nrofLinks && (inode->type & ITYPE_MASK) == ITYPE_DIR) {
 		releaseSpinlock(&inode->lock);
 		return -EINVAL; //hardlinks are not allowed for dirs
 	}
 
-	struct dirEntry entry;
+	struct DirEntry entry;
 	size_t nameLen = strlen(name);
 	if (nameLen <= 31) {
 		memcpy(entry.inlineName, name, nameLen);
@@ -34,7 +34,7 @@ int fsLink(struct inode *dir, struct inode *inode, const char *name) {
 	entry.inode = inode;
 	
 	inode->nrofLinks += 1;
-	struct dirEntry *pEntry = &entry;
+	struct DirEntry *pEntry = &entry;
 	dirCacheAdd(&pEntry, dir);
 
 	releaseSpinlock(&dir->lock);
@@ -43,7 +43,7 @@ int fsLink(struct inode *dir, struct inode *inode, const char *name) {
 	return 0;
 }
 
-static void deleteInode(struct inode *inode) {
+static void deleteInode(struct Inode *inode) {
 	if (inode->ramfs) {
 		//delete cache
 		if (inode->cachedData) {
@@ -61,16 +61,16 @@ static void deleteInode(struct inode *inode) {
 	}
 }
 
-int fsUnlink(struct inode *dir, const char *name) {
+int fsUnlink(struct Inode *dir, const char *name) {
 	acquireSpinlock(&dir->lock);
-	struct dirEntry *entry = dirCacheLookup(dir, name);
+	struct DirEntry *entry = dirCacheLookup(dir, name);
 
 	if (!entry) {
 		releaseSpinlock(&dir->lock);
 		return -ENOENT;
 	}
 
-	struct inode *inode = entry->inode;
+	struct Inode *inode = entry->inode;
 	if (!inode->ramfs) { //temp
 		printk("Error deleting inode: unimplemented");
 		releaseSpinlock(&dir->lock);
@@ -82,7 +82,7 @@ int fsUnlink(struct inode *dir, const char *name) {
 	inode->nrofLinks--;
 	if (!inode->nrofLinks) {
 		if ((inode->type & ITYPE_MASK) == ITYPE_CHAR) {
-			struct devFileOps *ops = inode->ops;
+			struct DevFileOps *ops = inode->ops;
 			if (ops && ops->del) {
 				ops->del(inode);
 			}

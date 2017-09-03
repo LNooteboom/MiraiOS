@@ -10,26 +10,26 @@
 #define SCANCODE_MODIFIER	0xE0
 #define SCANCODE_RELEASED	0xF0
 
-struct kbDevice {
-	struct ps2Device ps2Dev;
+struct KbDevice {
+	struct Ps2Device ps2Dev;
 
 	bool keyReleased;
 	bool keyModifier;
 	unsigned int ledState;
 };
 
-static void kbInterrupt(struct ps2Device *dev);
+static void kbInterrupt(struct Ps2Device *dev);
 
-static struct ps2Device *kbNewDevice(struct ps2Controller *controller);
+static struct Ps2Device *kbNewDevice(struct Ps2Controller *controller);
 
-static void kbDeleteDevice(struct ps2Device *dev);
+static void kbDeleteDevice(struct Ps2Device *dev);
 
 static uint32_t kbIDs[] = {
 	0,
 	0x020083AB
 };
 
-static const struct ps2Driver kbDriver = {
+static const struct Ps2Driver kbDriver = {
 	.IDs = kbIDs,
 	.IDsLen = sizeof(kbIDs) / sizeof(kbIDs[0]),
 	.interrupt = kbInterrupt,
@@ -75,8 +75,8 @@ static uint16_t kbScanTable[] = {
 	/*00*/ KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED,	KEY_F7,			KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED
 };
 
-static void kbInterrupt(struct ps2Device *dev) {
-	struct kbDevice *kbDev = (struct kbDevice*)dev;
+static void kbInterrupt(struct Ps2Device *dev) {
+	struct KbDevice *kbDev = (struct KbDevice*)dev;
 	uint16_t data = kbDev->ps2Dev.controller->read();
 	uint16_t keycode;
 
@@ -112,8 +112,8 @@ static void kbInterrupt(struct ps2Device *dev) {
 	}
 }
 
-static struct ps2Device *kbNewDevice(struct ps2Controller *controller) {
-	struct kbDevice *ret = kmalloc(sizeof(struct kbDevice));
+static struct Ps2Device *kbNewDevice(struct Ps2Controller *controller) {
+	struct KbDevice *ret = kmalloc(sizeof(struct KbDevice));
 	ret->ledState = 0;
 	ret->ps2Dev.drv = &kbDriver;
 	ret->ps2Dev.controller = controller;
@@ -125,7 +125,7 @@ static struct ps2Device *kbNewDevice(struct ps2Controller *controller) {
 	return &ret->ps2Dev;
 }
 
-static void kbDeleteDevice(struct ps2Device *dev) {
+static void kbDeleteDevice(struct Ps2Device *dev) {
 	kfree(dev);
 }
 

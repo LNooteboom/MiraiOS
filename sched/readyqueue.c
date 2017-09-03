@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-//static struct threadInfoQueue readyList[NROF_QUEUE_PRIORITIES];
+//static struct ThreadInfoQueue readyList[NROF_QUEUE_PRIORITIES];
 //spinlock_t readyListLock;
 
 static void calcNewPriority(thread_t thread) {
@@ -31,7 +31,7 @@ static void calcNewPriority(thread_t thread) {
 	}
 }
 
-static thread_t getThreadFromCPU(struct cpuInfo *cpu) {
+static thread_t getThreadFromCPU(struct CpuInfo *cpu) {
 	//puts("pop");
 	thread_t ret;
 	//acquireSpinlock(&cpu->readyListLock);
@@ -49,7 +49,7 @@ static thread_t getThreadFromCPU(struct cpuInfo *cpu) {
 
 thread_t readyQueuePop(void) {
 	//try this cpu first
-	struct cpuInfo *thisCPU = (struct cpuInfo*)pcpuRead64(addr);
+	struct CpuInfo *thisCPU = (struct CpuInfo*)pcpuRead64(addr);
 	acquireSpinlock(&thisCPU->readyListLock);
 	thread_t ret = getThreadFromCPU(thisCPU);
 	releaseSpinlock(&thisCPU->readyListLock);
@@ -58,7 +58,7 @@ thread_t readyQueuePop(void) {
 		return ret;
 	}
 
-	struct cpuInfo *busiestCPU = NULL;
+	struct CpuInfo *busiestCPU = NULL;
 	uint32_t load = 0;
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
 		if (&cpuInfos[i] == thisCPU) {
@@ -102,7 +102,7 @@ void readyQueuePush(thread_t thread) {
 }
 
 thread_t readyQueueExchange(thread_t thread, bool front) {
-	struct cpuInfo *thisCPU = (struct cpuInfo*)pcpuRead64(addr);
+	struct CpuInfo *thisCPU = (struct CpuInfo*)pcpuRead64(addr);
 	if (front) {
 		acquireSpinlock(&thisCPU->readyListLock);
 		threadQueuePushFront(&thisCPU->readyList[thread->priority], thread);

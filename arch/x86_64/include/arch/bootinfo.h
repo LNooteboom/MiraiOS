@@ -5,15 +5,15 @@
 #include <stdbool.h>
 #include <mm/physpaging.h>
 
-struct mmapEntry {
+struct MmapEntry {
 	uint64_t addr;
 	uint64_t nrofPages;
 	uint32_t attr;
 	uint32_t reserved;
 };
 
-struct bootInfo {
-	struct mmapEntry *mmap;
+struct BootInfo {
+	struct MmapEntry *mmap;
 	uint64_t mmapLen;
 	char *cmdLine;
 	void *lowMemReservedEnd;
@@ -41,6 +41,6 @@ struct bootInfo {
 	uint64_t rsdp;
 };
 
-extern struct bootInfo bootInfo;
+extern struct BootInfo bootInfo;
 
 #endif

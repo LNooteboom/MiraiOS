@@ -22,7 +22,7 @@
 #define PIT_CMD_MODE_COUNT	(0 << 1)
 #define PIT_CMD_MODE_RATE	(2 << 1)
 
-struct smpbootInfo {
+struct SmpbootInfo {
 	uint16_t jump;
 	uint16_t nxEnabled;
 	uint32_t pml4tAddr;
@@ -91,7 +91,7 @@ void lapicInit(void) {
 	uint64_t addr = rdmsr(0x1B);
 	physLapicBase = addr & ~0xFFF;
 	lapicBase = ioremap(physLapicBase, PAGE_SIZE);
-	cpuInfoSize = sizeof(struct cpuInfo);
+	cpuInfoSize = sizeof(struct CpuInfo);
 
 	//uint32_t apicID = lapicBase[0x20 / 4] >> 24;
 	uint32_t apicID = read32(lapicBase + LAPIC_ID) >> 24;
@@ -114,7 +114,7 @@ void lapicInit(void) {
 
 	busSpeed = getBusSpeed();
 
-	struct cpuInfo *info = &(cpuInfos[index]);
+	struct CpuInfo *info = &(cpuInfos[index]);
 	acquireSpinlock(&(info->lock));
 	tssGdtInit(info);
 	wrmsr(0xC0000101, (uint64_t)info); //set GS.base to cpuinfo
@@ -152,7 +152,7 @@ void lapicDoSMPBoot(void) {
 	asm ("mov rax, cr3" : "=a"(cr3));
 
 	//Prepare smp boot image
-	volatile struct smpbootInfo *info = (struct smpbootInfo *)0xFFFFFFFF80070000;
+	volatile struct SmpbootInfo *info = (struct SmpbootInfo *)0xFFFFFFFF80070000;
 	size_t s = (size_t)(&smpboot16end) - (size_t)(&smpboot16start);
 	memcpy(info, &smpboot16start, s);
 	info->contAddr = smpbootStart;

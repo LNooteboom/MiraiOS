@@ -17,24 +17,24 @@
 
 #define APIC_BUFFER_SIZE	256
 
-struct madtHeader {
-	struct acpiHeader acpi;
+struct MadtHeader {
+	struct AcpiHeader acpi;
 	uint32_t localCntAddr;
 	uint32_t flags;
 } __attribute__ ((packed));
 
-struct recordHeader {
+struct RecordHeader {
 	uint8_t entryType;
 	uint8_t len;
 } __attribute__ ((packed));
 struct LAPIC {
-	struct recordHeader header;
+	struct RecordHeader header;
 	uint8_t acpiProcID;
 	uint8_t apicID;
 	uint32_t flags;
 } __attribute__ ((packed));
 struct IOAPIC {
-	struct recordHeader header;
+	struct RecordHeader header;
 	uint8_t id;
 	uint8_t reserved;
 	uint32_t addr;
@@ -42,8 +42,8 @@ struct IOAPIC {
 } __attribute__ ((packed));
 
 #define IRQBUS_ISA	0
-struct irqSourceOvrr {
-	struct recordHeader header;
+struct IrqSourceOvrr {
+	struct RecordHeader header;
 	uint8_t bus;
 	uint8_t irqSource;
 	uint32_t GSI;
@@ -52,7 +52,7 @@ struct irqSourceOvrr {
 
 char madtSig[4] = "APIC";
 
-struct madtHeader *madtHdr;
+struct MadtHeader *madtHdr;
 char *madtContents;
 
 void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
@@ -90,12 +90,12 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		//ACPI_LOG("Legacy PICs disabled.\n");
 	}
 
-	madtContents = (char*)((uintptr_t)madtHdr + sizeof(struct madtHeader));
-	size_t contentLen = madtLen - sizeof(struct madtHeader);
+	madtContents = (char*)((uintptr_t)madtHdr + sizeof(struct MadtHeader));
+	size_t contentLen = madtLen - sizeof(struct MadtHeader);
 	uint8_t apicIDs[APIC_BUFFER_SIZE];
 	unsigned int i = 0;
 	while (i < contentLen) {
-		struct recordHeader *recHeader = (struct recordHeader*)(&(madtContents[i]));
+		struct RecordHeader *recHeader = (struct RecordHeader*)(&(madtContents[i]));
 		if (recHeader->entryType == 0) {
 			struct LAPIC *rec = (struct LAPIC*)recHeader;
 			//ACPI_LOG("Found local APIC ID: ");
@@ -107,8 +107,8 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 			struct IOAPIC *rec = (struct IOAPIC*)recHeader;
 			//ACPI_LOG("Found IO APIC ID: ");
 			//decprintln(rec->id);
-			struct ioApicInfo *oldInfos = ioApicInfos;
-			ioApicInfos = krealloc(ioApicInfos, (nrofIOApics + 1) * sizeof(struct ioApicInfo));
+			struct IoApicInfo *oldInfos = ioApicInfos;
+			ioApicInfos = krealloc(ioApicInfos, (nrofIOApics + 1) * sizeof(struct IoApicInfo));
 			if (ioApicInfos) {
 				ioApicInfos[nrofIOApics].id = rec->id;
 				ioApicInfos[nrofIOApics].paddr = rec->addr;
@@ -120,19 +120,19 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 				ioApicInfos = oldInfos;
 			}
 		} else if (recHeader->entryType == 2) {
-			struct irqSourceOvrr *rec = (struct irqSourceOvrr*)recHeader;
+			struct IrqSourceOvrr *rec = (struct IrqSourceOvrr*)recHeader;
 			if (rec->bus == IRQBUS_ISA) {
 				addISAOverride(rec->GSI, rec->irqSource, rec->flags);
 			}
 		}
 		i += recHeader->len;
 	}
-	cpuInfos = kmalloc(nrofCPUs * sizeof(struct cpuInfo));
+	cpuInfos = kmalloc(nrofCPUs * sizeof(struct CpuInfo));
 	if (!cpuInfos) {
 		panic("No memory available for cpuInfos!\n");
 	}
 	
-	memset(cpuInfos, 0, nrofCPUs * sizeof(struct cpuInfo));
+	memset(cpuInfos, 0, nrofCPUs * sizeof(struct CpuInfo));
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
 		cpuInfos[i].addr = &cpuInfos[i];
 		cpuInfos[i].currentThread = NULL;

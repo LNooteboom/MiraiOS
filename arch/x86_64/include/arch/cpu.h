@@ -8,10 +8,10 @@
 #include <sched/queue.h>
 #include <irq.h>
 
-#define pcpuRead64(attr)		doPcpuRead64((uint64_t)(&(( (struct cpuInfo*)0)->attr)))
-#define pcpuRead32(attr)		doPcpuRead32((uint64_t)(&(( (struct cpuInfo*)0)->attr)))
-#define pcpuWrite64(attr, val)	doPcpuWrite64((uint64_t)(&(( (struct cpuInfo*)0)->attr)), val)
-#define pcpuWrite32(attr, val)	doPcpuWrite32((uint64_t)(&(( (struct cpuInfo*)0)->attr)), val)
+#define pcpuRead64(attr)		doPcpuRead64((uint64_t)(&(( (struct CpuInfo*)0)->attr)))
+#define pcpuRead32(attr)		doPcpuRead32((uint64_t)(&(( (struct CpuInfo*)0)->attr)))
+#define pcpuWrite64(attr, val)	doPcpuWrite64((uint64_t)(&(( (struct CpuInfo*)0)->attr)), val)
+#define pcpuWrite32(attr, val)	doPcpuWrite32((uint64_t)(&(( (struct CpuInfo*)0)->attr)), val)
 
 #define NROF_GDT_ENTRIES 9
 
@@ -38,7 +38,7 @@ enum ipiTypes {
 	IPI_EXT		= 7
 };
 
-struct cpuTSS {
+struct CpuTSS {
 	uint32_t reserved0;
 	uint64_t rsp[3];
 	uint64_t reserved1;
@@ -47,13 +47,13 @@ struct cpuTSS {
 	uint16_t reserved3;
 	uint16_t ioMapBase;
 };
-struct cpuGDTR {
+struct CpuGDTR {
 	uint16_t size;
 	uint64_t base;
 } __attribute__((packed));
 
-struct cpuInfo {
-	struct cpuInfo *addr;
+struct CpuInfo {
+	struct CpuInfo *addr;
 	thread_t currentThread;
 	void *excStackTop;
 	uint32_t apicID;
@@ -61,12 +61,12 @@ struct cpuInfo {
 	
 	spinlock_t lock;
 
-	struct cpuGDTR gdtr;
+	struct CpuGDTR gdtr;
 	gdtEntry_t gdt[16];
-	struct cpuTSS tss;
+	struct CpuTSS tss;
 
 	//scheduling information
-	struct threadInfoQueue readyList[NROF_QUEUE_PRIORITIES];
+	struct ThreadInfoQueue readyList[NROF_QUEUE_PRIORITIES];
 	spinlock_t readyListLock;
 	uint32_t threadLoad;
 	uint32_t nrofReadyThreads;
@@ -74,7 +74,7 @@ struct cpuInfo {
 
 extern unsigned int nrofCPUs;
 extern unsigned int nrofActiveCPUs;
-extern struct cpuInfo *cpuInfos;
+extern struct CpuInfo *cpuInfos;
 
 uint64_t doPcpuRead64(uint64_t addr);
 uint32_t doPcpuRead32(uint64_t addr);
@@ -83,7 +83,7 @@ void doPcpuWrite32(uint64_t addr, uint32_t value);
 
 void lapicInit(void);
 void lapicEnableTimer(interrupt_t vec);
-void tssGdtInit(struct cpuInfo *info);
+void tssGdtInit(struct CpuInfo *info);
 void lapicDoSMPBoot(void);
 void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type);
 

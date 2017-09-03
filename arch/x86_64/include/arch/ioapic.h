@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <sched/spinlock.h>
 
-struct ioApicInfo {
+struct IoApicInfo {
 	uint32_t id;
 	spinlock_t lock;
 	uint32_t gsiBase;
@@ -15,7 +15,7 @@ struct ioApicInfo {
 };
 
 extern unsigned int nrofIOApics;
-extern struct ioApicInfo *ioApicInfos;
+extern struct IoApicInfo *ioApicInfos;
 
 void ioApicInit(void);
 

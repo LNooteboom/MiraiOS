@@ -6,7 +6,7 @@
 #include <sched/spinlock.h>
 #include <console.h>
 
-struct console *currentConsole = NULL;
+struct Console *currentConsole = NULL;
 
 static void __putc(char c) {
 	currentConsole->putc(currentConsole, c);
@@ -49,7 +49,7 @@ static void decprint(int32_t value) {
 	}
 }
 
-int registerConsole(struct console *con) {
+int registerConsole(struct Console *con) {
 	if (con)
 		currentConsole = con;
 	return 0;

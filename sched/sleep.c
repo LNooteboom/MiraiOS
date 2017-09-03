@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-struct threadInfoQueue sleepQueue;
+struct ThreadInfoQueue sleepQueue;
 spinlock_t sleepQueueLock;
 
 void kthreadSleep(unsigned long millis) {

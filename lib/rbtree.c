@@ -26,7 +26,7 @@ SOFTWARE.
 #include <stddef.h>
 #include <lib/rbtree.h>
 
-static void bstInsert(struct rbNode *root, struct rbNode *newNode) {
+static void bstInsert(struct RbNode *root, struct RbNode *newNode) {
 	while (true) {
 		if (newNode->value < root->value) {
 			if (root->leftChild) {
@@ -48,9 +48,9 @@ static void bstInsert(struct rbNode *root, struct rbNode *newNode) {
 	}
 }
 
-static void rbLeftRotate(struct rbNode **root, struct rbNode *node) {
-	struct rbNode *rChild = node->rightChild; //needs to exist
-	struct rbNode *parent = node->parent;
+static void rbLeftRotate(struct RbNode **root, struct RbNode *node) {
+	struct RbNode *rChild = node->rightChild; //needs to exist
+	struct RbNode *parent = node->parent;
 	node->rightChild = rChild->leftChild;
 	if (rChild->leftChild)
 		rChild->leftChild->parent = node;
@@ -66,9 +66,9 @@ static void rbLeftRotate(struct rbNode **root, struct rbNode *node) {
 		*root = rChild;
 	}
 }
-static void rbRightRotate(struct rbNode **root, struct rbNode *node) {
-	struct rbNode *lChild = node->leftChild; //needs to exist
-	struct rbNode *parent = node->parent;
+static void rbRightRotate(struct RbNode **root, struct RbNode *node) {
+	struct RbNode *lChild = node->leftChild; //needs to exist
+	struct RbNode *parent = node->parent;
 	node->leftChild = lChild->rightChild;
 	if (lChild->rightChild)
 		lChild->rightChild->parent = node;
@@ -85,7 +85,7 @@ static void rbRightRotate(struct rbNode **root, struct rbNode *node) {
 	}
 }
 
-void rbInsert(struct rbNode **root, struct rbNode *newNode) {
+void rbInsert(struct RbNode **root, struct RbNode *newNode) {
 	newNode->leftChild = NULL;
 	newNode->rightChild = NULL;
 	if (!(*root)) {
@@ -98,9 +98,9 @@ void rbInsert(struct rbNode **root, struct rbNode *newNode) {
 
 	bstInsert(*root, newNode);
 
-	struct rbNode *parent = newNode->parent;
-	struct rbNode *grandParent;
-	struct rbNode *uncle;
+	struct RbNode *parent = newNode->parent;
+	struct RbNode *grandParent;
+	struct RbNode *uncle;
 	while (true) {
 		if (!parent || !parent->isRed) {
 			if (!parent) {
@@ -121,7 +121,7 @@ void rbInsert(struct rbNode **root, struct rbNode *newNode) {
 			parent = newNode->parent;
 			continue;
 		}
-		//struct node *gg = grandParent->parent;
+		//struct Node *gg = grandParent->parent;
 		if (parent->value < grandParent->value) {
 			if (newNode->value >= parent->value) {
 				//left rotate parent
@@ -146,8 +146,8 @@ void rbInsert(struct rbNode **root, struct rbNode *newNode) {
 	}
 }
 
-struct rbNode *rbSearch(struct rbNode *root, unsigned long value) {
-	struct rbNode *curNode = root;
+struct RbNode *rbSearch(struct RbNode *root, unsigned long value) {
+	struct RbNode *curNode = root;
 	while (true) {
 		if (!curNode)
 			return NULL;
@@ -162,14 +162,14 @@ struct rbNode *rbSearch(struct rbNode *root, unsigned long value) {
 	}
 }
 
-static struct rbNode *bstDelete(struct rbNode **root, /*out*/ struct rbNode **successor, struct rbNode **child, unsigned long value) {
-	struct rbNode *del = rbSearch(*root, value);
+static struct RbNode *bstDelete(struct RbNode **root, /*out*/ struct RbNode **successor, struct RbNode **child, unsigned long value) {
+	struct RbNode *del = rbSearch(*root, value);
 	if (!del)
 		return NULL; //not found
 
 	if (del->leftChild && del->rightChild) {
 		//find successor
-		struct rbNode *s = del->rightChild;
+		struct RbNode *s = del->rightChild;
 		while (s->leftChild) {
 			s = s->leftChild;
 		}
@@ -182,7 +182,7 @@ static struct rbNode *bstDelete(struct rbNode **root, /*out*/ struct rbNode **su
 		*successor = s;
 		return del;
 	} else if (del->leftChild || del->rightChild) {
-		struct rbNode *child2;
+		struct RbNode *child2;
 		if (del->leftChild)
 			child2 = del->leftChild;
 		else
@@ -215,19 +215,19 @@ static struct rbNode *bstDelete(struct rbNode **root, /*out*/ struct rbNode **su
 	return del;
 }
 
-struct rbNode *rbDelete(struct rbNode **root, unsigned long value) {
-	struct rbNode *successor;
-	struct rbNode *child;
-	struct rbNode *del2 = bstDelete(root, &successor, &child, value);
+struct RbNode *rbDelete(struct RbNode **root, unsigned long value) {
+	struct RbNode *successor;
+	struct RbNode *child;
+	struct RbNode *del2 = bstDelete(root, &successor, &child, value);
 	if (!del2)
 		return NULL; //not found;
-	struct rbNode *del;
+	struct RbNode *del;
 	if (successor)
 		del = successor;
 	else
 		del = del2;
 	
-	struct rbNode *parent = del->parent;
+	struct RbNode *parent = del->parent;
 	if (del->isRed || (child && child->isRed)) {
 		if (child) {
 			child->isRed = false;
@@ -235,7 +235,7 @@ struct rbNode *rbDelete(struct rbNode **root, unsigned long value) {
 		//return del2;
 		goto out;
 	}
-	struct rbNode *sibling;
+	struct RbNode *sibling;
 	bool childRight;
 	while (true) {
 		if (!parent) {

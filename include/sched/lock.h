@@ -4,13 +4,13 @@
 #include <sched/spinlock.h>
 #include <sched/queue.h>
 
-struct semaphore {
+struct Semaphore {
 	spinlock_t lock;
 	int value;
-	struct threadInfoQueue queue;
+	struct ThreadInfoQueue queue;
 };
 
-typedef struct semaphore semaphore_t;
+typedef struct Semaphore semaphore_t;
 
 /*
 Initializes a semaphore

@@ -21,7 +21,7 @@ enum threadState {
 	THREADSTATE_SLEEP
 };
 
-struct threadInfo {
+struct ThreadInfo {
 	//asm accessible part
 	uintptr_t stackPointer;		//0x00
 	void *returnValue;			//0x08
@@ -31,8 +31,8 @@ struct threadInfo {
 	uint32_t cpuAffinity;		//0x1C
 	//end of asm accessible part
 
-	struct threadInfo *nextThread;
-	struct threadInfo *prevThread;
+	struct ThreadInfo *nextThread;
+	struct ThreadInfo *prevThread;
 
 	int priority;
 	bool fixedPriority;
@@ -40,12 +40,12 @@ struct threadInfo {
 
 	unsigned long sleepTime;
 	
-	struct threadInfo *joinFirst;
-	struct threadInfo *joinLast;
+	struct ThreadInfo *joinFirst;
+	struct ThreadInfo *joinLast;
 	int nrofJoinThreads;
 };
 
-typedef struct threadInfo *thread_t;
+typedef struct ThreadInfo *thread_t;
 
 extern unsigned long jiffyCounter;
 

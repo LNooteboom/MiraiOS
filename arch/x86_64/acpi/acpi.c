@@ -11,7 +11,7 @@
 #include "header.h"
 
 bool isXsdt;
-struct acpiHeader *rsdtHeader;
+struct AcpiHeader *rsdtHeader;
 uint64_t *xsdtContents = NULL; //if isXsdt == true
 uint32_t *rsdtContents = NULL; //if isXsdt == false
 uint32_t rsdtLength;
@@ -42,13 +42,13 @@ static void getRsdtEntry(unsigned int index, char *name, size_t *len, uint64_t *
 	if (!paddr2) {
 		return;
 	}
-	struct acpiHeader *header = ioremap(paddr2, sizeof(struct acpiHeader));
+	struct AcpiHeader *header = ioremap(paddr2, sizeof(struct AcpiHeader));
 	if (!header) {
 		panic("ioremap failed\n");
 	}
 	memcpy(name, header->sig, ACPI_SIG_LEN);
 	*len = header->length;
-	iounmap(header, sizeof(struct acpiHeader));
+	iounmap(header, sizeof(struct AcpiHeader));
 }
 
 void acpiInit(void) {
@@ -57,11 +57,11 @@ void acpiInit(void) {
 		ACPI_WARN("WARN: RSDT checksum invalid!\n")
 	}
 	if (isXsdt) {
-		xsdtContents = (uint64_t*)((uintptr_t)rsdtHeader + sizeof(struct acpiHeader));
-		rsdtLength = (rsdtHeader->length - sizeof(struct acpiHeader)) / 8;
+		xsdtContents = (uint64_t*)((uintptr_t)rsdtHeader + sizeof(struct AcpiHeader));
+		rsdtLength = (rsdtHeader->length - sizeof(struct AcpiHeader)) / 8;
 	} else {
-		rsdtContents = (uint32_t*)((uintptr_t)rsdtHeader + sizeof(struct acpiHeader));
-		rsdtLength = (rsdtHeader->length - sizeof(struct acpiHeader)) / 4;
+		rsdtContents = (uint32_t*)((uintptr_t)rsdtHeader + sizeof(struct AcpiHeader));
+		rsdtLength = (rsdtHeader->length - sizeof(struct AcpiHeader)) / 4;
 	}
 	char buf[ACPI_SIG_LEN + 1];
 	buf[ACPI_SIG_LEN] = 0;

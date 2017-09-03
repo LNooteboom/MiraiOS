@@ -4,8 +4,8 @@
 #include <mm/memset.h>
 #include <sched/spinlock.h>
 
-int fsCreateCharDev(struct inode *dir, const char *name, struct devFileOps *ops) {
-	struct dirEntry entry;
+int fsCreateCharDev(struct Inode *dir, const char *name, struct DevFileOps *ops) {
+	struct DirEntry entry;
 	
 	entry.nameLen = strlen(name);
 	if (entry.nameLen > 31) {
@@ -22,9 +22,9 @@ int fsCreateCharDev(struct inode *dir, const char *name, struct devFileOps *ops)
 
 	acquireSpinlock(&dir->lock);
 
-	struct inode *newInode = kmalloc(sizeof(struct inode));
+	struct Inode *newInode = kmalloc(sizeof(struct Inode));
 
-	memset(newInode, 0, sizeof(struct inode));
+	memset(newInode, 0, sizeof(struct Inode));
 
 	//newInode->inodeID = dir->superBlock->curInodeID;
 	//dir->superBlock->curInodeID += 1;
@@ -37,7 +37,7 @@ int fsCreateCharDev(struct inode *dir, const char *name, struct devFileOps *ops)
 
 	entry.inode = newInode;
 
-	struct dirEntry *newEntry = &entry;
+	struct DirEntry *newEntry = &entry;
 	int error = dirCacheAdd(&newEntry, dir);
 
 	releaseSpinlock(&dir->lock);

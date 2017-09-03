@@ -8,7 +8,7 @@
 #define NROF_SECTIONS 3
 #define VMEM_OFFSET 0xFFFFFFFF80000000
 
-struct peSect {
+struct PeSect {
 	char name[8];
 	uint32_t virtualSize;
 	uint32_t virtualAddress;
@@ -22,7 +22,7 @@ struct peSect {
 	uint32_t characteristics;
 };
 
-struct peHeader {
+struct PeHeader {
 	//DOS header
 	uint16_t mzSig;
 	uint16_t dosHdr[29];
@@ -75,10 +75,10 @@ struct peHeader {
 
 	uint64_t rvaAndSizes[6];
 
-	struct peSect sects[NROF_SECTIONS];
+	struct PeSect sects[NROF_SECTIONS];
 } __attribute__((packed));
 
-struct elfHeader {
+struct ElfHeader {
 	char magic[4];
 	uint8_t bits;
 	uint8_t endianness;
@@ -103,7 +103,7 @@ struct elfHeader {
 	uint16_t shstrndx;
 };
 
-struct elfPHEntry {
+struct ElfPHEntry {
 	uint32_t type;
 	uint32_t flags;
 	uint64_t pOffset;
@@ -114,7 +114,7 @@ struct elfPHEntry {
 	uint64_t alignment;
 };
 
-static struct peHeader peHdr = {
+static struct PeHeader peHdr = {
 	.mzSig = 0x5a4d,
 	.peOffset = 0x40,
 	.peSig = "PE",
@@ -145,7 +145,7 @@ static struct peHeader peHdr = {
 
 char zeroBuf[0x1000];
 
-static struct elfHeader kernelElfHeader;
+static struct ElfHeader kernelElfHeader;
 
 static int curPESection = 0;
 static uint64_t imageEnd = 0;
@@ -167,7 +167,7 @@ static int checkElfHeader(void) {
 		fprintf(stderr, "Error: Kernel arch is not x86_64\n");
 		return 1;
 	}
-	if (kernelElfHeader.phentSize != sizeof(struct elfPHEntry)) {
+	if (kernelElfHeader.phentSize != sizeof(struct ElfPHEntry)) {
 		fprintf(stderr, "Error: Program header size is not 56 bytes\n");
 		return 1;
 	}
@@ -190,7 +190,7 @@ static uint64_t align(uint64_t val) {
 	return val;
 }
 
-static void parsePHEnt(struct elfPHEntry *entry) {
+static void parsePHEnt(struct ElfPHEntry *entry) {
 	if (entry->type != 1) {
 		return;
 	}
@@ -275,8 +275,8 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Failed to stat kernel\n");
 		return 1;
 	}
-	size_t read = fread(&kernelElfHeader, 1, sizeof(struct elfHeader), kernel);
-	if (read != sizeof(struct elfHeader)) {
+	size_t read = fread(&kernelElfHeader, 1, sizeof(struct ElfHeader), kernel);
+	if (read != sizeof(struct ElfHeader)) {
 		fprintf(stderr, "Error: reading kernel ELF header\n");
 		return 1;
 	}
@@ -289,8 +289,8 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Error: Kernel seek failed\n");
 		return 1;
 	}
-	size_t phSize = sizeof(struct elfPHEntry) * kernelElfHeader.phnum;
-	struct elfPHEntry *kernelPHs = malloc(phSize);
+	size_t phSize = sizeof(struct ElfPHEntry) * kernelElfHeader.phnum;
+	struct ElfPHEntry *kernelPHs = malloc(phSize);
 	if (!kernelPHs) {
 		fprintf(stderr, "Error: Out of memory\n");
 		return 1;
@@ -316,12 +316,12 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	//write PE header
-	if (fwrite(&peHdr, 1, sizeof(struct peHeader), dest) != sizeof(struct peHeader)) {
+	if (fwrite(&peHdr, 1, sizeof(struct PeHeader), dest) != sizeof(struct PeHeader)) {
 		fprintf(stderr, "Failed to write PE header\n");
 		return 1;
 	}
 	//write header padding
-	if (fwrite(&peHdr, 1, 0x1000 - sizeof(struct peHeader), dest) != 0x1000 - sizeof(struct peHeader)) {
+	if (fwrite(&peHdr, 1, 0x1000 - sizeof(struct PeHeader), dest) != 0x1000 - sizeof(struct PeHeader)) {
 		fprintf(stderr, "Failed to write padding\n");
 		return 1;
 	}

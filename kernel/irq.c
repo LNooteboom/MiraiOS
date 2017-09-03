@@ -12,7 +12,7 @@
 static spinlock_t irqBitmapLock;
 static uint32_t irqBitmap[IRQDESC_NROF_ENTRIES / 32];
 
-struct irqDescriptor {
+struct IrqDescriptor {
 	void (*handler)(void);
 	const char *name;
 	unsigned int flags;
@@ -20,7 +20,7 @@ struct irqDescriptor {
 	unsigned int irqCount;
 };
 
-struct irqDescriptor irqDescs[IRQDESC_NROF_ENTRIES];
+struct IrqDescriptor irqDescs[IRQDESC_NROF_ENTRIES];
 
 interrupt_t allocIrqVec(void) {
 	int bitPos;

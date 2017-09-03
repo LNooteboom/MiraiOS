@@ -11,14 +11,14 @@
 
 extern char font8x16[];
 
-void putPix(struct framebuffer *fb, char *addr, uint32_t col) {
+void putPix(struct Framebuffer *fb, char *addr, uint32_t col) {
 	if (fb->isRGB) {
 		write32(addr, col);
 	}
 }
 
-static int fbPutc(struct console *con, char c) {
-	struct framebuffer *fb = (struct framebuffer*)con;
+static int fbPutc(struct Console *con, char c) {
+	struct Framebuffer *fb = (struct Framebuffer*)con;
 	if (c >= 32 && c <= 126) {
 		unsigned int index = (c - 32) * FONT_HEIGHT;
 		char *pos = fb->vmem + fb->cursorX + (fb->cursorY * fb->pitch);
@@ -55,7 +55,7 @@ int fbInit(void) {
 		return -EIO;
 	}
 	char *vmem = ioremap(bootInfo.fbAddr, bootInfo.fbSize);
-	struct framebuffer *bootFB = kmalloc(sizeof(struct framebuffer));
+	struct Framebuffer *bootFB = kmalloc(sizeof(struct Framebuffer));
 	if (!bootFB || !vmem)
 		return -ENOMEM;
 

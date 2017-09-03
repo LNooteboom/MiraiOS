@@ -5,8 +5,8 @@
 #include <sched/spinlock.h>
 #include <sched/thread.h>
 
-struct threadInfo *threadQueuePop(struct threadInfoQueue *queue) {
-	struct threadInfo *ret = queue->first;
+struct ThreadInfo *threadQueuePop(struct ThreadInfoQueue *queue) {
+	struct ThreadInfo *ret = queue->first;
 	if (!ret) {
 		return NULL;
 	}
@@ -21,7 +21,7 @@ struct threadInfo *threadQueuePop(struct threadInfoQueue *queue) {
 	return ret;
 }
 
-void threadQueuePush(struct threadInfoQueue *queue, struct threadInfo *thread) {
+void threadQueuePush(struct ThreadInfoQueue *queue, struct ThreadInfo *thread) {
 	if (!thread) {
 		return;
 	}
@@ -38,7 +38,7 @@ void threadQueuePush(struct threadInfoQueue *queue, struct threadInfo *thread) {
 	queue->nrofThreads += 1;
 }
 
-void threadQueuePushFront(struct threadInfoQueue *queue, struct threadInfo *thread) {
+void threadQueuePushFront(struct ThreadInfoQueue *queue, struct ThreadInfo *thread) {
 	if (!thread) {
 		return;
 	}

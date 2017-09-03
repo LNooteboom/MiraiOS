@@ -57,7 +57,7 @@ static struct RSDP *findRsdp(void) {
 	return (struct RSDP*)searchBase;
 }
 
-void acpiGetRsdt(struct acpiHeader **rsdt, bool *isXsdt) {
+void acpiGetRsdt(struct AcpiHeader **rsdt, bool *isXsdt) {
 	struct RSDP *rsdp;
 	if (bootInfo.rsdp) {
 		rsdp = ioremap(bootInfo.rsdp, sizeof(struct RSDP));
@@ -69,9 +69,9 @@ void acpiGetRsdt(struct acpiHeader **rsdt, bool *isXsdt) {
 	//*isXsdt = false;
 
 	//get table size
-	struct acpiHeader *tempHeader = ioremap(rsdp->rsdtAddr, sizeof(struct acpiHeader));
+	struct AcpiHeader *tempHeader = ioremap(rsdp->rsdtAddr, sizeof(struct AcpiHeader));
 	size_t tableSize = tempHeader->length;
-	iounmap(tempHeader, sizeof(struct acpiHeader));
+	iounmap(tempHeader, sizeof(struct AcpiHeader));
 
 	if (*isXsdt) {
 		*rsdt = ioremap(rsdp->xsdtAddr, tableSize);
