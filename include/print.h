@@ -32,4 +32,6 @@ With newline
 */
 void hexprintln64(uint64_t value);
 
+void setKernelStdout(int (*puts)(const char *str));
+
 #endif

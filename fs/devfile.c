@@ -4,7 +4,7 @@
 #include <mm/memset.h>
 #include <sched/spinlock.h>
 
-int fsCreateCharDev(struct Inode *dir, const char *name, struct DevFileOps *ops) {
+struct Inode *fsCreateCharDev(struct Inode *dir, const char *name, const struct DevFileOps *ops, void *privateData) {
 	struct DirEntry entry;
 	
 	entry.nameLen = strlen(name);
@@ -34,6 +34,7 @@ int fsCreateCharDev(struct Inode *dir, const char *name, struct DevFileOps *ops)
 	newInode->nrofLinks = 1;
 	newInode->ramfs = RAMFS_DEVFILE;
 	newInode->ops = ops;
+	newInode->cachedData = privateData;
 
 	entry.inode = newInode;
 
@@ -42,6 +43,11 @@ int fsCreateCharDev(struct Inode *dir, const char *name, struct DevFileOps *ops)
 
 	releaseSpinlock(&dir->lock);
 
-	return error;
+	if (error) {
+		kfree(newInode);
+		return NULL;
+	} else {
+		return newInode;
+	}
 }
 

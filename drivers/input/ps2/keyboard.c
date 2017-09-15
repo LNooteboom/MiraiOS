@@ -10,6 +10,10 @@
 #define SCANCODE_MODIFIER	0xE0
 #define SCANCODE_RELEASED	0xF0
 
+//temp
+extern void ttyScroll(int amount);
+extern void ttySwitch(unsigned int ttynr);
+
 struct KbDevice {
 	struct Ps2Device ps2Dev;
 
@@ -96,7 +100,7 @@ static void kbInterrupt(struct Ps2Device *dev) {
 			}
 			keycode = (data < (sizeof(kbScanTable) / sizeof(kbScanTable[0]) )) ? kbScanTable[data] : KEY_RESERVED;
 			if (!kbDev->keyReleased) {
-				printk("key: %d\n", keycode);
+				//printk("key: %d\n", keycode);
 				if (keycode == KEY_GRAVE) {
 					//reset
 					uint8_t good = 0x02;
@@ -104,6 +108,14 @@ static void kbInterrupt(struct Ps2Device *dev) {
 						good = in8(0x64);
 					out8(0x64, 0xFE);
 					asm ("hlt");
+				} else if (keycode == KEY_PAGEUP) {
+					ttyScroll(-1);
+				} else if (keycode == KEY_PAGEDOWN) {
+					ttyScroll(1);
+				} else if (keycode == KEY_0) {
+					ttySwitch(0);
+				} else if (keycode == KEY_1) {
+					ttySwitch(1);
 				}
 			}
 
@@ -135,4 +147,4 @@ int kbInit(void) {
 	return 0;
 }
 
-MODULE_INIT_LEVEL(kbInit, 3);
+MODULE_INIT(kbInit);

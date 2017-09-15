@@ -120,4 +120,4 @@ int ramfsInit(void) {
 	return parseInitrd(rootInode);
 }
 
-MODULE_INIT_LEVEL(ramfsInit, 0);
+MODULE_INIT_LEVEL(ramfsInit, 2);

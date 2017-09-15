@@ -3,36 +3,45 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include <sched/spinlock.h>
-#include <console.h>
 
-struct Console *currentConsole = NULL;
+//struct Console *currentConsole = NULL;
 
-static void __putc(char c) {
+static int (*stdout)(const char *str) = NULL;
+
+/*static void __putc(char c) {
 	currentConsole->putc(currentConsole, c);
-}
+}*/
 
-static void hexprint(uint32_t value) {
+#define PRINTK_STACK_BUF_SZ	512
+
+static void hexprint(char *dest, uint32_t value) {
 	for (int8_t i = 7; i >= 0; i--) {
-		char currentnibble = (value >> (i * 4)) & 0x0F;
-		if (currentnibble < 10) {
+		char currentNibble = (value >> (i * 4)) & 0x0F;
+		if (currentNibble < 10) {
 			//0-9
-			currentnibble += '0';
+			currentNibble += '0';
 		} else {
-			currentnibble += 'A' - 10;
+			currentNibble += 'A' - 10;
 		}
-		__putc(currentnibble);
+		*dest = currentNibble;
+		dest++;
 	}
 }
 
-static void decprint(int32_t value) {
+static int decprint(char *dest, int32_t value) {
 	if (value == 0) {
-		__putc('0');
+		*dest = '0';
+		return 1;
 	}
+
+	unsigned int len = 0;
 	char buffer[10];
 	if (value < 0) {
 		value = -value;
-		__putc('-');
+		*dest++ = '-';
+		len++;
 	}
 	for (int i = 9; i >= 0; i--) {
 		char currentchar = value % 10;
@@ -40,28 +49,28 @@ static void decprint(int32_t value) {
 		currentchar += '0';
 		buffer[i] = currentchar;
 	}
-	char all_zeros = 1;
+
+	bool zero = true;
 	for (int i = 1; i < 10; i++) {
-		if (!all_zeros || buffer[i] != '0') {
-			__putc(buffer[i]);
-			all_zeros = 0;
+		if (!zero || buffer[i] != '0') {
+			*dest++ = buffer[i];
+			len++;
+			zero = false;
 		}
 	}
-}
-
-int registerConsole(struct Console *con) {
-	if (con)
-		currentConsole = con;
-	return 0;
+	return len;
 }
 
 void vprintk(const char *fmt, va_list args) {
-	if (!currentConsole)
+	if (!stdout)
 		return;
-	acquireSpinlock(&currentConsole->lock);
+	char buf[PRINTK_STACK_BUF_SZ];
+
+	unsigned int i = 0;
 	for (const char *c = fmt; *c != 0; c++) {
 		if (*c != '%') {
-			__putc(*c);
+			//__putc(*c);
+			buf[i++] = *c;
 			continue;
 		}
 		c++;
@@ -70,34 +79,37 @@ void vprintk(const char *fmt, va_list args) {
 				return;
 			case 'c': {
 				char c2 = va_arg(args, int);
-				__putc(c2);
+				buf[i++] = c2;
 				break;
 			}
 			case 'd': {
-				int32_t i = va_arg(args, int32_t);
-				decprint(i);
+				int32_t num = va_arg(args, int32_t);
+				i += decprint(&buf[i], num);
 				break;
 			}
 			case 's': {
 				char *s = va_arg(args, char *);
 				while (*s) {
-					__putc(*s);
+					buf[i++] = *s;
 					s++;
 				}
 				break;
 			}
 			case 'x': {
-				uint32_t i = va_arg(args, uint32_t);
-				hexprint(i);
+				uint32_t num = va_arg(args, uint32_t);
+				hexprint(&buf[i], num);
+				i += 8;
 				break;
 			}
 			case '%':
-				__putc('%');
+				buf[i++] = '%';
 				break;
 		}
 	}
-	releaseSpinlock(&currentConsole->lock);
+	//releaseSpinlock(&currentConsole->lock);
 	va_end(args);
+	buf[i] = 0;
+	stdout(buf);
 }
 
 void printk(const char *fmt, ...) {
@@ -108,44 +120,51 @@ void printk(const char *fmt, ...) {
 }
 
 void putc(char c) {
-	if (!currentConsole)
+	if (!stdout)
 		return;
-	acquireSpinlock(&currentConsole->lock);
-	__putc(c);
-	releaseSpinlock(&currentConsole->lock);
+	char buf[2];
+	buf[0] = c;
+	buf[1] = 0;
+	stdout(buf);
 }
 
 void puts(const char *text) {
-	if (!currentConsole)
+	if (!stdout)
 		return;
-	
-	acquireSpinlock(&currentConsole->lock);
-	while (*text) {
-		__putc(*text);
-		text++;
-	}
-	releaseSpinlock(&currentConsole->lock);
+	stdout(text);
 }
 
 void hexprint64(uint64_t value) {
-	if (!currentConsole)
+	if (!stdout)
 		return;
-	acquireSpinlock(&currentConsole->lock);
-	for (int8_t i = 15; i >= 0; i--) {
-		char currentnibble = (value >> (i * 4)) & 0x0F;
-		if (currentnibble < 10) {
+	//acquireSpinlock(&currentConsole->lock);
+	char buf[17];
+	unsigned int index = 0;
+	for (int i = 15; i >= 0; i--) {
+		char currentNibble = (value >> (i * 4)) & 0x0F;
+		if (currentNibble < 10) {
 			//0-9
-			currentnibble += '0';
+			currentNibble += '0';
 		} else {
-			currentnibble += 'A' - 10;
+			currentNibble += 'A' - 10;
 		}
-		__putc(currentnibble);
+		//__putc(currentnibble);
+		buf[index++] = currentNibble;
 	}
-	releaseSpinlock(&currentConsole->lock);
+	//releaseSpinlock(&currentConsole->lock);
+	buf[16] = 0;
+	stdout(buf);
 }
 
 void hexprintln64(uint64_t value) {
-	if (!currentConsole) return;
+	if (!stdout) return;
 	hexprint64(value);
-	__putc('\n');
+	char buf[2];
+	buf[0] = '\n';
+	buf[1] = 0;
+	stdout(buf);
+}
+
+void setKernelStdout(int (*puts)(const char *str)) {
+	stdout = puts;
 }

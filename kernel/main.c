@@ -9,7 +9,7 @@
 #include <mm/physpaging.h>
 #include <modules.h>
 #include <irq.h>
-#include <drivers/video/framebuffer.h>
+#include <fs/fs.h>
 
 //linker symbols
 extern moduleCall_t MODULE_INITS_0_START;
@@ -18,7 +18,9 @@ extern moduleCall_t MODULE_INITS_2_START;
 extern moduleCall_t MODULE_INITS_3_START;
 extern moduleCall_t MODULE_INITS_END;
 
-moduleCall_t *moduleInitLevels[NROF_MODULE_INIT_LEVELS + 1] = {
+const int testVar = 10;
+
+moduleCall_t *moduleInitLevels[NROF_MODULE_LEVELS + 1] = {
 	&MODULE_INITS_0_START,
 	&MODULE_INITS_1_START,
 	&MODULE_INITS_2_START,
@@ -39,24 +41,25 @@ static void executeModuleCallLevel(unsigned int level) {
 void kmain(void) {
 	initInterrupts();
 	mmInit();
-	fbInit();
+	executeModuleCallLevel(0);
 	printk("Detected %dMiB of free memory.\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
-	//printk("%d: %s\n", bootInfo.initrdLen, bootInfo.initrd);
 	
 	earlyArchInit();
 
-
 	//initialize scheduler
 	kthreadCreateFromMain(&mainThread);
-
 	archInit();
 
+	executeModuleCallLevel(1);
+
 	//initialize fs
-	executeModuleCallLevel(0);
+	executeModuleCallLevel(2);
+	printk("done\n");
+	
+	//create /dev directory
+	fsCreate(NULL, rootDir, "dev", ITYPE_DIR);
 
 	//initialize drivers
-	executeModuleCallLevel(1);
-	executeModuleCallLevel(2);
 	executeModuleCallLevel(3);
 
 	puts("Init complete.\n");

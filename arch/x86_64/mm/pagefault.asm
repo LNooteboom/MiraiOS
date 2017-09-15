@@ -53,7 +53,7 @@ excPF:
                 cmp bl, 0
                 jne .L3
                     test eax, (1 << 10) ;clean flag
-                    jnz .L4
+                    jz .L4
 						call allocCleanPhysPage
                         jmp .L7
                     .L4:
@@ -63,7 +63,7 @@ excPF:
                 cmp bl, 1
                 jne .L5
                     test ax, (1 << 10) ;clean flag
-                    jnz .L6
+                    jz .L6
                         call allocLargeCleanPhysPage
                         jmp .L7
                     .L6:
