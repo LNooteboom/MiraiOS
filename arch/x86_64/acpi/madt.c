@@ -87,7 +87,8 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 
 		out8(0xa1, 0xff);
 		out8(0x21, 0xff);
-		//ACPI_LOG("Legacy PICs disabled.\n");
+		//ACPI_LOG("Legacy PICs disabled.");
+		puts("[MADT] Legacy PICs disabled\n");
 	}
 
 	madtContents = (char*)((uintptr_t)madtHdr + sizeof(struct MadtHeader));
@@ -98,15 +99,13 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		struct RecordHeader *recHeader = (struct RecordHeader*)(&(madtContents[i]));
 		if (recHeader->entryType == 0) {
 			struct LAPIC *rec = (struct LAPIC*)recHeader;
-			//ACPI_LOG("Found local APIC ID: ");
-			//decprintln(rec->apicID);
+			printk("[MADT] Found local APIC: %d\n", rec->apicID);
 			if (nrofCPUs < APIC_BUFFER_SIZE) {
 				apicIDs[nrofCPUs++] = rec->apicID;
 			}
 		} else if (recHeader->entryType == 1) {
 			struct IOAPIC *rec = (struct IOAPIC*)recHeader;
-			//ACPI_LOG("Found IO APIC ID: ");
-			//decprintln(rec->id);
+			printk("[MADT] Found IO APIC: %d\n", rec->id);
 			struct IoApicInfo *oldInfos = ioApicInfos;
 			ioApicInfos = krealloc(ioApicInfos, (nrofIOApics + 1) * sizeof(struct IoApicInfo));
 			if (ioApicInfos) {
@@ -122,6 +121,7 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		} else if (recHeader->entryType == 2) {
 			struct IrqSourceOvrr *rec = (struct IrqSourceOvrr*)recHeader;
 			if (rec->bus == IRQBUS_ISA) {
+				printk("[MADT] Found ISA IRQ override %d -> %d\n", rec->irqSource, rec->GSI);
 				addISAOverride(rec->GSI, rec->irqSource, rec->flags);
 			}
 		}

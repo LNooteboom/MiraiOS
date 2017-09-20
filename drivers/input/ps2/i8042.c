@@ -263,6 +263,8 @@ int i8042Init(void) {
 
 	i8042CmdSent = false;
 
+	printk("[i8042] Initialized\n");
+
 	return 0;
 }
 

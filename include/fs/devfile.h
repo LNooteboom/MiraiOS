@@ -12,6 +12,6 @@ struct DevFileOps {
 	int (*del)(struct Inode *inode);
 };
 
-struct Inode *fsCreateCharDev(struct Inode *dir, const char *name, const struct DevFileOps *ops, void *privateData);
+struct Inode *fsCreateCharDev(struct Inode *dir, const char *name, struct DevFileOps *ops, void *privateData);
 
 #endif

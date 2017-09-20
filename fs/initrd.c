@@ -64,7 +64,7 @@ static int parseInitrd(struct Inode *rootInode) {
 		
 		//TODO add support for directories (and hardlinks?)
 
-		printk("Add file: %s\n", name);
+		printk("[INITRD] Found file: %s\n", name);
 		struct Inode *newInode = kmalloc(sizeof(struct Inode));
 		memset(newInode, 0, sizeof(struct Inode));
 

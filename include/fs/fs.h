@@ -134,4 +134,6 @@ int fsSeek(struct File *file, int64_t offset, int whence);
 
 int fsIoctl(struct File *file, unsigned long request, ...);
 
+int fsGetDents(struct Inode *dir, struct GetDents *buf, unsigned int nrofEntries);
+
 #endif

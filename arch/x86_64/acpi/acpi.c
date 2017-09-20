@@ -44,7 +44,7 @@ static void getRsdtEntry(unsigned int index, char *name, size_t *len, uint64_t *
 	}
 	struct AcpiHeader *header = ioremap(paddr2, sizeof(struct AcpiHeader));
 	if (!header) {
-		panic("ioremap failed\n");
+		panic("[ACPI][ERROR] ioremap failed\n");
 	}
 	memcpy(name, header->sig, ACPI_SIG_LEN);
 	*len = header->length;
@@ -54,7 +54,7 @@ static void getRsdtEntry(unsigned int index, char *name, size_t *len, uint64_t *
 void acpiInit(void) {
 	acpiGetRsdt(&rsdtHeader, &isXsdt);
 	if (!acpiVerifyChecksum(rsdtHeader, rsdtHeader->length)) {
-		ACPI_WARN("WARN: RSDT checksum invalid!\n")
+		ACPI_WARN("RSDT checksum invalid!\n");
 	}
 	if (isXsdt) {
 		xsdtContents = (uint64_t*)((uintptr_t)rsdtHeader + sizeof(struct AcpiHeader));
@@ -70,6 +70,7 @@ void acpiInit(void) {
 		size_t entryLen;
 		uint64_t paddr;
 		getRsdtEntry(i, buf, &entryLen, &paddr);
+		printk("[ACPI] Found table: %s\n", buf);
 		if (!paddr) {
 			continue; //skip NULL entry
 		}

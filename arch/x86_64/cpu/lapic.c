@@ -38,6 +38,8 @@ extern void smpbootStart(void);
 extern char VMEM_OFFSET;
 extern bool nxEnabled;
 
+extern bool perCpuTimer;
+
 uintptr_t physLapicBase;
 volatile char *lapicBase;
 size_t cpuInfoSize; //used for AP boot in asm
@@ -93,7 +95,6 @@ void lapicInit(void) {
 	lapicBase = ioremap(physLapicBase, PAGE_SIZE);
 	cpuInfoSize = sizeof(struct CpuInfo);
 
-	//uint32_t apicID = lapicBase[0x20 / 4] >> 24;
 	uint32_t apicID = read32(lapicBase + LAPIC_ID) >> 24;
 	int index = getCPUInfo(apicID);
 	if (index < 0) {
@@ -113,6 +114,11 @@ void lapicInit(void) {
 	write32(lapicBase + LAPIC_SPURIOUS, 0x1FF); //set spurious register to vector 0xFF (points to empty isr)
 
 	busSpeed = getBusSpeed();
+	printk("[LAPIC] Bus speed: %dHz\n", busSpeed / 100);
+
+	if (busSpeed / 100 >= 100000) {
+		perCpuTimer = true;
+	}
 
 	struct CpuInfo *info = &(cpuInfos[index]);
 	acquireSpinlock(&(info->lock));
@@ -126,6 +132,7 @@ void lapicEnableTimer(interrupt_t vec) {
 	write32(lapicBase + LAPIC_LVT_TMR, vec | (1 << 17)); //set vector + periodic mode
 	write32(lapicBase + LAPIC_DIV, 3); //set divider to 16
 	write32(lapicBase + LAPIC_TIC, busSpeed / (16 * JIFFY_HZ));
+	printk("[LAPIC] Timer enabled\n");
 }
 
 void ackIRQ(void) {
@@ -165,7 +172,7 @@ void lapicDoSMPBoot(void) {
 		if (cpuInfos[i].apicID == currentAPIC) {
 			continue; //ignore this cpu
 		}
-		printk("Starting CPU %d...\n", i);
+		printk("[SMPBOOT] Starting CPU %d...  ", i);
 
 		cpuStartedUp = false;
 		
@@ -177,6 +184,7 @@ void lapicDoSMPBoot(void) {
 		while (!cpuStartedUp) {
 			asm("pause");
 		}
+		printk("[OK]\n");
 	}
 	mmUnmapBootPages();
 	tlbReloadCR3();

@@ -11,6 +11,8 @@
 #include <drivers/timer/i8253.h>
 #include <arch/idt.h>
 
+#include <arch/msr.h>
+
 #define JIFFY_VEC	0xC2
 #define RESCHED_VEC	0xC3
 
@@ -24,6 +26,10 @@ extern void jiffyIrq(void);
 extern void reschedIPI(void);
 
 void earlyArchInit(void) {
+	uint64_t pat = rdmsr(0x277);
+	pat &= ~(0xFF << 8);
+	pat |= (0x01 << 8);
+	wrmsr(0x277, pat);
 	acpiInit();
 	lapicInit();
 	ioApicInit();
@@ -36,9 +42,11 @@ void archInit(void) {
 	mapIdtEntry(reschedIPI, RESCHED_VEC, 0);
 	if (perCpuTimer) {
 		//use lapic timer
+		printk("[x86] Using LAPIC timer for jiffy clocksource\n");
 		lapicEnableTimer(JIFFY_VEC);
 	} else {
 		//use PIT
+		printk("[x86] Using PIT for jiffy clocksource\n");
 		routeIrqLine(JIFFY_VEC, 0, HWIRQ_FLAG_ISA);
 		i8253SetFreq(JIFFY_HZ);
 		i8253State(true);

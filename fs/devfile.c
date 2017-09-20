@@ -4,14 +4,15 @@
 #include <mm/memset.h>
 #include <sched/spinlock.h>
 
-struct Inode *fsCreateCharDev(struct Inode *dir, const char *name, const struct DevFileOps *ops, void *privateData) {
+struct Inode *fsCreateCharDev(struct Inode *dir, const char *name, struct DevFileOps *ops, void *privateData) {
 	struct DirEntry entry;
 	
 	entry.nameLen = strlen(name);
 	if (entry.nameLen > 31) {
 		entry.name = kmalloc(entry.nameLen + 1);
 		if (!entry.name) {
-			return -ENOMEM;
+			//return -ENOMEM;
+			return NULL;
 		}
 		memcpy(entry.name, name, entry.nameLen);
 		entry.name[entry.nameLen] = 0;

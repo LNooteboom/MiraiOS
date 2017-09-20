@@ -4,12 +4,15 @@
 #include <errno.h>
 #include <mm/heap.h>
 #include <mm/paging.h>
+#include <mm/memset.h>
 #include <sched/spinlock.h>
 #include <sched/thread.h>
-#include <sched/sleep.h>
 #include <sched/lock.h>
 #include <fs/fs.h>
+#include <fs/devfile.h>
 #include <print.h>
+
+#include <arch/map.h>
 
 #define FONT_HEIGHT 16
 #define SCROLLBACK_LINES 256
@@ -39,10 +42,7 @@ struct Framebuffer {
 
 struct Vtty {
 	struct Framebuffer *fb;
-	union {
-		spinlock_t earlyLock;
-		struct Inode *inode;
-	};
+	spinlock_t earlyLock;
 
 	uint16_t charWidth; //width of the screen in characters
 	uint16_t charHeight; //height of the screen in characters
@@ -57,13 +57,21 @@ struct Vtty {
 	semaphore_t sem;
 };
 
+static int ttyWrite(struct File *file, void *buffer, size_t bufSize);
+
 extern char font8x16[];
 
 static struct Vtty ttys[NROF_VTTYS];
 static struct Vtty *kernelTty = &ttys[0];
 static struct Vtty *currentTty = &ttys[0];
 
-bool ttyEarly = true;
+static bool ttyEarly = true;
+
+//static uint64_t lastUpdateTime = 0;
+static char ttyName[] = "tty0";
+static struct DevFileOps ttyOps = {
+	.write = ttyWrite
+};
 
 static void drawChar(char *vmem, unsigned int newline, char c) {
 	if (c < 32 || c > 126) {
@@ -130,12 +138,9 @@ static void newline(struct Vtty *tty) {
 	tty->scrollbackY = y;
 }
 
-static int kernelPutsEarly(const char *text) {
-	struct Vtty *tty = kernelTty;
-	acquireSpinlock(&tty->earlyLock);
-
-	while (*text) {
-		switch (*text) {
+static int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
+	for (unsigned int i = 0; i < textLen; i++) {
+		switch (text[i]) {
 			case '\r':
 				tty->cursorX = 0;
 				break;
@@ -143,14 +148,13 @@ static int kernelPutsEarly(const char *text) {
 				newline(tty);
 				break;
 			default:
-				tty->scrollback[tty->cursorY * tty->charWidth + tty->cursorX] = *text;
+				tty->scrollback[tty->cursorY * tty->charWidth + tty->cursorX] = text[i];
 				tty->cursorX++;
 				if (tty->cursorX >= tty->charWidth) {
 					newline(tty);
 				}
 				break;
 		}
-		text++;
 	}
 	if (ttyEarly) {
 		fbUpdate(tty);
@@ -158,9 +162,21 @@ static int kernelPutsEarly(const char *text) {
 		//tty->dirty = true;
 		semSignal(&tty->sem);
 	}
+	return 0;
+}
+
+static int kernelPuts(const char *text) {
+	struct Vtty *tty = kernelTty;
+	acquireSpinlock(&tty->earlyLock);
+
+	int error = ttyPuts(tty, text, strlen(text));
 
 	releaseSpinlock(&tty->earlyLock);
-	return 0;
+	return error;
+}
+
+static int ttyWrite(struct File *file, void *buffer, size_t bufSize) {
+	return ttyPuts(file->inode->cachedData, buffer, bufSize);
 }
 
 void ttyScroll(int amount) {
@@ -197,8 +213,20 @@ static void fbUpdateThread(void) {
 	while (true) {
 		fbUpdate(currentTty);
 		semWait(&currentTty->sem);
+		//kthreadSleep(17);
 	}
 }
+
+int fbInitDevFiles(void) {
+	printk("[TTY] Creating device files...\n");
+	struct Inode *devDir = getInodeFromPath(rootDir, "dev");
+	for (unsigned int i = 0; i < NROF_VTTYS; i++) {
+		ttyName[sizeof(ttyName) - 2] = '0' + i;
+		fsCreateCharDev(devDir, ttyName, &ttyOps, &ttys[i]);
+	}
+	return 0;
+}
+MODULE_INIT(fbInitDevFiles);
 
 int fbInitLate(void) {
 	ttyEarly = false;
@@ -218,6 +246,9 @@ int fbInit(void) {
 	char *vmem = ioremap(bootInfo.fbAddr, bootInfo.fbSize);
 	if (!vmem) {
 		return -ENOMEM;
+	}
+	for (size_t i = 0; i < bootInfo.fbSize; i += PAGE_SIZE) {
+		*mmGetEntry((uintptr_t)vmem + i, 0) |= (1 << 3);
 	}
 	struct Framebuffer *bootFB = kmalloc(sizeof(struct Framebuffer));
 	if (!bootFB) {
@@ -250,7 +281,7 @@ int fbInit(void) {
 		ttys[i].cursorY = 0;
 	}
 	kernelTty->focus = true;
-	setKernelStdout(kernelPutsEarly);
+	setKernelStdout(kernelPuts);
 
 	return 0;
 }

@@ -42,7 +42,7 @@ void kmain(void) {
 	initInterrupts();
 	mmInit();
 	executeModuleCallLevel(0);
-	printk("Detected %dMiB of free memory.\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
+	printk("[MM] Detected %dMiB of free memory\n", getNrofPages() / (1024*1024/PAGE_SIZE) + 16);
 	
 	earlyArchInit();
 
@@ -54,7 +54,6 @@ void kmain(void) {
 
 	//initialize fs
 	executeModuleCallLevel(2);
-	printk("done\n");
 	
 	//create /dev directory
 	fsCreate(NULL, rootDir, "dev", ITYPE_DIR);
@@ -62,7 +61,7 @@ void kmain(void) {
 	//initialize drivers
 	executeModuleCallLevel(3);
 
-	puts("Init complete.\n");
+	puts("[MAIN] Initialization complete\n");
 
 	kthreadExit(NULL);
 }

@@ -4,15 +4,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define ACPI_LOG(text) do {				\
-		puts("[\e[32macpi\e[0m] ");	\
-		puts(text);					\
-	} while(0);
+#define ACPI_LOG(text) printk("[ACPI] %s\n", text)
 
-#define ACPI_WARN(text) do {			\
-		puts("[\e[34macpi\e[0m] ");	\
-		puts(text);					\
-	} while(0);
+#define ACPI_WARN(text) printk("[ACPI] %s\n", text)
 
 /*
 Verifies the checksum on a acpi table

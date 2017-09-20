@@ -86,6 +86,25 @@ int dirCacheDelete(struct Inode *dir) {
 	return 0;
 }
 
+int dirCacheList(struct Inode *dir, struct GetDents *buf, unsigned int nrofEntries) {
+	struct CachedDir *cd = dir->cachedData;
+	if (nrofEntries > cd->nrofEntries) {
+		nrofEntries = cd->nrofEntries;
+	}
+	for (unsigned int i = 0; i < nrofEntries; i++) {
+		struct DirEntry *curEntry = &cd->entries[i];
+		buf[i].inode = curEntry->inode;
+		if (curEntry->nameLen > 31) {
+			memcpy(&buf[i].name, curEntry->name, curEntry->nameLen);
+		} else {
+			memcpy(&buf[i].name, curEntry->inlineName, curEntry->nameLen);
+		}
+		buf[i].name[curEntry->nameLen] = 0;
+	}
+
+	return nrofEntries;
+}
+
 int dirCacheInit(struct Inode *dir, struct Inode *parentDir) {
 	struct CachedDir *cd = kmalloc(sizeof(struct CachedDir));
 	if (!cd) {

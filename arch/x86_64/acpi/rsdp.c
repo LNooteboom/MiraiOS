@@ -46,13 +46,12 @@ static struct RSDP *findRsdp(void) {
 			panic("Could not find RSDP!\n");
 		}
 	}
-	//ACPI_LOG("Found RSDP at: ");
-	//hexprintln64((uint64_t)searchBase);
+	printk("[ACPI] Found RSDP at %x\n", (uint64_t)searchBase);
 	
 	if (acpiVerifyChecksum(searchBase, sizeof(struct RSDP))) {
-		//ACPI_LOG("RSDP checksum valid");
+		ACPI_LOG("RSDP checksum valid");
 	} else {
-		ACPI_WARN("WARN: RSDP checksum invalid!\n");
+		ACPI_WARN("WARN: RSDP checksum invalid!");
 	}
 	return (struct RSDP*)searchBase;
 }
@@ -61,7 +60,7 @@ void acpiGetRsdt(struct AcpiHeader **rsdt, bool *isXsdt) {
 	struct RSDP *rsdp;
 	if (bootInfo.rsdp) {
 		rsdp = ioremap(bootInfo.rsdp, sizeof(struct RSDP));
-		printk("Using EFI configuration table for RSDP\n");
+		ACPI_LOG("Using EFI configuration table for RSDP");
 	} else {
 		rsdp = findRsdp();
 	}

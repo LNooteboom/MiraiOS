@@ -55,6 +55,7 @@ void ioApicInit(void) {
 		ioApicInfos[i].gsiLength = (ver >> 16) & 0xFF;
 		releaseSpinlock(&(ioApicInfos[i].lock));
 	}
+	printk("[IOAPIC] Initialized\n");
 	localInterruptEnable();
 }
 
@@ -86,7 +87,7 @@ int routeIrqLine(interrupt_t vec, unsigned int irq, unsigned int flags) {
 
 	struct IoApicInfo *ioApic = findApic(irq);
 	if (!ioApic) {
-		printk("Could not find APIC for irq: %d", irq);
+		printk("[IOAPIC] Could not find APIC for irq: %d", irq);
 		return 1;
 	}
 

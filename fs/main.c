@@ -85,3 +85,12 @@ struct Inode *getInodeFromPath(struct Inode *cwd, const char *path) {
 struct Inode *getBaseDirFromPath(struct Inode *cwd, int *fileNameIndex, const char *path) {
 	return (struct Inode *)getDirEntryFromPath(cwd, path, fileNameIndex);
 }
+
+int fsGetDents(struct Inode *dir, struct GetDents *buf, unsigned int nrofEntries) {
+	acquireSpinlock(&dir->lock);
+
+	int ret = dirCacheList(dir, buf, nrofEntries);
+
+	releaseSpinlock(&dir->lock);
+	return ret;
+}

@@ -23,6 +23,11 @@ struct CachedDir {
 	struct DirEntry entries[2]; //can be more than 2, must be last
 };
 
+struct GetDents {
+	struct Inode *inode;
+	char name[256];
+};
+
 int dirCacheAdd(struct DirEntry **newEntry, struct Inode *dir);
 
 int dirCacheRemove(struct DirEntry *entry);
@@ -32,5 +37,7 @@ struct DirEntry *dirCacheLookup(struct Inode *dir, const char *name);
 int dirCacheDelete(struct Inode *dir);
 
 int dirCacheInit(struct Inode *dir, struct Inode *parentDir);
+
+int dirCacheList(struct Inode *dir, struct GetDents *buf, unsigned int nrofEntries);
 
 #endif
