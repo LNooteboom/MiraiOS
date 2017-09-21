@@ -27,7 +27,8 @@ acquireSpinlock:
 		pause
 		test [rdi], dword 1
 		jz .lock
-		cmp ecx, 0x7FFFFFFF ;10000000000
+		;cmp ecx, 0x7FFFFFFF ;10000000000
+		cmp ecx, 10000000
 		jae .error
 		jmp .spin
 

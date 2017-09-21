@@ -41,8 +41,6 @@ static struct DirEntry *getDirEntryFromPath(struct Inode *cwd, const char *path,
 			} else {
 				acquireSpinlock(&curDir->lock);
 				struct DirEntry *file = dirCacheLookup(curDir, &path[curNameEnd + 1]);
-				//struct INODE *RET = (FILE)? file->inode : NULL;
-				//releaseSpinlock(&curDir->lock);
 				return file; //SPINLOCK MUST BE RELEASED BY THE CALLER
 			}
 		} else if (slash == 0) {
@@ -66,9 +64,9 @@ static struct DirEntry *getDirEntryFromPath(struct Inode *cwd, const char *path,
 			releaseSpinlock(&curDir->lock);
 			return NULL;
 		}
-		curDir = entry->inode;
+		struct Inode *newCurDir = entry->inode;
 		releaseSpinlock(&curDir->lock);
-		
+		curDir = newCurDir;
 	}
 }
 
