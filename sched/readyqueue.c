@@ -94,11 +94,25 @@ void readyQueuePush(thread_t thread) {
 	int priority = thread->priority;
 	uint32_t cpuIndex = thread->cpuAffinity;
 
+	if (cpuInfos[thread->cpuAffinity].threadLoad) {
+		for (unsigned int i = 0; i < nrofCPUs; i++) {
+			if (cpuInfos[i].active && cpuInfos[i].threadLoad == 0) {
+				cpuIndex = i;
+				thread->cpuAffinity = i;
+				break;
+			}
+		}
+	}
+
 	acquireSpinlock(&cpuInfos[cpuIndex].readyListLock);
 	cpuInfos[cpuIndex].threadLoad += NROF_QUEUE_PRIORITIES - priority;
 	cpuInfos[cpuIndex].nrofReadyThreads++;
 	threadQueuePush(&cpuInfos[cpuIndex].readyList[priority], thread);
 	releaseSpinlock(&cpuInfos[cpuIndex].readyListLock);
+
+	if (pcpuRead32(cpuInfosIndex) != cpuIndex) {
+		lapicSendIPI(cpuInfos[cpuIndex].apicID, RESCHED_VEC, IPI_FIXED);
+	}
 }
 
 thread_t readyQueueExchange(thread_t thread, bool front) {

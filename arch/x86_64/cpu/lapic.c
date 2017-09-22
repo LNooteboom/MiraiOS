@@ -122,6 +122,7 @@ void lapicInit(void) {
 
 	struct CpuInfo *info = &(cpuInfos[index]);
 	acquireSpinlock(&(info->lock));
+	info->active = true;
 	tssGdtInit(info);
 	wrmsr(0xC0000101, (uint64_t)info); //set GS.base to cpuinfo
 	releaseSpinlock(&(info->lock));
@@ -181,7 +182,9 @@ void lapicDoSMPBoot(void) {
 		kthreadSleep(10);
 		lapicSendIPI(cpuInfos[i].apicID, 0x70, IPI_START); //send SIPI
 
-		while (!cpuStartedUp) {
+		//while (!cpuStartedUp) {
+		volatile bool *active = &cpuInfos[i].active;
+		while (!*active) {
 			asm("pause");
 		}
 		printk("[OK]\n");

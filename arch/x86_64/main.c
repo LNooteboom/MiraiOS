@@ -13,9 +13,6 @@
 
 #include <arch/msr.h>
 
-#define JIFFY_VEC	0xC2
-#define RESCHED_VEC	0xC3
-
 unsigned int nrofCPUs = 0;
 unsigned int nrofActiveCPUs = 1;
 struct CpuInfo *cpuInfos = NULL;

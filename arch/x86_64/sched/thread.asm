@@ -18,12 +18,16 @@ extern perCpuTimer
 extern jiffyVec
 extern lapicSendIPIToAll
 
+extern tssSetRSP0
+
 global kthreadExit:function
 global kthreadInit:function
 global jiffyIrq:function
 global reschedIPI:function
 global migrateMainStack:function
 global kthreadStop:function
+
+global uthreadInit:function
 
 global jiffyCounter:data
 
@@ -77,6 +81,25 @@ kthreadInit:
 	mov [rdi - 0x28], rdx	;Set cs
 
 	mov [rdi - 0x20], rcx
+	ret
+
+uthreadInit: ;(struct ThreadInfo *info (rdi), func *start(rsi), uint64_t arg1 (rdx), uint64_t arg2 (rcx), uint64_t userspaceStackpointer (r8))
+	pushfq
+	pop rax
+	
+	mov qword [rdi - 0x08], qword 0x2B ;ss
+	mov [rdi - 0x10], r8 ;rsp
+	mov [rdi - 0x18], rax ;rflags
+	mov qword [rdi - 0x20], qword 0x1B ;cs = 64-bit usermode text
+	mov [rdi - 0x28], rsi ;rip
+
+	mov [rdi - 0x48], rdx
+	mov [rdi - 0x50], rcx
+
+	;set stackpointer in ThreadInfo to kernel stack
+	lea rax, [rdi - 0xA0]
+	mov [rdi], rax
+
 	ret
 
 kthreadReturn:
@@ -258,11 +281,16 @@ reschedIPI:
 		mov r15, [rsp]
 		add rsp, 0x30
 
-		;release spinlock on new thread
+		
 		push rdx
+		lea rdi, [rsp + 0xA0 - 0x30]
+		call tssSetRSP0
+
+		;release spinlock on new thread
 		lea rdi, [rax + 0x14]
 		call releaseSpinlock
 		pop rdx
+		
 	.noSwitch:
 	;release spinlock on old thread
 	lea rdi, [rdx + 0x14]
@@ -377,6 +405,9 @@ nextThread: ;r15 = old thread
 	cmp r14, r15
 	je .sameThread2
 		mov rsp, [r14] ;switch to new stack
+
+		lea rdi, [rsp + 0xA0]
+		call tssSetRSP0
 
 		mov rdi, r14
 		call setCurrentThread

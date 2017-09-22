@@ -12,14 +12,14 @@ SECTION .text
 
 initIrqStubs:
 	push rbx
-	mov rbx, 0
+	mov ebx, 32
 	.loop:
-		lea rdi, [irqStubsList + rbx * 8]
-		lea rsi, [rbx + 32]
+		lea rdi, [(irqStubsList - 32 * 8) + rbx * 8]
+		mov esi, ebx
 		xor edx, edx
 		call mapIdtEntry
-		inc rbx
-		cmp rbx, (128 - 32)
+		inc ebx
+		cmp ebx, 128
 		jne .loop
 	pop rbx
 	ret

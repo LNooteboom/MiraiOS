@@ -223,9 +223,8 @@ void *krealloc(void *addr, size_t newSize) {
 	//expand
 	size_t moreNeeded = newSize - oldSize;
 	//get next header, check if its free
-	//memArea_t *curFooter = getFooterFromHeader(curHeader);
-	//memArea_t *nextHeader = curFooter + 1;
 	if (*nextHeader & AREA_INUSE || (*nextHeader & AREA_SIZE) < moreNeeded) {
+	//if (true) {
 		//alloc new area, copy and free old area
 		releaseSpinlock(&heapLock);
 		void *newAddr = kmalloc(newSize);

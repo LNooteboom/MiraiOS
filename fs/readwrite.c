@@ -42,7 +42,7 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 	}
 	
 	if (inode->ramfs & RAMFS_INITRD) {
-		memcpy(buffer, inode->cachedData, bytesLeft);
+		memcpy(buffer, inode->cachedData + 1, bytesLeft);
 		file->offset += bytesLeft;
 
 		releaseSpinlock(&inode->lock);

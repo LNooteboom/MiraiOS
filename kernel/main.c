@@ -63,6 +63,8 @@ void kmain(void) {
 
 	puts("[MAIN] Initialization complete\n");
 
+	createInitProcess();
+
 	kthreadExit(NULL);
 }
 

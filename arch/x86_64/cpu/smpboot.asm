@@ -98,7 +98,8 @@ smpbootStart:
 	;increment nrof active cpus
 	lock inc dword [nrofActiveCPUs]
 	;set started up flag
-	mov [cpuStartedUp], dword 1
+	;mov [cpuStartedUp], dword 1
+	mov [r15 + 0x20], dword 1
 
 	.loadThread:
 	call readyQueuePop

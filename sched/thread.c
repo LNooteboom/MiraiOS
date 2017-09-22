@@ -9,8 +9,6 @@
 #include <mm/pagemap.h>
 #include <arch/cpu.h>
 
-#define THREAD_STACK_SIZE	0x2000
-
 extern void migrateMainStack(thread_t mainThread);
 
 extern void kthreadInit(thread_t thread, void *(*start)(void *), void *arg);
@@ -86,6 +84,7 @@ int kthreadCreateFromMain(thread_t *thread) {
 	setCPUThreadLoad(1 << (NROF_QUEUE_PRIORITIES - 1));
 
 	setCurrentThread(thrd);
+	pcpuWrite32(threadLoad, 32);
 	
 	return 0;
 }

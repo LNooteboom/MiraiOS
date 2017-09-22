@@ -2,11 +2,15 @@
 #define INCLUDE_ARCH_APIC_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <sched/spinlock.h>
 #include <sched/thread.h>
 #include <sched/readyqueue.h>
 #include <sched/queue.h>
 #include <irq.h>
+
+#define JIFFY_VEC	0xC2
+#define RESCHED_VEC	0xC3
 
 #define pcpuRead64(attr)		doPcpuRead64((uint64_t)(&(( (struct CpuInfo*)0)->attr)))
 #define pcpuRead32(attr)		doPcpuRead32((uint64_t)(&(( (struct CpuInfo*)0)->attr)))
@@ -46,20 +50,21 @@ struct CpuTSS {
 	uint64_t reserved2;
 	uint16_t reserved3;
 	uint16_t ioMapBase;
-};
+} __attribute__((packed));
 struct CpuGDTR {
 	uint16_t size;
 	uint64_t base;
 } __attribute__((packed));
 
 struct CpuInfo {
-	struct CpuInfo *addr;
-	thread_t currentThread;
-	void *excStackTop;
-	uint32_t apicID;
-	uint32_t cpuInfosIndex;
-	
-	spinlock_t lock;
+	//asm accessable
+	struct CpuInfo *addr;	//00
+	thread_t currentThread;	//08
+	void *excStackTop;		//10
+	uint32_t apicID;		//18
+	uint32_t cpuInfosIndex;	//1C
+	bool active;			//20
+	spinlock_t lock;		//24
 
 	struct CpuGDTR gdtr;
 	gdtEntry_t gdt[16];
