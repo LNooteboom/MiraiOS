@@ -48,7 +48,7 @@ clean:
 endif
 
 #subdirs
-dir := $(KERNEL_ROOT)/kernel
+dir := $(KERNEL_ROOT)/main
 $(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
 include $(dir)/Rules.mk
 
