@@ -94,4 +94,6 @@ void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type);
 
 void ackIRQ(void);
 
+void tssSetRSP0(void *rsp);
+
 #endif

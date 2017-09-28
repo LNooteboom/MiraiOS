@@ -24,14 +24,22 @@ void tssGdtInit(struct CpuInfo *info) {
 	//setup gdtr
 	info->gdtr.size = sizeof(gdtEntry_t) * NROF_GDT_ENTRIES;
 	info->gdtr.base = (uint64_t)(&(info->gdt));
+
+	//setup ist entry
+	info->tss.ist[0] = info->excStackTop;
+	//set IST for page fault, NMI and MCE
+	idtSetIST(14, 1);
+	idtSetIST(2, 1);
+	idtSetIST(18, 1);
+
 	asm volatile ("lgdt [%0]" : : "g"(&(info->gdtr)));
 	asm volatile ("ltr ax" : : "a"(0x30));
 }
 
-void tssSetIST(int ist, void *addr) {
+/*void tssSetIST(int ist, void *addr) {
 	struct CpuInfo *cpuInfoNull = NULL;
 	doPcpuWrite64((uint64_t)(&cpuInfoNull->tss.ist[ist - 1]), (uint64_t)addr);
-}
+}*/
 
 void tssSetRSP0(void *rsp) {
 	struct CpuInfo *cpuInfoNull = NULL;

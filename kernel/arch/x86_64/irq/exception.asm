@@ -9,6 +9,10 @@ extern mapIdtEntry
 extern testcount
 extern lapicBase
 
+extern tssSetIST
+extern idtSetIST
+extern idtSetDPL
+
 extern excPF
 
 global initExceptions:function

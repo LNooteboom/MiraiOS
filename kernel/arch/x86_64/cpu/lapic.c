@@ -125,6 +125,7 @@ void lapicInit(void) {
 	info->active = true;
 	tssGdtInit(info);
 	wrmsr(0xC0000101, (uint64_t)info); //set GS.base to cpuinfo
+
 	releaseSpinlock(&(info->lock));
 	
 }

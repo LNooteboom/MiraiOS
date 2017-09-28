@@ -10,4 +10,8 @@ void mapIdtEntry(void (*ISR)(void), interrupt_t interrupt, uint8_t flags);
 
 void unmapIdtEntry(interrupt_t interrupt);
 
+void idtSetIST(interrupt_t interrupt, int ist);
+
+void idtSetDPL(interrupt_t interrupt, bool user);
+
 #endif

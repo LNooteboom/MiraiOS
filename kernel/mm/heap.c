@@ -28,7 +28,7 @@ size_t heapSize = PAGE_SIZE - sizeof(memArea_t);
 spinlock_t heapLock = 0;
 
 void initHeap(void) {
-	allocPageAt(heapStart, PAGE_SIZE, PAGE_FLAG_INUSE | PAGE_FLAG_WRITE);
+	allocPageAt(heapStart, PAGE_SIZE, PAGE_FLAG_INUSE | PAGE_FLAG_WRITE);\
 	memArea_t *footer = (void*)(heapStart) + heapSize - sizeof(memArea_t);
 	heapStart++;
 	*heapStart = heapSize - sizeof(memArea_t);

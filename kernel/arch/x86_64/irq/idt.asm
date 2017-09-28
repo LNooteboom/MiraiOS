@@ -1,6 +1,8 @@
 global initIDT:function
 global mapIdtEntry:function
 global unmapIdtEntry:function
+global idtSetIST:function
+global idtSetDPL:function
 
 global idtr:data
 
@@ -47,6 +49,24 @@ unmapIdtEntry:
 	shl rdi, 4
 	and [idt + rdi + 4], word 0x7FFF ;clear present bit
 
+	ret
+
+idtSetIST: ;(interrupt_t interrupt, int ist)
+	;mov [(idt + 4) + rdi * BYTES_PER_IDT_ENTRY], sil
+	shl edi, 4
+	mov [idt + rdi + 4], sil
+	ret
+
+idtSetDPL: ;(interrupt_t interrupt, bool user)
+	test esi, esi
+	;lea rdi, [(idt + 4) + rdi * BYTES_PER_IDT_ENTRY]
+	shl edi, 4
+	add rdi, idt + 4
+	jnz .user
+		and [rdi], dword ~(3 << 13)
+		ret
+	.user:
+	or [rdi], dword (3 << 13)
 	ret
 
 SECTION .rodata

@@ -13,6 +13,10 @@ mkdir -p $INITRDDIR
 
 #make kernel
 make -j 4 -C $KERNELDIR
+OUT=$?
+if [ ! $OUT -eq 0 ]; then
+	exit $OUT
+fi
 if [ -f "$KERNELDIR/$KERNELNAME.efi" ] && [ ! "$KERNELDIR/$KERNELNAME.efi" -ot "$KERNELDIR/$KERNELNAME" ]; then
 	#efi
 	echo "Building for EFI"
