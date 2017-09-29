@@ -28,10 +28,14 @@ void earlyArchInit(void) {
 	pat |= (0x01 << 8);
 	wrmsr(0x277, pat);
 	acpiInit();
+
 	lapicInit();
 	ioApicInit();
+
 	tlbInit();
 	smpCallInit();
+
+	syscallInit();
 }
 
 void archInit(void) {

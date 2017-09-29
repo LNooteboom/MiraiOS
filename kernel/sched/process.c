@@ -9,7 +9,13 @@
 
 extern void uthreadInit(struct ThreadInfo *info, void *start, uint64_t arg1, uint64_t arg2, uint64_t userspaceStackpointer);
 
+static void testSyscall(void) {
+	printk("Test syscall!\n");
+}
+
 int createInitProcess(void) {
+	registerSyscall(0, testSyscall);
+
 	int error;
 	uintptr_t kernelStackBottom = (uintptr_t)allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
 	if (!kernelStackBottom) {

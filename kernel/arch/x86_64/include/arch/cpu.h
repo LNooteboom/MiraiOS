@@ -57,7 +57,7 @@ struct CpuGDTR {
 } __attribute__((packed));
 
 struct CpuInfo {
-	//asm accessable
+	//asm accessible
 	struct CpuInfo *addr;	//00
 	thread_t currentThread;	//08
 	void *excStackTop;		//10
@@ -65,6 +65,8 @@ struct CpuInfo {
 	uint32_t cpuInfosIndex;	//1C
 	bool active;			//20
 	spinlock_t lock;		//24
+
+	void *rspScratch;		//28
 
 	struct CpuGDTR gdtr;
 	gdtEntry_t gdt[16];

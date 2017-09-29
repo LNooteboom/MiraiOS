@@ -25,12 +25,14 @@ enum threadState {
 
 struct ThreadInfo {
 	//asm accessible part
-	uintptr_t stackPointer;		//0x00
+	uintptr_t stackPointer;		//0x00 current stack pointer
 	void *returnValue;			//0x08
 	enum threadState state;		//0x10
 	spinlock_t lock;			//0x14
 	bool detached;				//0x18
 	uint32_t cpuAffinity;		//0x1C
+
+	//uintptr_t kernelStackPointer; //0x20
 	//end of asm accessible part
 
 	struct ThreadInfo *nextThread;

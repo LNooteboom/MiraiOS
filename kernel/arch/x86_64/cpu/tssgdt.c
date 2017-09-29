@@ -4,12 +4,14 @@
 #include <stddef.h>
 
 void tssGdtInit(struct CpuInfo *info) {
+	//gdt descriptors need to be layed out in a specfic way to work with syscall/sysret
 	info->gdt[0] = 0; 																//NULL entry
 	info->gdt[1] = GDT_LONG | GDT_PRESENT | GDT_CODE;								//0x08 64-bit kernel text
 	info->gdt[2] = GDT_PRESENT | GDT_DATA | GDT_WRITE;								//0x10 kernel data
-	info->gdt[3] = (3UL << GDT_DPL_SHIFT) | GDT_LONG | GDT_PRESENT | GDT_CODE;		//0x18 64-bit usermode text
-	info->gdt[4] = (3UL << GDT_DPL_SHIFT) | GDT_OP_SIZE | GDT_PRESENT | GDT_CODE;	//0x20 32-bit usermode text
-	info->gdt[5] = (3UL << GDT_DPL_SHIFT) | GDT_PRESENT | GDT_DATA | GDT_WRITE;		//0x28 usermode data
+	info->gdt[3] = (3UL << GDT_DPL_SHIFT) | GDT_OP_SIZE | GDT_PRESENT | GDT_CODE;	//0x18 32-bit usermode text
+	info->gdt[4] = (3UL << GDT_DPL_SHIFT) | GDT_PRESENT | GDT_DATA | GDT_WRITE;		//0x20 usermode data
+	info->gdt[5] = (3UL << GDT_DPL_SHIFT) | GDT_LONG | GDT_PRESENT | GDT_CODE;		//0x28 64-bit usermode text
+	
 
 	//0x30&38 tss entry
 	uintptr_t tssAddr = (uintptr_t)(&(info->tss));

@@ -87,10 +87,10 @@ uthreadInit: ;(struct ThreadInfo *info (rdi), func *start(rsi), uint64_t arg1 (r
 	pushfq
 	pop rax
 	
-	mov qword [rdi - 0x08], qword 0x2B ;ss
+	mov qword [rdi - 0x08], qword 0x23 ;ss
 	mov [rdi - 0x10], r8 ;rsp
 	mov [rdi - 0x18], rax ;rflags
-	mov qword [rdi - 0x20], qword 0x1B ;cs = 64-bit usermode text
+	mov qword [rdi - 0x20], qword 0x2B ;cs = 64-bit usermode text
 	mov [rdi - 0x28], rsi ;rip
 
 	mov [rdi - 0x48], rdx

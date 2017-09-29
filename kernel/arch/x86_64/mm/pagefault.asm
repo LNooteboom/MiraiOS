@@ -17,7 +17,6 @@ extern allocLargeCleanPhysPage
 SECTION .text
 
 excPF:
-    xchg bx, bx
     push rbp
     pushfq
     mov rbp, rsp
