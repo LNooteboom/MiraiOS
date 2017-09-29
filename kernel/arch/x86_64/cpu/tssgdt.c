@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <arch/idt.h>
 
 void tssGdtInit(struct CpuInfo *info) {
 	//gdt descriptors need to be layed out in a specfic way to work with syscall/sysret
@@ -28,7 +29,7 @@ void tssGdtInit(struct CpuInfo *info) {
 	info->gdtr.base = (uint64_t)(&(info->gdt));
 
 	//setup ist entry
-	info->tss.ist[0] = info->excStackTop;
+	info->tss.ist[0] = (uintptr_t)info->excStackTop;
 	//set IST for page fault, NMI and MCE
 	idtSetIST(14, 1);
 	idtSetIST(2, 1);

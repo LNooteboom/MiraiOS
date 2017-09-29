@@ -217,6 +217,11 @@ static void fbUpdateThread(void) {
 	}
 }
 
+void fbPanicUpdate(void) {
+	ttys[0].focus = true;
+	fbUpdate(&ttys[0]);
+}
+
 int fbInitDevFiles(void) {
 	printk("[TTY] Creating device files...\n");
 	struct Inode *devDir = getInodeFromPath(rootDir, "dev");

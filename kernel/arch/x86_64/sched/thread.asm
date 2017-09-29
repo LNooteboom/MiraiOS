@@ -147,6 +147,14 @@ jiffyIrq:
 	mov [rsp + 0x08], r10
 	mov [rsp], r11
 
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x48], rax
+	jae .noswapgs
+		;interrupted from userspace
+		swapgs
+		or [rsp + 0x68], dword 3 ;virtualbox clears dpl for some reason
+	.noswapgs:
+
 	call getCurrentThread
 	push rax
 	mov rdi, rax
@@ -216,6 +224,12 @@ jiffyIrq:
 
 	inc qword [jiffyCounter]
 
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x48], rax
+	jae .noswapgs2
+		swapgs
+	.noswapgs2:
+
 	;Restore mandatory registers
 	mov rax, [rsp + 0x40]
 	mov rcx, [rsp + 0x38]
@@ -241,6 +255,12 @@ reschedIPI:
 	mov [rsp + 0x10], r9
 	mov [rsp + 0x08], r10
 	mov [rsp], r11
+
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x48], rax
+	jae .noswapgs
+		swapgs
+	.noswapgs:
 
 	;get current thread
 	mov rax, [gs:8]
@@ -298,6 +318,12 @@ reschedIPI:
 	.return:
 
 	call ackIRQ
+
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x48], rax
+	jae .noswapgs2
+		swapgs
+	.noswapgs2:
 
 	;Restore mandatory registers
 	mov rax, [rsp + 0x40]
@@ -433,6 +459,12 @@ nextThread: ;r15 = old thread
 			mov rdi, r15
 			call deallocThread
 	.notDetached:
+
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x78], rax
+	jae .noswapgs
+		swapgs
+	.noswapgs:
 
 	;Restore registers
 	mov rax, [rsp + 0x70]

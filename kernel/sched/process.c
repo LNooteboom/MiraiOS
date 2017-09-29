@@ -6,11 +6,16 @@
 #include <mm/paging.h>
 #include <fs/fs.h>
 #include <print.h>
+#include <syscall.h>
 
 extern void uthreadInit(struct ThreadInfo *info, void *start, uint64_t arg1, uint64_t arg2, uint64_t userspaceStackpointer);
 
-static void testSyscall(void) {
+static int testSyscall(void) {
 	printk("Test syscall!\n");
+	while (1) {
+		asm("hlt");
+	}
+	return 0;
 }
 
 int createInitProcess(void) {

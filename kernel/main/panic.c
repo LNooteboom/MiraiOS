@@ -6,6 +6,8 @@
 #include <irq.h>
 #include <print.h>
 
+extern void fbPanicUpdate(void);
+
 static __attribute__((noreturn)) void die(void *arg) {
 	(void)(arg);
 	localInterruptDisable();
@@ -21,6 +23,7 @@ void __attribute__((noreturn)) panic(const char *fmt, ...) {
 	smpCallFunction(die, NULL, false);
 
 	vprintk(fmt, args);
+	fbPanicUpdate();
 
 	va_end(args);
 	

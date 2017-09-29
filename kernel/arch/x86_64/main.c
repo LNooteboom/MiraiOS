@@ -21,6 +21,7 @@ bool perCpuTimer = false;
 
 extern void jiffyIrq(void);
 extern void reschedIPI(void);
+extern void syscallInit(void);
 
 void earlyArchInit(void) {
 	uint64_t pat = rdmsr(0x277);

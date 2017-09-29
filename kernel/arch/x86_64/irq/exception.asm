@@ -1,12 +1,8 @@
 NROF_DEFINED_EXCS: equ 21
 
-%define endl 10, 0
-
-extern puts
-extern hexprintln64
-extern hexprintln
+extern panic
+extern printk
 extern mapIdtEntry
-extern testcount
 extern lapicBase
 
 extern tssSetIST
@@ -40,126 +36,130 @@ initExceptions:
         jmp .start
     .end:
 
+	mov rdi, 3
+	mov esi, 1
+	call idtSetDPL
+
     pop r12
 	pop rbx
     ret
 
-exceptionBase:
-    push rbp
-    mov rbp, rsp
+excBaseErrorCode:
+	xchg [rsp + 8], rax
+	jmp __excBase
+excBase:
+	push rax
+	xor eax, eax
+__excBase: ;error code in rax
+	sub rsp, 0x40
+	mov [rsp + 0x38], rcx
+	mov [rsp + 0x30], rdx
+	mov [rsp + 0x28], rdi
+	mov [rsp + 0x20], rsi
+	mov [rsp + 0x18], r8
+	mov [rsp + 0x10], r9
+	mov [rsp + 0x08], r10
+	mov [rsp], r11
 
-    call puts
-
-    mov rdi, addressText
-    call puts
-    mov rdi, [rbp+8]
-    call hexprintln64
-
-    .halt:
-        cli
-        hlt
-        jmp .halt
-
-exceptionBaseWithErrorCode:
-    push rbp
-    mov rbp, rsp
-
-    call puts
-
-    mov rdi, addressText
-    call puts
-    mov rdi, [rbp+16]
-    call hexprintln64
-
-    mov rdi, errorCode
-    call puts
-    mov rdi, [rbp+8]
-    call hexprintln64
+	mov r10, [rsp + 0x48]
+	mov rdi, excMessageBase
+	mov rsi, [excMsgList + r10 * 8]
+	mov rdx, rax
+	call printk
 
     .halt:
         cli
         hlt
         jmp .halt
 
+	%if 0
+	mov rax, [rsp + 0x40]
+	mov rcx, [rsp + 0x38]
+	mov rdx, [rsp + 0x30]
+	mov rdi, [rsp + 0x28]
+	mov rsi, [rsp + 0x20]
+	mov r8,  [rsp + 0x18]
+	mov r9,  [rsp + 0x10]
+	mov r10, [rsp + 0x08]
+	mov r11, [rsp]
+	add rsp, 0x48
+	iretq
+	%endif
 
 excDE:
-	mov rdi, DEmsg
-	jmp exceptionBase
+	push 0
+	jmp excBase
 
 excDB:
-	mov rdi, DBmsg
-	jmp exceptionBase
-    pop rdi
+	push 1
+	jmp excBase
 
 excNMI:
 	iretq
 
 excBP:
-	mov rdi, BPmsg
-	jmp exceptionBase
+	push 3
+	jmp excBase
 
 excOF:
-	mov rdi, OFmsg
-	jmp exceptionBase
+	push 4
+	jmp excBase
 
 excBR:
-	mov rdi, BRmsg
-	jmp exceptionBase
+	push 5
+	jmp excBase
 
 excUD:
-	mov rdi, UDmsg
-	jmp exceptionBase
+	push 6
+	jmp excBase
 
 excNM:
-	mov rdi, NMmsg
-	jmp exceptionBase
+	push 7
+	jmp excBase
 
 excDF:
-	jmp $
-	add esp, 4 ;skip over error code, as it is always zero
-	mov rdi, DFmsg 
-	jmp exceptionBase
+	push 8
+	jmp excBaseErrorCode
 
 excCSO:
-	mov rdi, CSOmsg
-	jmp exceptionBase
+	push 9
+	jmp excBase
 
 excTS:
-	mov rdi, TSmsg
-	jmp exceptionBaseWithErrorCode
+	push 10
+	jmp excBaseErrorCode
 
 excNP:
-	mov rdi, NPmsg
-	jmp exceptionBaseWithErrorCode
+	push 11
+	jmp excBaseErrorCode
 
 excSS:
-	mov rdi, SSmsg
-	jmp exceptionBaseWithErrorCode
+	push 12
+	jmp excBaseErrorCode
 
 excGP:
-	xchg bx, bx
-	mov rdi, GPmsg
-	jmp exceptionBaseWithErrorCode
+	push 13
+	jmp excBaseErrorCode
 
 excMF:
-	mov rdi, MFmsg
-	jmp exceptionBase
+	push 14
+	jmp excBase
 
 excAC:
-	mov rdi, ACmsg
-	jmp exceptionBaseWithErrorCode
+	push 15
+	jmp excBaseErrorCode
 
 excMC:
-	mov rdi, MCmsg
-	jmp exceptionBase
+	push 16
+	jmp excBase
 
 excXM:
-	mov rdi, XMmsg
-	jmp exceptionBase
+	push 17
+	jmp excBase
 
 excVE:
-	mov rdi, VEmsg
-	jmp exceptionBase
+	push 18
+	jmp excBase
 
 ALIGN 8
 undefinedInterrupt:
@@ -175,10 +175,10 @@ dummyInterrupt:
 
 SECTION .rodata
 
-addressText:    db 'At: ', 0
-errorCode:      db 'Error code: ', 0
+excMessageBase:	db 'CPU exception: %s', 10, 'Error code: %d', 10, 0
+nullStr: db 0
 
-
+ALIGN 8
 excList:
 dq excDE
 dq excDB
@@ -202,21 +202,41 @@ dq excMC
 dq excXM
 dq excVE
 
-DEmsg:	db 'Division error', endl
-DBmsg:	db 'Debug error', endl
-BPmsg:	db 'Breakpoint reached', endl
-OFmsg:	db 'Overflow', endl
-BRmsg:	db 'BOUND Range exceeded', endl
-UDmsg:	db 'Invalid opcode detected', endl
-NMmsg:	db 'Coprocessor not available', endl
-DFmsg:	db 'Double Fault', endl
-CSOmsg:	db 'Coprocessor segment overrun', endl
-TSmsg:	db 'Invalid TSS', endl
-NPmsg:	db 'Segment not present', endl
-SSmsg:	db 'Stack fault', endl
-GPmsg:	db 'General protection fault', endl
-MFmsg:	db 'Coprocessor error', endl
-ACmsg:	db 'Alignment check', endl
-MCmsg:	db 'Machine check', endl
-XMmsg:	db 'SIMD floating point error', endl
-VEmsg:	db 'Virtualization exception', endl
+excMsgList:
+dq DEmsg
+dq nullStr
+dq DBmsg
+dq BPmsg
+dq OFmsg
+dq BRmsg
+dq UDmsg
+dq NMmsg
+dq DFmsg
+dq CSOmsg
+dq TSmsg
+dq NPmsg
+dq SSmsg
+dq GPmsg
+dq MFmsg
+dq ACmsg
+dq XMmsg
+dq VEmsg
+
+DEmsg:	db 'Division error', 0
+DBmsg:	db 'Debug error', 0
+BPmsg:	db 'Breakpoint reached', 0
+OFmsg:	db 'Overflow', 0
+BRmsg:	db 'BOUND Range exceeded', 0
+UDmsg:	db 'Invalid opcode detected', 0
+NMmsg:	db 'Coprocessor not available', 0
+DFmsg:	db 'Double Fault', 0
+CSOmsg:	db 'Coprocessor segment overrun', 0
+TSmsg:	db 'Invalid TSS', 0
+NPmsg:	db 'Segment not present', 0
+SSmsg:	db 'Stack fault', 0
+GPmsg:	db 'General protection fault', 0
+MFmsg:	db 'Coprocessor error', 0
+ACmsg:	db 'Alignment check', 0
+MCmsg:	db 'Machine check', 0
+XMmsg:	db 'SIMD floating point error', 0
+VEmsg:	db 'Virtualization exception', 0

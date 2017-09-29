@@ -6,4 +6,5 @@ ORG 0x1000
 xchg bx, bx
 xor eax, eax
 syscall
+;int 3
 jmp $

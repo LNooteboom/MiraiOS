@@ -51,7 +51,7 @@ syscallInit:
 	ret
 
 syscallEntry64:
-	;swapgs
+	swapgs
 	mov [gs:0x28], rsp
 	mov rsp, [gs:8]
 
@@ -97,7 +97,7 @@ syscallEntry64:
 	mov rsp, [rsp - 8]
 	sti
 	
-	;swapgs
+	swapgs
 	db 0x48 ;no sysretq in NASM
 	sysret
 
@@ -128,10 +128,22 @@ irqCommon:
 	mov [rsp + 0x08], r10
 	mov [rsp], r11
 
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x50], rax
+	jae .noswapgs
+		swapgs
+	.noswapgs:
+
 	mov rdi, [rsp + 0x48]
 	call handleIRQ
 
 	call ackIRQ
+
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x50], rax
+	jae .noswapgs2
+		swapgs
+	.noswapgs2:
 
 	;Restore registers
 	mov rax, [rsp + 0x40]

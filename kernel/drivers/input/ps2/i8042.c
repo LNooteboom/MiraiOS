@@ -195,6 +195,8 @@ int i8042Init(void) {
 		i8042Error("Port 1 self test failed");
 	}
 
+	printk("[i8042] Self test successful\n");
+
 	//Enable port 1
 	if (i8042WriteWait())
 		return -EIO;
@@ -228,6 +230,8 @@ int i8042Init(void) {
 	if (i8042WriteWait())
 		return -EIO;
 	i8042WriteData(config);
+
+	printk("[i8042] Interrupts enabled\n");
 
 	//reset
 	if (i8042SendPort1(0xFF) < 0 || i8042ReadWait()) {

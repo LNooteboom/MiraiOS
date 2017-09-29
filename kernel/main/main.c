@@ -18,7 +18,7 @@ extern moduleCall_t MODULE_INITS_2_START;
 extern moduleCall_t MODULE_INITS_3_START;
 extern moduleCall_t MODULE_INITS_END;
 
-const int testVar = 10;
+extern int createInitProcess(void);
 
 moduleCall_t *moduleInitLevels[NROF_MODULE_LEVELS + 1] = {
 	&MODULE_INITS_0_START,
