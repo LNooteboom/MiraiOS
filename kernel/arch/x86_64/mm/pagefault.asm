@@ -110,9 +110,6 @@ excPF:
 	add rbp, 16
 	mov rsp, rbp
 
-	mov rax, [rsp+8]
-	jmp $
-
     ;print error message
     mov rdi, PFmsg
     call puts

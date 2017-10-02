@@ -61,7 +61,7 @@ __excBase: ;error code in rax
 	mov [rsp + 0x08], r10
 	mov [rsp], r11
 
-	mov r10, [rsp + 0x48]
+	mov r10, [rsp + 0x40]
 	mov rdi, excMessageBase
 	mov rsi, [excMsgList + r10 * 8]
 	mov rdx, rax

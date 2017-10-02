@@ -10,6 +10,7 @@ extern kthreadFreeJoined
 extern readyQueuePop
 extern sleepSkipTime
 extern deallocThread
+extern loadThread
 
 extern lapicBase
 extern busSpeed
@@ -202,8 +203,18 @@ jiffyIrq:
 		mov r15, [rsp]
 		add rsp, 0x30
 
-		;release spinlock on new thread
 		push rdx
+		push rax
+
+		mov rdi, rax
+		call loadThread
+
+		lea rdi, [rsp + 0xA0 - 0x30]
+		call tssSetRSP0
+
+		pop rax
+
+		;release spinlock on new thread
 		lea rdi, [rax + 0x14]
 		call releaseSpinlock
 		pop rdx
@@ -303,8 +314,15 @@ reschedIPI:
 
 		
 		push rdx
+		push rax
+
+		mov rdi, rax
+		call loadThread
+
 		lea rdi, [rsp + 0xA0 - 0x30]
 		call tssSetRSP0
+
+		pop rax
 
 		;release spinlock on new thread
 		lea rdi, [rax + 0x14]
@@ -431,6 +449,9 @@ nextThread: ;r15 = old thread
 	cmp r14, r15
 	je .sameThread2
 		mov rsp, [r14] ;switch to new stack
+
+		mov rdi, r14
+		call loadThread
 
 		lea rdi, [rsp + 0xA0]
 		call tssSetRSP0

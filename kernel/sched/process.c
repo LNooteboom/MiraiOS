@@ -49,6 +49,9 @@ int createInitProcess(void) {
 	mainThread->jiffiesRemaining = TIMESLICE_BASE << 1;
 	mainThread->cpuAffinity = 1;
 
+	mainThread->process = 1;
+	//mainThread->fsBase = 0xF000000000000000;
+
 	uthreadInit(mainThread, start, 0, 0, 0x1000);
 
 	readyQueuePush(mainThread);

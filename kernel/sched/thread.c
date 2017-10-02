@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <mm/pagemap.h>
 #include <arch/cpu.h>
+#include <mm/memset.h>
 
 extern void migrateMainStack(thread_t mainThread);
 
@@ -26,6 +27,7 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 		return -ENOMEM;
 	}
 	struct ThreadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct ThreadInfo));
+	memset(thrd, 0, sizeof(struct ThreadInfo));
 	if (thread) {
 		*thread = thrd;
 	}
@@ -38,17 +40,17 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 		thrd->fixedPriority = flags & THREAD_FLAG_FIXED_PRIORITY;
 	}
 
-	thrd->returnValue = NULL;
+	//thrd->returnValue = NULL;
 	thrd->state = THREADSTATE_SCHEDWAIT;
-	thrd->lock = 0;
+	//thrd->lock = 0;
 	thrd->detached = flags & THREAD_FLAG_DETACHED;
 	thrd->cpuAffinity = pcpuRead32(cpuInfosIndex);
 
 	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
 
-	thrd->joinFirst = NULL;
-	thrd->joinLast = NULL;
-	thrd->nrofJoinThreads = 0;
+	//thrd->joinFirst = NULL;
+	//thrd->joinLast = NULL;
+	//thrd->nrofJoinThreads = 0;
 
 	kthreadInit(thrd, start, arg); //initializes stackpointer
 
@@ -65,21 +67,22 @@ int kthreadCreateFromMain(thread_t *thread) {
 		return -ENOMEM;
 	}
 	struct ThreadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct ThreadInfo));
+	memset(thrd, 0, sizeof(struct ThreadInfo));
 	*thread = thrd;
 	migrateMainStack(thrd);
 
 	thrd->state = THREADSTATE_RUNNING;
 	thrd->priority = 1;
-	thrd->lock = 0;
+	//thrd->lock = 0;
 
 	thrd->detached = true;
-	thrd->cpuAffinity = 0;
+	//thrd->cpuAffinity = 0;
 	thrd->fixedPriority = true;
 	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
 
-	thrd->joinFirst = NULL;
-	thrd->joinLast = NULL;
-	thrd->nrofJoinThreads = 0;
+	//thrd->joinFirst = NULL;
+	//thrd->joinLast = NULL;
+	//thrd->nrofJoinThreads = 0;
 
 	setCPUThreadLoad(1 << (NROF_QUEUE_PRIORITIES - 1));
 

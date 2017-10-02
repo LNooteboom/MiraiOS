@@ -95,7 +95,7 @@ syscallEntry64:
 	cli
 	add rsp, 0x50
 	mov rsp, [rsp - 8]
-	sti
+	;sti
 	
 	swapgs
 	db 0x48 ;no sysretq in NASM

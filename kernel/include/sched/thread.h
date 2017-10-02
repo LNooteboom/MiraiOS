@@ -34,9 +34,13 @@ struct ThreadInfo {
 
 	//uintptr_t kernelStackPointer; //0x20
 	//end of asm accessible part
+	void *fsBase;
+	void *gsBase;
 
 	struct ThreadInfo *nextThread;
 	struct ThreadInfo *prevThread;
+
+	void *process;
 
 	int priority;
 	bool fixedPriority;
