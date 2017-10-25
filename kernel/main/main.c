@@ -34,7 +34,12 @@ thread_t mainThread;
 
 static void executeModuleCallLevel(unsigned int level) {
 	for (moduleCall_t *i = moduleInitLevels[level]; i < moduleInitLevels[level + 1]; i++) {
-		(*i)();
+		int error = (*i)();
+		if (error) {
+			puts("[MAIN] moduleCall at ");
+			hexprint64((uint64_t)i);
+			printk(" returned non-zero value: %d\n", error);
+		}
 	}
 }
 
@@ -63,7 +68,8 @@ void kmain(void) {
 
 	puts("[MAIN] Initialization complete\n");
 
-	createInitProcess();
+	int error = execInit("init");
+	printk("%d\n", error);
 
 	kthreadExit(NULL);
 }

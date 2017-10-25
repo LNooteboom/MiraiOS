@@ -15,6 +15,8 @@
 
 #define THREAD_STACK_SIZE	0x2000
 
+struct Process;
+
 enum threadState {
 	THREADSTATE_FINISHED,
 	THREADSTATE_RUNNING,
@@ -40,7 +42,7 @@ struct ThreadInfo {
 	struct ThreadInfo *nextThread;
 	struct ThreadInfo *prevThread;
 
-	void *process;
+	struct Process *process;
 
 	int priority;
 	bool fixedPriority;

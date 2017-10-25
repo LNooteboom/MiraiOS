@@ -4,6 +4,9 @@
 #include <errno.h>
 #include <print.h>
 #include <mm/memset.h>
+#include <sched/process.h>
+#include <syscall.h>
+#include <modules.h>
 
 struct RbNode *activeInodes;
 
@@ -92,3 +95,27 @@ int fsGetDents(struct Inode *dir, struct GetDents *buf, unsigned int nrofEntries
 	releaseSpinlock(&dir->lock);
 	return ret;
 }
+
+int sysWrite(unsigned int fd, void *buffer, size_t size) {
+	int error = validateUserPointer(buffer, size);
+	if (error) {
+		return error;
+	}
+
+	struct Process *proc = getCurrentThread()->process;
+	struct File *f;
+	if (fd < NROF_INLINE_FDS) {
+		f = &proc->inlineFDs[fd];
+	} else {
+		//todo
+		return -ENOSYS;
+	}
+	error = fsWrite(f, buffer, size);
+	return error;
+}
+
+int registerFSSyscalls(void) {
+	registerSyscall(1, sysWrite);
+	return 0;
+}
+MODULE_INIT(registerFSSyscalls);

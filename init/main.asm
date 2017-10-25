@@ -1,16 +1,18 @@
 BITS 64
 
-ORG 0x1000
+global _start:function
 
+_start:
 ;ud2
 nop
 
-xchg bx, bx
-mov eax, 32
-mov edi, 2
-mov esi, 0x1000
+mov eax, 1
+mov edi, 1
+mov rsi, teststr
+mov edx, 21
 syscall
 
-xchg bx, bx
-mov al, [gs:0]
 jmp $
+
+teststr:
+db 'Hello from userspace!', 0

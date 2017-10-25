@@ -7,20 +7,70 @@
 #include <fs/fs.h>
 #include <print.h>
 #include <syscall.h>
+#include <mm/memset.h>
+#include <mm/heap.h>
+#include <sched/elf.h>
 
 extern void uthreadInit(struct ThreadInfo *info, void *start, uint64_t arg1, uint64_t arg2, uint64_t userspaceStackpointer);
 
-static int testSyscall(void) {
-	printk("Test syscall!\n");
-	while (1) {
-		asm("hlt");
+union elfBuf {
+	struct ElfHeader header;
+	struct ElfPHEntry phEntry;
+
+};
+
+static int createProcess(struct Process **proc, struct ThreadInfo *mainThread) {
+	int error;
+
+	mainThread->priority = 1;
+	mainThread->jiffiesRemaining = TIMESLICE_BASE << 1;
+	mainThread->cpuAffinity = 1;
+
+	struct Process *proc2 = kmalloc(sizeof(struct Process));
+	if (!proc2) {
+		error = -ENOMEM;
+		goto ret;
+	}
+	memset(proc2, 0, sizeof(struct Process));
+	mainThread->process = proc2;
+	proc2->pid = 1;
+
+	//char *newCwd = (char *)proc2 + sizeof(struct Process);
+	//memcpy(newCwd, cwd, cwdLen);
+	//proc2->cwd = newCwd;
+
+	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty0");
+	error = fsOpen(stdout, &proc2->inlineFDs[1]);
+	if (error) {
+		goto freeProcess;
+	}
+
+	*proc = proc2;
+	return 0;
+
+	freeProcess:
+	kfree(proc2);
+	ret:
+	return error;
+}
+
+static int checkElfHeader(struct ElfHeader *header) {
+	if (!memcmp(&header->magic[0], "\x7f""ELF", 4)) {
+		return -EINVAL;
+	}
+	if (header->type != 2) {
+		return -EINVAL;
+	}
+	if (header->machine != 0x3E) {
+		return -EINVAL;
+	}
+	if (header->phentSize != sizeof(struct ElfPHEntry)) {
+		return -EINVAL;
 	}
 	return 0;
 }
 
-int createInitProcess(void) {
-	registerSyscall(0, testSyscall);
-
+int execInit(const char *fileName) {
 	int error;
 	uintptr_t kernelStackBottom = (uintptr_t)allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
 	if (!kernelStackBottom) {
@@ -29,35 +79,44 @@ int createInitProcess(void) {
 	}
 	struct ThreadInfo *mainThread = (struct ThreadInfo *)(kernelStackBottom + THREAD_STACK_SIZE - sizeof(struct ThreadInfo));
 
-	//kernel address space becomes init address space
-	void *start = (void*)0x1000;
-	allocPageAt(start, 0x1000, PAGE_FLAG_CLEAN | PAGE_FLAG_EXEC | PAGE_FLAG_USER | PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
-	//allocPageAt((void*)0x2000, 0x1000, PAGE_FLAG_USER | PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
+	struct Process *proc;
+	error = createProcess(&proc, mainThread);
+	if (error) goto deallocMainThread;
 
 	struct File f;
-	struct Inode *inode = getInodeFromPath(rootDir, "init");
+	struct Inode *inode = getInodeFromPath(rootDir, fileName);
 	if (!inode) {
 		error = -ENOENT;
-		goto deallocMainThread;
+		goto freeProcess;
 	}
-	if ((error = fsOpen(inode, &f)) < 0) {
-		goto deallocMainThread;
+	error = fsOpen(inode, &f);
+	if (error) goto freeProcess;
+
+	struct ElfHeader header;
+	ssize_t read = fsRead(&f, &header, sizeof(struct ElfHeader)); //read elf header
+	if (read != sizeof(struct ElfHeader)) {
+		//file too small or error occured during read
+		error = -EINVAL;
+		if (read < 0) {
+			error = read;
+		}
+		goto closef;
 	}
-	fsRead(&f, start, 0x1000);
+	error = checkElfHeader(&header);
+	if (error) goto closef;
 
-	mainThread->priority = 1;
-	mainThread->jiffiesRemaining = TIMESLICE_BASE << 1;
-	mainThread->cpuAffinity = 1;
-
-	mainThread->process = 1;
-	//mainThread->fsBase = 0xF000000000000000;
-
-	uthreadInit(mainThread, start, 0, 0, 0x1000);
-
-	readyQueuePush(mainThread);
+	struct ElfPHEntry phEntry;
+	error = fsSeek(&f, header.phOff, SEEK_SET);
+	if (error) goto closef;
+	for (unsigned int i = 0; i < header.phnum; i++) {
+		fsRead(&f, &phEntry, sizeof(struct ElfPHEntry));
+	}
 
 	return 0;
-
+	
+	closef:
+	freeProcess:
+	kfree(proc);
 	deallocMainThread:
 	deallocPages((void *)kernelStackBottom, THREAD_STACK_SIZE);
 	ret:

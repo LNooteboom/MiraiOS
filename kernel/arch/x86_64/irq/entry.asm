@@ -70,16 +70,16 @@ syscallEntry64:
 	mov [rsp + 0x08], r10
 	mov [rsp], r11
 
-	mov edx, [rsp + 0x40]
-	cmp edx, SYSCALL_MAX
+	mov r10d, [rsp + 0x40]
+	cmp r10d, SYSCALL_MAX
 	mov eax, -7 ;-ENOSYS
 	jae .return
 	
-	mov rdx, [syscallTable + rdx * 8]
-	test rdx, rdx
+	mov r10, [syscallTable + r10 * 8]
+	test r10, r10
 	jz .return ;eax is still -ENOSYS
 
-	call rdx
+	call r10
 
 	.return:
 	
