@@ -93,8 +93,9 @@ syscallEntry64:
 	mov r11, [rsp]
 
 	cli
-	add rsp, 0x50
-	mov rsp, [rsp - 8]
+	;add rsp, 0x50
+	;mov rsp, [rsp - 8]
+	mov rsp, [rsp + 0x48]
 	;sti
 	
 	swapgs

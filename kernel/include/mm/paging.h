@@ -21,7 +21,7 @@ typedef uint64_t pageFlags_t;
 //internal settings
 #define PAGE_FLAG_PRESENT 	(1 << 0)
 #define PAGE_FLAG_SIZE		(1 << 7)
-#define PAGE_FLAG_ALLOCED	(1 << 11)
+#define PAGE_FLAG_SHARED	(1 << 11)
 
 extern char VMEM_OFFSET;
 

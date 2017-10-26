@@ -6,9 +6,11 @@
 #include <mm/paging.h>
 #include <mm/physpaging.h>
 #include <print.h>
+#include <sched/thread.h>
 
 #define PAGE_BIT_WIDTH		9	//The number of bits a page level covers
 #define PE_MASK			0xFFFFFFFFFFFFFFF8
+#define NROF_PTES		512
 
 static const uintptr_t pageLevelBase[NROF_PAGE_LEVELS] = {
 	0xFFFFFF0000000000,	//PT
@@ -91,7 +93,7 @@ void mmMapPage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
 /*
 Maps a large page with physical address paddr to the virtual address vaddr.
 */
-void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
+/*void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
 	if (nxEnabled) {
 		flags ^= PAGE_FLAG_EXEC; //flip exec bit to get NX bit
 	} else {
@@ -109,7 +111,7 @@ void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
 	pte_t entry = paddr | flags | PAGE_FLAG_PRESENT | PAGE_FLAG_INUSE | PAGE_FLAG_SIZE;
 	mmSetPageEntry(vaddr, 1, entry);
 	return;
-}
+}*/
 
 void mmSetPageFlags(uintptr_t vaddr, pageFlags_t flags) {
 	if (nxEnabled) {
@@ -139,4 +141,32 @@ void mmUnmapPage(uintptr_t vaddr) {
 void mmUnmapBootPages(void) {
 	*mmGetEntry(0, 2) = 0;
 	*mmGetEntry(0, 3) = 0;
+}
+
+static void mmUnmapUserspaceHelper(uintptr_t base, int lv) {
+	pte_t *pte = mmGetEntry(base, lv);
+	uintptr_t pageBase = base;
+	int max = (lv == NROF_PAGE_LEVELS - 1)? NROF_PTES / 2 : NROF_PTES;
+	for (int i = 0; i < max; i++) {
+		if (lv && *pte & PAGE_FLAG_PRESENT) {
+			mmUnmapUserspaceHelper(pageBase, lv - 1);
+		} else if (!lv && *pte & PAGE_FLAG_PRESENT && *pte & PAGE_MASK) {
+			if (*pte & PAGE_FLAG_SHARED) {
+				printk("[MM] Shared pages are not implemented yet");
+			} else {
+				//dealloc mapped page
+				deallocPhysPage(*pte & PAGE_MASK);
+			}
+		}
+		pageBase += PAGE_SIZE << (lv * PAGE_BIT_WIDTH);
+		pte++;
+	}
+	//dealloc this page table
+	if (lv != NROF_PAGE_LEVELS - 1) { //do not dealloc root page table
+		pte = mmGetEntry(base, lv + 1);
+	}
+}
+
+void mmUnmapUserspace(void) {
+	mmUnmapUserspaceHelper(0, NROF_PAGE_LEVELS - 1);
 }

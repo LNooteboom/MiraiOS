@@ -182,7 +182,7 @@ physPage_t allocLargePhysPage(void) {
 	return page;
 }
 
-physPage_t allocLargeCleanPhysPage(void) {
+/*physPage_t allocLargeCleanPhysPage(void) {
 	uintptr_t page = popPage(&largeCleanPages);
 	if (!page) {
 		page = popPage(&largePages);
@@ -197,7 +197,7 @@ physPage_t allocLargeCleanPhysPage(void) {
 		}
 	}
 	return page;
-}
+}*/
 
 
 void deallocPhysPage(physPage_t page) {

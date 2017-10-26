@@ -13,7 +13,7 @@ FLAG_KERNEL := -masm=intel -mno-red-zone -fshort-wchar
 FLAG_MEMMODEL := -mcmodel=kernel
 FLAG_INCLUDES := -I$(KERNEL_ROOT)/include/ -I$(KERNEL_ROOT)/arch/${ARCH}/include
 FLAG_DEBUG := -g
-FLAG_OPTIMIZE := -O2
+FLAG_OPTIMIZE := -O2 -pipe
 FLAG_DEP = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 
 CFLAG = $(FLAG_WARNINGS) $(FLAG_FREESTANDING) $(FLAG_KERNEL) $(FLAG_MEMMODEL) $(FLAG_INCLUDES) $(FLAG_DEBUG) $(FLAG_OPTIMIZE) $(FLAG_DEP) -c

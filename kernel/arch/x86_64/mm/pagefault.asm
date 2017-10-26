@@ -64,7 +64,7 @@ excPF:
                 jne .L5
                     test ax, (1 << 10) ;clean flag
                     jz .L6
-                        call allocLargeCleanPhysPage
+                        ;call allocLargeCleanPhysPage
                         jmp .L7
                     .L6:
                         call allocLargePhysPage
@@ -172,7 +172,7 @@ errorCode:      db 'Error code: ', 0
 PFAddr:         db 'Attempted to access ', 0
 PFPresent:      db 'Page present', endl
 PFRW:           db 'Write', endl
-PFUS:           db 'Priviledge too low', endl
+PFUS:           db 'Check your privilege!', endl
 PFRSV:          db '1 found in reserved field', endl
 PFID:           db 'Caused by instruction fetch', endl
 

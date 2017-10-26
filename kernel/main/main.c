@@ -71,6 +71,7 @@ void kmain(void) {
 	int error = execInit("init");
 	printk("%d\n", error);
 
+	asm ("xchg bx, bx");
 	kthreadExit(NULL);
 }
 

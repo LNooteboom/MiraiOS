@@ -6,8 +6,11 @@
 
 #define NROF_INLINE_FDS	8
 
+#define INIT_PID	1
+
 struct Process {
 	unsigned long pid;
+	void *addressSpace;
 	union {
 		char inlineName[32];
 		char *name;

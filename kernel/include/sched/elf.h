@@ -39,4 +39,10 @@ struct ElfPHEntry {
 	uint64_t alignment;
 };
 
+#define PHTYPE_NULL		0
+#define PHTYPE_LOAD		1
+
+#define PHFLAG_EXEC		1
+#define PHFLAG_WRITE	2
+
 #endif

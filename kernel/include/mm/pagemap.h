@@ -28,4 +28,6 @@ Reserves a physical page in memory
 */
 void mmSetPageFlags(uintptr_t vaddr, pageFlags_t flags);
 
+void mmUnmapUserspace(void);
+
 #endif

@@ -18,6 +18,18 @@ static inline int validateUserPointer(void *ptr, size_t size) {
 	return 0;
 }
 
+static inline int validateUserString(const char *str) {
+	while (true) {
+		if ((uintptr_t)str & 0xFFFF8000UL << 32) {
+			return -EINVAL;
+		}
+		if (!*str) {
+			return 0;
+		}
+		str++;
+	}
+}
+
 void registerSyscall(int nr, int (*func)());
 
 #endif
