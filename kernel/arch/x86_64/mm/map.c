@@ -170,3 +170,24 @@ static void mmUnmapUserspaceHelper(uintptr_t base, int lv) {
 void mmUnmapUserspace(void) {
 	mmUnmapUserspaceHelper(0, NROF_PAGE_LEVELS - 1);
 }
+
+uintptr_t mmCreateAddressSpace(void) {
+	physPage_t physpml4 = allocCleanPhysPage();
+	if (!physpml4) goto ret;
+	pte_t *pml4 = ioremap(physpml4, PAGE_SIZE);
+	if (!pml4) goto deallocPhys;
+
+	pte_t *curPml4 = (pte_t *)(0xFFFFFF7FBFDFE000);
+	
+	pml4[510] = physpml4 | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE; //add recursive entry
+	pml4[511] = curPml4[511]; //add kernel pml4 entry
+
+	iounmap(pml4, PAGE_SIZE);
+
+	return physpml4;
+
+	deallocPhys:
+	deallocPhysPage(physpml4);
+	ret:
+	return 0;
+}

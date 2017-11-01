@@ -11,6 +11,7 @@
 #include <mm/heap.h>
 #include <mm/pagemap.h>
 #include <sched/elf.h>
+#include <modules.h>
 
 extern void uthreadInit(struct ThreadInfo *info, void *start, uint64_t arg1, uint64_t arg2, uint64_t userspaceStackpointer);
 
@@ -21,7 +22,7 @@ union elfBuf {
 };
 
 static int checkElfHeader(struct ElfHeader *header) {
-	if (!memcmp(&header->magic[0], "\x7f""ELF", 4)) {
+	if (memcmp(&header->magic[0], "\x7f""ELF", 4)) {
 		return -EINVAL;
 	}
 	if (header->type != 2) {
@@ -95,23 +96,48 @@ static int execCommon(thread_t mainThread, const char *fileName) {
 	error = checkElfHeader(&header);
 	if (error) goto closef;
 
-	//loop over all program header entries
+	//count nrof load commands
+	unsigned int nrofLoads = 0;
 	struct ElfPHEntry phEntry;
+	error = fsSeek(&f, header.phOff, SEEK_SET);
+	if (error) goto closef;
+	for (unsigned int i = 0; i < header.phnum; i++) {
+		fsRead(&f, &phEntry, sizeof(struct ElfPHEntry));
+		if (phEntry.type == PHTYPE_LOAD) {
+			nrofLoads++;
+		}
+	}
+
+	//create process memory struct
+	struct Process *proc = mainThread->process;
+	proc->pmem.nrofEntries = nrofLoads;
+	proc->pmem.entries = kmalloc(sizeof(struct MemoryEntry) * nrofLoads);
+	if (!proc->pmem.entries) {
+		error = -ENOMEM;
+		goto closef;
+	}
+	memset(proc->pmem.entries, 0, sizeof(struct MemoryEntry) * nrofLoads);
+
+	//loop over all program header entries
+	nrofLoads = 0;
 	for (unsigned int i = 0; i < header.phnum; i++) {
 		error = fsSeek(&f, header.phOff + (i * sizeof(struct ElfPHEntry)), SEEK_SET);
-		if (error) goto closef;
+		if (error) goto freeMemStruct;
 		fsRead(&f, &phEntry, sizeof(struct ElfPHEntry));
 		switch (phEntry.type) {
 			case PHTYPE_NULL:
 				break;
 			case PHTYPE_LOAD:
 				error = elfLoad(&f, &phEntry);
-				printk("LOAD complete!\n");
+				proc->pmem.entries[nrofLoads].vaddr = (void *)(phEntry.pVAddr);
+				proc->pmem.entries[nrofLoads].size = phEntry.pMemSz;
+				proc->pmem.entries[nrofLoads].flags = phEntry.flags & ~MEM_FLAG_SHARED;
+				nrofLoads++;
 				break;
 			default:
 				error = -EINVAL;
 		}
-		if (error) goto closef;
+		if (error) goto freeMemStruct;
 	}
 
 	//userspace regs are always at the top of the kernel stack
@@ -119,6 +145,8 @@ static int execCommon(thread_t mainThread, const char *fileName) {
 
 	return 0;
 	
+	freeMemStruct:
+	kfree(proc->pmem.entries);
 	closef:
 	ret:
 	return error;
@@ -148,7 +176,12 @@ int execInit(const char *fileName) {
 	proc->pid = 1;
 	proc->cwd = "/";
 
-	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty0");
+	//TODO make this arch independant
+	uint64_t cr3;
+	asm ("mov rax, cr3" : "=a"(cr3));
+	proc->addressSpace = cr3;
+
+	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
 	error = fsOpen(stdout, &proc->inlineFDs[1]);
 	if (error) {
 		goto freeProcess;
@@ -157,6 +190,8 @@ int execInit(const char *fileName) {
 
 	error = execCommon(mainThread, fileName);
 	if (error) goto freeProcess;
+
+	printk("Loaded at: %x\n", ((uint64_t*)mainThread)[-5]);
 
 	readyQueuePush(mainThread);
 
@@ -170,7 +205,7 @@ int execInit(const char *fileName) {
 	return error;
 }
 
-int exec(const char *fileName, char *const argv[], char *const envp[]) {
+int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	int error;
 	error = validateUserString(fileName);
 	if (error) goto ret;
@@ -178,6 +213,8 @@ int exec(const char *fileName, char *const argv[], char *const envp[]) {
 	thread_t curThread = getCurrentThread();
 
 	mmUnmapUserspace();
+
+	kfree(curThread->process->pmem.entries);
 
 	error = execCommon(curThread, fileName);
 	if (error) goto ret;
@@ -187,3 +224,9 @@ int exec(const char *fileName, char *const argv[], char *const envp[]) {
 	ret:
 	return error;
 }
+
+int initExecSyscall(void) {
+	registerSyscall(16, sysExec);
+	return 0;
+}
+MODULE_INIT(initExecSyscall);

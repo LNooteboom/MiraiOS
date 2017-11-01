@@ -4,11 +4,14 @@
 global initIrqStubs:function
 global syscallInit:function
 global registerSyscall:function
+global initForkRetThread:function
 
 extern mapIdtEntry
 
 extern handleIRQ
 extern ackIRQ
+
+extern forkRet
 
 SYSCALL_MAX:	equ 256
 
@@ -50,6 +53,37 @@ syscallInit:
 
 	ret
 
+initForkRetThread: ;(thread_t newThread, thread_t parent) returns void
+	mov rax, [rsi - 0x08]
+	mov [rdi - 0x08], rax ;copy userspace stack pointer
+
+	mov rax, [rsi - 0x20]
+	mov [rdi - 0x20], rax ;copy ret addr (rcx)
+
+	mov rax, [rsi - 0x50]
+	mov [rdi - 0x50], rax ;copy flags (r11)
+	
+	;rdi - 0x10 -> -0x58 userspace regs
+
+	;return addr
+	mov rax, sysret64
+	mov [rdi - 0x58], rax
+	
+	;iretq stack
+	pushfq
+	mov qword [rdi - 0x60], 0x10 ;ss
+	lea rax, [rdi - 0x58]
+	mov [rdi - 0x68], rax ;rsp
+	pop qword [rdi - 0x70] ;rflags
+	mov qword [rdi - 0x78], 0x08
+	mov rax, forkRet
+	mov [rdi - 0x80], rax
+	lea rax, [rdi - 0xF8]
+	mov [rdi], rax ;set stackpointer in thread struct
+
+	ret
+
+
 syscallEntry64:
 	swapgs
 	mov [gs:0x28], rsp
@@ -61,8 +95,8 @@ syscallEntry64:
 
 	sub rsp, 0x48
 	mov [rsp + 0x40], rax
-	mov [rsp + 0x30], rdx
-	mov [rsp + 0x38], rcx
+	mov [rsp + 0x38], rdx
+	mov [rsp + 0x30], rcx
 	mov [rsp + 0x28], rdi
 	mov [rsp + 0x20], rsi
 	mov [rsp + 0x18], r8
@@ -70,21 +104,23 @@ syscallEntry64:
 	mov [rsp + 0x08], r10
 	mov [rsp], r11
 
+	mov rcx, r10
+
 	mov r10d, [rsp + 0x40]
 	cmp r10d, SYSCALL_MAX
 	mov eax, -7 ;-ENOSYS
-	jae .return
+	jae sysret64
 	
 	mov r10, [syscallTable + r10 * 8]
 	test r10, r10
-	jz .return ;eax is still -ENOSYS
+	jz sysret64 ;eax is still -ENOSYS
 
 	call r10
 
-	.return:
+sysret64:
 	
 	;rax need not be restored
-	mov rcx, [rsp + 0x38]
+	mov rcx, [rsp + 0x30]
 	mov rdi, [rsp + 0x28]
 	mov rsi, [rsp + 0x20]
 	mov r8,  [rsp + 0x18]
@@ -93,10 +129,7 @@ syscallEntry64:
 	mov r11, [rsp]
 
 	cli
-	;add rsp, 0x50
-	;mov rsp, [rsp - 8]
 	mov rsp, [rsp + 0x48]
-	;sti
 	
 	swapgs
 	db 0x48 ;no sysretq in NASM

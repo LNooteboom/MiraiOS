@@ -52,13 +52,13 @@ static int parseInitrd(struct Inode *rootInode) {
 	unsigned long curPosition = 0;
 	while (curPosition < bootInfo.initrdLen) {
 		initrdHeader = (struct CpioHeader *)(&initrd[curPosition]);
-		if (!memcmp(initrdHeader->magic, cpioMagic, 6)) {
+		if (memcmp(initrdHeader->magic, cpioMagic, 6)) {
 			printk("Invalid CPIO header: %s\n", initrdHeader->magic);
 			return -EINVAL;
 		}
 		uint32_t nameLen = parseHex(initrdHeader->namesize);
 		char *name = &initrd[curPosition + sizeof(struct CpioHeader)];
-		if (nameLen == sizeof(cpioEndName) && memcmp(name, cpioEndName, sizeof(cpioEndName))) {
+		if (/*nameLen == sizeof(cpioEndName) &&*/ !memcmp(name, cpioEndName, sizeof(cpioEndName))) {
 			break;
 		}
 		
@@ -114,6 +114,7 @@ int ramfsInit(void) {
 
 	dirCacheInit(rootInode, rootInode);
 
+	printk("[INITRD] Mounted root\n");
 	mountRoot(rootInode);
 	ramfsSuperBlock.curInodeID = 2;
 

@@ -63,7 +63,7 @@ extern char font8x16[];
 
 static struct Vtty ttys[NROF_VTTYS];
 static struct Vtty *kernelTty = &ttys[0];
-static struct Vtty *currentTty = &ttys[0];
+static volatile struct Vtty *currentTty = &ttys[0];
 
 static bool ttyEarly = true;
 
@@ -235,7 +235,7 @@ MODULE_INIT(fbInitDevFiles);
 
 int fbInitLate(void) {
 	ttyEarly = false;
-	int error = kthreadCreate(NULL, (void *(*)(void *))fbUpdateThread, NULL, THREAD_FLAG_DETACHED);
+	int error = kthreadCreate(NULL, (void *(*)(void *))fbUpdateThread, NULL, THREAD_FLAG_DETACHED | THREAD_FLAG_RT);
 	if (error) {
 		return error;
 	}

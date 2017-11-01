@@ -74,7 +74,7 @@ void acpiInit(void) {
 		if (!paddr) {
 			continue; //skip NULL entry
 		}
-		if (!foundMadt && memcmp(buf, madtSig, ACPI_SIG_LEN)) {
+		if (!foundMadt && !memcmp(buf, madtSig, ACPI_SIG_LEN)) {
 			acpiMadtInit(paddr, entryLen);
 			foundMadt = true;
 		}

@@ -70,8 +70,9 @@ void kmain(void) {
 
 	int error = execInit("init");
 	printk("%d\n", error);
+	printk("ok\n");
 
-	asm ("xchg bx, bx");
+	//asm ("xchg bx, bx");
 	kthreadExit(NULL);
 }
 

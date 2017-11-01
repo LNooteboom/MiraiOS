@@ -64,7 +64,7 @@ struct DirEntry *dirCacheLookup(struct Inode *dir, const char *name) {
 		} else {
 			entryName = cd->entries[i].inlineName;
 		}
-		if (!memcmp(entryName, name, nameLen)) {
+		if (memcmp(entryName, name, nameLen)) {
 			continue;
 		}
 		//found

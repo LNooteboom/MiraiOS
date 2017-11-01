@@ -3,19 +3,52 @@
 
 #include <sched/thread.h>
 #include <fs/fs.h>
+#include <sched/spinlock.h>
+#include <mm/paging.h>
 
 #define NROF_INLINE_FDS	8
 
 #define INIT_PID	1
 
+#define MEM_FLAG_WRITE	(1 << 0)
+#define MEM_FLAG_EXEC	(1 << 1)
+#define MEM_FLAG_SHARED	(1 << 2)
+
+struct ProcessMemory;
+
+struct SharedMemory {
+	void *vaddr;
+	size_t size;
+	unsigned int flags;
+	unsigned int refCount;
+	unsigned long nrofPhysPages;
+	uintptr_t alignedVaddr;
+
+	physPage_t phys[1]; //extendable
+};
+
+struct MemoryEntry {
+	void *vaddr;
+	size_t size;
+	unsigned int flags;
+	struct SharedMemory *shared;
+};
+
+struct ProcessMemory {
+	unsigned int nrofEntries;
+	struct MemoryEntry *entries;
+};
+
 struct Process {
 	unsigned long pid;
-	void *addressSpace;
+	physPage_t addressSpace;
 	union {
 		char inlineName[32];
 		char *name;
 	};
 	unsigned int nameLen;
+
+	struct ProcessMemory pmem;
 
 	char *cwd;
 

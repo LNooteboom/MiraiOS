@@ -30,4 +30,6 @@ void mmSetPageFlags(uintptr_t vaddr, pageFlags_t flags);
 
 void mmUnmapUserspace(void);
 
+uintptr_t mmCreateAddressSpace(void);
+
 #endif

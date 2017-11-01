@@ -20,14 +20,21 @@ void deallocThread(thread_t thread) {
 	deallocPages((void*)stackBottom, THREAD_STACK_SIZE);
 }
 
-int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags) {
-	//alloc thread stack
-	uintptr_t stackBottom = (uintptr_t)(allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE));
+struct ThreadInfo *allocKStack(void) {
+	uintptr_t stackBottom = (uintptr_t)(allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN));
 	if (!stackBottom) {
-		return -ENOMEM;
+		return NULL;
 	}
 	struct ThreadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct ThreadInfo));
 	memset(thrd, 0, sizeof(struct ThreadInfo));
+	return thrd;
+}
+
+int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags) {
+	//alloc thread stack
+	struct ThreadInfo *thrd = allocKStack();
+	if (!thrd) return -ENOMEM;
+
 	if (thread) {
 		*thread = thrd;
 	}
@@ -62,12 +69,9 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 
 int kthreadCreateFromMain(thread_t *thread) {
 	//alloc thread stack
-	uintptr_t stackBottom = (uintptr_t)(allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE));
-	if (!stackBottom) {
-		return -ENOMEM;
-	}
-	struct ThreadInfo *thrd = (thread_t)(stackBottom + THREAD_STACK_SIZE - sizeof(struct ThreadInfo));
-	memset(thrd, 0, sizeof(struct ThreadInfo));
+	struct ThreadInfo *thrd = allocKStack();
+	if (!thrd) return -ENOMEM;
+	
 	*thread = thrd;
 	migrateMainStack(thrd);
 

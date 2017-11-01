@@ -26,10 +26,10 @@ Returns true if equal.
 static inline bool memcmp(const void *a, const void *b, size_t n) {
 	for (uintptr_t i = 0; i < n; i++) {
 		if (((char*)a)[i] != ((char*)b)[i]) {
-			return false;
+			return -1;
 		}
 	}
-	return true;
+	return 0;
 }
 
 static inline size_t strlen(const char *str) {

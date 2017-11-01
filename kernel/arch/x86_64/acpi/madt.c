@@ -134,6 +134,7 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 	
 	memset(cpuInfos, 0, nrofCPUs * sizeof(struct CpuInfo));
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
+		printk("CPU %d info at: %x\n", i, &cpuInfos[i]);
 		cpuInfos[i].addr = &cpuInfos[i];
 		cpuInfos[i].currentThread = NULL;
 		cpuInfos[i].apicID = apicIDs[i];

@@ -110,6 +110,9 @@ int sysWrite(unsigned int fd, void *buffer, size_t size) {
 		//todo
 		return -ENOSYS;
 	}
+	if (!f->inode) {
+		return -EBADF;
+	}
 	error = fsWrite(f, buffer, size);
 	return error;
 }

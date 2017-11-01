@@ -155,7 +155,7 @@ static int efiHandleGop(void) {
 static int efiHandleRsdp(void) {
 	int acpiTableIndex = -1;
 	for (int i = 0; i < (int)efiSystemTable->NumberOfTableEntries; i++) {
-		if (!memcmp(&efiSystemTable->ConfigurationTable[i].VendorGuid, &efiAcpiTableGuid, sizeof(EFI_GUID))) {
+		if (memcmp(&efiSystemTable->ConfigurationTable[i].VendorGuid, &efiAcpiTableGuid, sizeof(EFI_GUID))) {
 			continue;
 		}
 		acpiTableIndex = i;

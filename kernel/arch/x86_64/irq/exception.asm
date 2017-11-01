@@ -11,6 +11,8 @@ extern idtSetDPL
 
 extern excPF
 
+extern kthreadExit
+
 global initExceptions:function
 global undefinedInterrupt:function
 global dummyInterrupt:function
@@ -45,7 +47,12 @@ initExceptions:
     ret
 
 excBaseErrorCode:
-	xchg [rsp + 8], rax
+	push rax ;rsp+8 = irq num, +16 = error
+	mov rax, [rsp + 8]
+	xchg [rsp + 16], rax ;error becomes irq num
+	xchg [rsp], rax ;store error in temp, load old rax
+	mov [rsp + 8], rax ;store old rax
+	pop rax ;load error in rax
 	jmp __excBase
 excBase:
 	push rax
@@ -61,18 +68,41 @@ __excBase: ;error code in rax
 	mov [rsp + 0x08], r10
 	mov [rsp], r11
 
-	mov r10, [rsp + 0x40]
+	test [rsp + 0x54], dword 0x80000000
+	jnz .noswapgs
+		swapgs
+	.noswapgs:
+
+	mov r10, [rsp + 0x48]
 	mov rdi, excMessageBase
 	mov rsi, [excMsgList + r10 * 8]
 	mov rdx, rax
 	call printk
 
-    .halt:
-        cli
-        hlt
-        jmp .halt
+	xchg bx, bx
 
-	%if 0
+	cmp [rsp + 0x48], dword 3
+	je .return
+
+	;sti
+	mov rax, [gs:8]
+	cmp [rax + 0x20], dword 0
+	jne .userThread
+		call kthreadExit
+		jmp .halt
+	.userThread:
+		call kthreadExit ;TODO replace this with exit syscall
+    .halt:
+	cli
+	hlt
+	jmp .halt
+
+	.return:
+	test [rsp + 0x54], dword 0x80000000
+	jnz .noswapgs2
+		swapgs
+	.noswapgs2:
+
 	mov rax, [rsp + 0x40]
 	mov rcx, [rsp + 0x38]
 	mov rdx, [rsp + 0x30]
@@ -82,9 +112,8 @@ __excBase: ;error code in rax
 	mov r9,  [rsp + 0x10]
 	mov r10, [rsp + 0x08]
 	mov r11, [rsp]
-	add rsp, 0x48
+	add rsp, 0x50
 	iretq
-	%endif
 
 excDE:
 	push 0

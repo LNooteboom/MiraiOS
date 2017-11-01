@@ -9,5 +9,6 @@
 #define EISDIR		6
 #define ENOSYS		7
 #define EROFS		8
+#define EBADF		9
 
 #endif

@@ -1,5 +1,5 @@
 #include <sched/thread.h>
-
+#include <sched/process.h>
 #include <stdint.h>
 #include <arch/cpu.h>
 #include <arch/msr.h>
@@ -72,6 +72,8 @@ void loadThread(thread_t new) {
 		} else {
 			wrmsr(0xC0000102, (uint64_t)new->gsBase); //MSR_KERNEL_GS_BASE
 		}
+
+		asm ("mov cr3, %0" : : "r"(new->process->addressSpace));
 	}
 	
 }

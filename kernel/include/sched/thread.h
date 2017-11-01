@@ -33,16 +33,13 @@ struct ThreadInfo {
 	spinlock_t lock;			//0x14
 	bool detached;				//0x18
 	uint32_t cpuAffinity;		//0x1C
-
-	//uintptr_t kernelStackPointer; //0x20
+	struct Process *process;	//0x20
 	//end of asm accessible part
 	void *fsBase;
 	void *gsBase;
 
 	struct ThreadInfo *nextThread;
 	struct ThreadInfo *prevThread;
-
-	struct Process *process;
 
 	int priority;
 	bool fixedPriority;
@@ -99,5 +96,8 @@ void kthreadStop(void);
 Deallocates a thread from memory
 */
 void deallocThread(thread_t thread);
+
+
+struct ThreadInfo *allocKStack(void);
 
 #endif
