@@ -23,7 +23,7 @@ start:
 
 	mov ecx, 0xC0000080
 	rdmsr
-	or eax, (1 << 8) ;set LME bit
+	or eax, (1 << 8) | 1 ;set LME and SCE bits
 	cmp [nxEnabled], word 0
 	je .noNX
 		or eax, (1 << 11) ;set NX bit

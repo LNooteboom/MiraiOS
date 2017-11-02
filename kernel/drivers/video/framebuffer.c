@@ -52,7 +52,7 @@ struct Vtty {
 
 	uint16_t scrollbackY;
 	bool full;
-	bool focus;
+	volatile bool focus;
 
 	semaphore_t sem;
 };
@@ -63,7 +63,7 @@ extern char font8x16[];
 
 static struct Vtty ttys[NROF_VTTYS];
 static struct Vtty *kernelTty = &ttys[0];
-static volatile struct Vtty *currentTty = &ttys[0];
+static struct Vtty *currentTty = &ttys[0];
 
 static bool ttyEarly = true;
 
@@ -79,7 +79,7 @@ static void drawChar(char *vmem, unsigned int newline, char c) {
 	}
 	unsigned int charIndex = (c - 32) * FONT_HEIGHT;
 	for (unsigned int charY = 0; charY < FONT_HEIGHT; charY++) {
-		char line = font8x16[charIndex++];
+		unsigned char line = font8x16[charIndex++];
 		for (unsigned int charX = 0; charX < 8; charX++) {
 			uint32_t color = 0;
 			if (line & 1) {
@@ -281,7 +281,7 @@ int fbInit(void) {
 		ttys[i].charWidth = bootFB->xResolution / 8;
 		ttys[i].charHeight = bootFB->yResolution / FONT_HEIGHT;
 		ttys[i].scrollback = allocKPages(SCROLLBACK_LINES * ttys[i].charWidth,
-			PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE);
+			PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE);
 		ttys[i].cursorX = 0;
 		ttys[i].cursorY = 0;
 	}

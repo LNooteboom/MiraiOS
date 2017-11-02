@@ -204,6 +204,7 @@ void mmInitVirtPaging(void) {
 }
 
 void *allocKPages(size_t size, pageFlags_t flags) {
+	flags |= PAGE_FLAG_INUSE | PAGE_FLAG_KERNEL;
 	unsigned int nrofPages = size / PAGE_SIZE;
 	if (size % PAGE_SIZE) {
 		nrofPages++;

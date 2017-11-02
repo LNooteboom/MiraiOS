@@ -21,6 +21,8 @@ extern readyQueuePop
 extern perCpuTimer
 extern lapicEnableTimer
 
+extern syscallInit
+
 SECTION .text
 
 smpbootStart:
@@ -92,6 +94,9 @@ smpbootStart:
 		mov edi, 0xC3
 		call lapicEnableTimer
 	.noApicTimer:
+
+	;init syscall registers
+	call syscallInit
 
 	xor edi, edi
 	call setCurrentThread

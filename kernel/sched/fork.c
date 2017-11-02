@@ -4,15 +4,27 @@
 #include <mm/paging.h>
 #include <mm/pagemap.h>
 #include <mm/memset.h>
+#include <mm/physpaging.h>
 #include <sched/readyqueue.h>
 #include <syscall.h>
 #include <modules.h>
 
 extern void initForkRetThread(thread_t newThread, thread_t parent);
 
-/*static int deleteMem(struct Process *proc, unsigned int limit) {
+static uint64_t curPid = 2;
 
-}*/
+static void deleteMem(struct Process *proc) {
+	struct MemoryEntry *entries = proc->pmem.entries;
+	for (unsigned int i = 0; i < proc->pmem.nrofEntries; i++) {
+		if (entries[i].flags & MEM_FLAG_SHARED) {
+			entries[i].shared->refCount--;
+			if (!entries[i].shared->refCount) {
+				kfree(entries[i].shared);
+			}
+		}
+	}
+	kfree(proc->pmem.entries);
+}
 
 static int copyMem(struct Process *proc, struct Process *newProc) {
 	int error;
@@ -83,6 +95,7 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 }
 
 int forkRet(void) {
+	
 	thread_t curThread = getCurrentThread();
 	struct Process *proc = curThread->process;
 	struct MemoryEntry *entries = proc->pmem.entries;
@@ -101,6 +114,8 @@ int forkRet(void) {
 		}
 	}
 
+	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
+	fsOpen(stdout, &proc->inlineFDs[1]);
 	return 0;
 }
 
@@ -111,21 +126,33 @@ int sysFork(void) {
 
 	struct Process *newProc = kmalloc(sizeof(struct Process));
 	memset(newProc, 0, sizeof(struct Process));
+	if (!newProc) {
+		error = -ENOMEM;
+		goto ret;
+	}
+
+	newProc->pid = curPid++;
 
 	error = copyMem(curProc, newProc);
+	if (error) goto freeProc;
 
 	newProc->addressSpace = mmCreateAddressSpace();
+	if (!newProc->addressSpace) {
+		error = -ENOMEM;
+		goto deleteMem;
+	}
 
 	//create a main thread for the new process
 	struct ThreadInfo *mainThread = allocKStack();
 	if (!mainThread) {
 		error = -ENOMEM;
-		//todo
+		goto deleteAddressSpace;
 	}
 	mainThread->priority = 1;
 	mainThread->jiffiesRemaining = TIMESLICE_BASE << 1;
 	mainThread->cpuAffinity = 0;
 	mainThread->process = newProc;
+	mainThread->state = THREADSTATE_SCHEDWAIT;
 
 	newProc->mainThread = mainThread;
 
@@ -133,6 +160,15 @@ int sysFork(void) {
 	readyQueuePush(mainThread);
 
 	return newProc->pid;
+
+	deleteAddressSpace:
+	deallocPhysPage(newProc->addressSpace);
+	deleteMem:
+	deleteMem(newProc);
+	freeProc:
+	kfree(newProc);
+	ret:
+	return error;
 }
 
 int registerForkSyscall(void) {

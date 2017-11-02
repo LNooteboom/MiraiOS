@@ -71,7 +71,6 @@ __init:
 	pop rbp ;load result in rbp
 	add rsp, 8
 
-	;rbp + 0x0000 mmap buffer
 	;rbp + 0x0000 kernel pml4t
 	;rbp + 0x1000 kernel pdpt
 	;rbp + 0x2000 kernel pdt
@@ -155,7 +154,7 @@ preparePageTables: ;base in rbp, nrof page tables in rbx, mmap info in [rsp]
 	mov rdx, TEXT_END_ADDR
 	and rax, ~0xFFF
 	sub rdx, KERNEL_START_ADDR
-	or rax, 1
+	or rax, 0x101
 	xor ecx, ecx
 	lea rdi, [rbp + 0x3000]
 	.start2:
@@ -175,7 +174,7 @@ preparePageTables: ;base in rbp, nrof page tables in rbx, mmap info in [rsp]
 		mov r8, (1 << 63) ;nx bit
 		or rax, r8
 	.noNX:
-	or rax, 3
+	or rax, 0x103
 	xor ecx, ecx
 	.start3:
 		mov [rdi], rax
@@ -215,7 +214,7 @@ preparePageTables: ;base in rbp, nrof page tables in rbx, mmap info in [rsp]
 		mov r8, (1 << 63) ;nx bit
 		or rax, r8
 	.noNX2:
-	or rax, 3
+	or rax, 0x103
 	xor ecx, ecx
 
 	.start4:
@@ -228,7 +227,7 @@ preparePageTables: ;base in rbp, nrof page tables in rbx, mmap info in [rsp]
 		jb .start4
 
 	;map lowmem pde entries
-	mov eax, 0x83 ;add size flag
+	mov eax, 0x183 ;add size flag
 	xor edx, edx
 	.start5:
 		mov [rbp + 0x2000 + rdx], rax

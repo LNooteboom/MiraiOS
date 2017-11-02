@@ -40,7 +40,7 @@ struct ProcessMemory {
 };
 
 struct Process {
-	unsigned long pid;
+	uint64_t pid;
 	physPage_t addressSpace;
 	union {
 		char inlineName[32];

@@ -34,7 +34,7 @@ static struct PageStackInfo largeCleanPages;
 static uintptr_t freeBufferSmall;
 static spinlock_t freeBufferSmallLock;
 static uintptr_t freeBufferLarge;
-static spinlock_t freeBufferLargeLock;
+//static spinlock_t freeBufferLargeLock;
 
 static stackEntry_t popPage(struct PageStackInfo *pages) {
 	stackEntry_t newPage = 0;

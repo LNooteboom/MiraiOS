@@ -147,7 +147,7 @@ int fsWrite(struct File *file, void *buffer, size_t bufSize) {
 
 			for (unsigned int i = 0; i < nrofPages; i++) {
 				//alloc page
-				void *page = allocKPages(PAGE_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
+				void *page = allocKPages(PAGE_SIZE, PAGE_FLAG_WRITE);
 				if (!page) {
 					releaseSpinlock(&inode->lock);
 					releaseSpinlock(&file->lock);

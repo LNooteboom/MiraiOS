@@ -154,7 +154,7 @@ static int execCommon(thread_t mainThread, const char *fileName) {
 
 int execInit(const char *fileName) {
 	int error;
-	uintptr_t kernelStackBottom = (uintptr_t)allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
+	uintptr_t kernelStackBottom = (uintptr_t)allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE);
 	if (!kernelStackBottom) {
 		error = -ENOMEM;
 		goto ret;
@@ -186,7 +186,6 @@ int execInit(const char *fileName) {
 	if (error) {
 		goto freeProcess;
 	}
-	if (error) goto deallocMainThread;
 
 	error = execCommon(mainThread, fileName);
 	if (error) goto freeProcess;

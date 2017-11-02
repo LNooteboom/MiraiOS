@@ -78,6 +78,13 @@ smpCallIrq:
 	mov [rsp + 0x08], r10
 	mov [rsp], r11
 
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x48], rax
+	jae .noswapgs
+		;xchg bx, bx
+		swapgs
+	.noswapgs:
+
 	mov rax, [smpCallFunc]
 	mov rdi, [smpCallArg]
 	call rax
@@ -92,6 +99,13 @@ smpCallIrq:
 	.exit:
 
 	call ackIRQ
+
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x48], rax
+	jae .noswapgs2
+		swapgs
+	.noswapgs2:
+
 	mov rax, [rsp + 0x40]
 	mov rcx, [rsp + 0x38]
 	mov rdx, [rsp + 0x30]

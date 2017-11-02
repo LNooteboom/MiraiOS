@@ -75,14 +75,13 @@ initForkRetThread: ;(thread_t newThread, thread_t parent) returns void
 	lea rax, [rdi - 0x58]
 	mov [rdi - 0x68], rax ;rsp
 	pop qword [rdi - 0x70] ;rflags
-	mov qword [rdi - 0x78], 0x08
+	mov qword [rdi - 0x78], 0x08 ;cs
 	mov rax, forkRet
 	mov [rdi - 0x80], rax
 	lea rax, [rdi - 0xF8]
 	mov [rdi], rax ;set stackpointer in thread struct
 
 	ret
-
 
 syscallEntry64:
 	swapgs
@@ -120,6 +119,7 @@ syscallEntry64:
 sysret64:
 	
 	;rax need not be restored
+	mov rdx, [rsp + 0x38]
 	mov rcx, [rsp + 0x30]
 	mov rdi, [rsp + 0x28]
 	mov rsi, [rsp + 0x20]

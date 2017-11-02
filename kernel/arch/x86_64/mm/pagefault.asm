@@ -5,6 +5,8 @@ extern hexprintln
 extern hexprintln64
 extern cprint
 
+extern panic
+
 extern mmGetEntry
 extern allocPhysPage
 extern allocCleanPhysPage
@@ -17,25 +19,27 @@ extern allocLargeCleanPhysPage
 SECTION .text
 
 excPF:
-    push rbp
-    pushfq
-    mov rbp, rsp
-    sub rsp, 0x58
-    mov [rbp-0x08], rax
-    mov [rbp-0x10], rcx
-    mov [rbp-0x18], rdx
-    mov [rbp-0x20], rdi
-    mov [rbp-0x28], rsi
-    mov [rbp-0x30], r8
-    mov [rbp-0x38], r9
-    mov [rbp-0x40], r10
-    mov [rbp-0x48], r11
-    mov [rbp-0x50], rbx
-    mov [rbp-0x58], r12
-	cld
+	push rax
+	push rcx
+	push rdx
+	push rsi
+	push rdi
+	push r8
+	push r9
+	push r10
+	push r11
+	push rbx
+	push r12
+
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x60], rax
+	jae .noswapgs
+		;xchg bx, bx
+		swapgs
+	.noswapgs:
 
     ;test if caused by not present page
-    mov eax, [rbp+16]
+    mov eax, [rsp + 0x58]
     test eax, 1
     jnz .L0
         mov bl, NROF_PAGE_LEVELS - 1
@@ -89,26 +93,28 @@ excPF:
         .L8:
         xor rdi, rdi
         mov cr2, rdi
+
+		mov rax, 0xffffffff80000000
+		cmp [rsp + 0x60], rax
+		jae .noswapgs2
+			swapgs
+		.noswapgs2:
         
-        mov rax, [rbp-0x08]
-        mov rcx, [rbp-0x10]
-        mov rdx, [rbp-0x18]
-        mov rdi, [rbp-0x20]
-        mov rsi, [rbp-0x28]
-        mov r8,  [rbp-0x30]
-        mov r9,  [rbp-0x38]
-        mov r10, [rbp-0x40]
-        mov r11, [rbp-0x48]
-        mov rbx, [rbp-0x50]
-        mov r12, [rbp-0x58]
-        mov rsp, rbp
-        popfq
-        pop rbp
+        pop r12
+		pop rbx
+		pop r11
+		pop r10
+		pop r9
+		pop r8
+		pop rdi
+		pop rsi
+		pop rdx
+		pop rcx
+		pop rax
         add rsp, 8 ;jump over error code
         iretq
     .L0:
-	add rbp, 16
-	mov rsp, rbp
+	add rsp, 0x58
 
     ;print error message
     mov rdi, PFmsg
@@ -161,6 +167,9 @@ excPF:
         mov rdi, PFID
         call puts
     .L13:
+
+	mov rdi, PFmsg
+	call panic
 
     jmp $
 

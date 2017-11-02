@@ -176,6 +176,7 @@ jiffyIrq:
 
 	pop rsi
 	mov rdi, [rsp]
+	mov edx, 1
 	call kthreadSwitch
 	pop rdx
 
@@ -270,7 +271,9 @@ reschedIPI:
 	mov rax, 0xffffffff80000000
 	cmp [rsp + 0x48], rax
 	jae .noswapgs
+		;xchg bx, bx
 		swapgs
+		or [rsp + 0x68], dword 3
 	.noswapgs:
 
 	;get current thread
@@ -278,16 +281,19 @@ reschedIPI:
 	test rax, rax
 	jz .return
 	cmp [rax + 0x10], dword 1
-	je .return
+	jne .return
+
+	push rax
 	
 	lea rdi, [rax + 0x14]
 	call acquireSpinlock
 
 	mov esi, 1
 	mov rdi, [gs:8]
+	xor edx, edx
 	call kthreadSwitch
 
-	mov rdx, [gs:8]
+	pop rdx
 	cmp rax, rdx
 	je .noSwitch
 		;task switch occured

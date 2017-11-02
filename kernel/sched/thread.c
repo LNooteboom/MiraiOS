@@ -21,7 +21,7 @@ void deallocThread(thread_t thread) {
 }
 
 struct ThreadInfo *allocKStack(void) {
-	uintptr_t stackBottom = (uintptr_t)(allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN));
+	uintptr_t stackBottom = (uintptr_t)(allocKPages(THREAD_STACK_SIZE, PAGE_FLAG_WRITE | PAGE_FLAG_CLEAN));
 	if (!stackBottom) {
 		return NULL;
 	}
@@ -96,14 +96,14 @@ int kthreadCreateFromMain(thread_t *thread) {
 	return 0;
 }
 
-thread_t kthreadSwitch(thread_t oldThread, bool higherThreadReleased) {
+thread_t kthreadSwitch(thread_t oldThread, bool higherThreadReleased, bool frontEn) {
 	bool front = false;
 	oldThread->jiffiesRemaining -= 1;
 	if (oldThread->jiffiesRemaining > 0) {
 		if (!higherThreadReleased) {
 			return oldThread;
 		}
-		front = true;
+		front = frontEn;
 	}
 
 	oldThread->state = THREADSTATE_SCHEDWAIT;

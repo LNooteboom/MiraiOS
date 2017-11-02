@@ -45,6 +45,15 @@ acquireSpinlock:
 	ret
 
 .error:
+	;mov eax, 0xDEADBEEF
+	;mov rbx, [rsp]
+	;mov rcx, [rsp + 0x08]
+	;mov rdx, [rsp + 0x10]
+	;mov rsi, [rsp + 0x18]
+	;mov rdi, [rsp + 0x20]
+	;mov r8, [rsp + 0x28]
+	;mov r9, [rsp + 0x30]
+	;jmp $
 	xchg bx, bx
 	mov rdi, spinlockStuckMsg
 	;call puts

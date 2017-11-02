@@ -27,8 +27,8 @@ MULTIBOOT_HEADER_PADDR	equ multiBootHeader
 
 PAGESIZE				equ 0x1000
 LARGE_PAGE_SIZE_2		equ 0x200000
-PAGEFLAGS				equ 0x03
-PDEFLAGS				equ 0x83
+PAGEFLAGS				equ 0x103
+PDEFLAGS				equ 0x183
 
 SECTION multiboot
 multiBootHeader:

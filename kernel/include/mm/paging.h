@@ -11,10 +11,11 @@ typedef uint64_t pageFlags_t;
 #define PAGE_SIZE			4096
 #define LARGEPAGE_SIZE		(PAGE_SIZE * 512)
 
-//oermission settings
+//permission settings
 #define PAGE_FLAG_WRITE		(1 << 1)	//page is writeable
 #define PAGE_FLAG_USER		(1 << 2)	//page is accessable by userspace
 #define PAGE_FLAG_EXEC		(1UL << 63)	//page is executable
+#define PAGE_FLAG_KERNEL	(1 << 8)	//global bit: disables tlb flush for kernel pages
 
 //alloc settings
 #define PAGE_FLAG_INUSE		(1 << 9)	//page will be allocated upon access

@@ -18,7 +18,7 @@ extern moduleCall_t MODULE_INITS_2_START;
 extern moduleCall_t MODULE_INITS_3_START;
 extern moduleCall_t MODULE_INITS_END;
 
-extern int createInitProcess(void);
+extern int execInit(char *fileName);
 
 moduleCall_t *moduleInitLevels[NROF_MODULE_LEVELS + 1] = {
 	&MODULE_INITS_0_START,
