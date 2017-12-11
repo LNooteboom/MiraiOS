@@ -34,7 +34,6 @@ excPF:
 	mov rax, 0xffffffff80000000
 	cmp [rsp + 0x60], rax
 	jae .noswapgs
-		;xchg bx, bx
 		swapgs
 	.noswapgs:
 
@@ -181,7 +180,7 @@ errorCode:      db 'Error code: ', 0
 PFAddr:         db 'Attempted to access ', 0
 PFPresent:      db 'Page present', endl
 PFRW:           db 'Write', endl
-PFUS:           db 'Check your privilege!', endl
+PFUS:           db 'Came from userspace', endl
 PFRSV:          db '1 found in reserved field', endl
 PFID:           db 'Caused by instruction fetch', endl
 

@@ -4,6 +4,7 @@
 global initIrqStubs:function
 global syscallInit:function
 global registerSyscall:function
+global initExecRetThread:function
 global initForkRetThread:function
 
 extern mapIdtEntry
@@ -53,14 +54,34 @@ syscallInit:
 
 	ret
 
+initExecRetThread: ;(thread_t thread, void *start, uint64_t arg1, uint64_t arg2)
+	;mov r8, rdi
+	;mov r9, rcx
+	;mov r10, rsi
+	;sub rdi, 0x48 ;don't overwrite flags (r11)
+	;mov ecx, (0x48 / 8)
+	;xor eax, eax
+	;rep stosq
+
+	;mov [r8 - 0x18], r10 ;ret addr
+	;mov [r8 - 0x28], r9
+	;mov [r8 - 0x30], rdx
+
+	mov [rdi - 0x18], rsi
+	mov [rdi - 0x28], r9
+	mov [rdi - 0x30], rdx
+
+	ret
+
 initForkRetThread: ;(thread_t newThread, thread_t parent) returns void
 	mov rax, [rsi - 0x08]
 	mov [rdi - 0x08], rax ;copy userspace stack pointer
 
-	mov rax, [rsi - 0x20]
-	mov [rdi - 0x20], rax ;copy ret addr (rcx)
+	mov rax, [rsi - 0x18]
+	mov [rdi - 0x18], rax ;copy ret addr (rcx)
 
 	mov rax, [rsi - 0x50]
+	;and rax, ~(1 << 9) ;delet this
 	mov [rdi - 0x50], rax ;copy flags (r11)
 	
 	;rdi - 0x10 -> -0x58 userspace regs
@@ -77,7 +98,7 @@ initForkRetThread: ;(thread_t newThread, thread_t parent) returns void
 	pop qword [rdi - 0x70] ;rflags
 	mov qword [rdi - 0x78], 0x08 ;cs
 	mov rax, forkRet
-	mov [rdi - 0x80], rax
+	mov [rdi - 0x80], rax ;rip
 	lea rax, [rdi - 0xF8]
 	mov [rdi], rax ;set stackpointer in thread struct
 
@@ -94,10 +115,10 @@ syscallEntry64:
 
 	sub rsp, 0x48
 	mov [rsp + 0x40], rax
-	mov [rsp + 0x38], rdx
-	mov [rsp + 0x30], rcx
-	mov [rsp + 0x28], rdi
-	mov [rsp + 0x20], rsi
+	mov [rsp + 0x38], rcx
+	mov [rsp + 0x30], rdx
+	mov [rsp + 0x28], rsi
+	mov [rsp + 0x20], rdi
 	mov [rsp + 0x18], r8
 	mov [rsp + 0x10], r9
 	mov [rsp + 0x08], r10
@@ -117,18 +138,19 @@ syscallEntry64:
 	call r10
 
 sysret64:
+
+	mov rdi, [rsp + 0x38]
 	
 	;rax need not be restored
-	mov rdx, [rsp + 0x38]
-	mov rcx, [rsp + 0x30]
-	mov rdi, [rsp + 0x28]
-	mov rsi, [rsp + 0x20]
+	mov rcx, [rsp + 0x38]
+	mov rdx, [rsp + 0x30]
+	mov rsi, [rsp + 0x28]
+	mov rdi, [rsp + 0x20]
 	mov r8,  [rsp + 0x18]
 	mov r9,  [rsp + 0x10]
 	mov r10, [rsp + 0x08]
 	mov r11, [rsp]
 
-	cli
 	mov rsp, [rsp + 0x48]
 	
 	swapgs

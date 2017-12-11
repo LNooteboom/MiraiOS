@@ -116,7 +116,6 @@ tlbInvalIrq:
 	mov rax, 0xffffffff80000000
 	cmp [rsp + 0x48], rax
 	jae .noswapgs
-		;xchg bx, bx
 		swapgs
 	.noswapgs:
 

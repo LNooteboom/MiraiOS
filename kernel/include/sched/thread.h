@@ -41,7 +41,7 @@ struct ThreadInfo {
 	struct ThreadInfo *nextThread;
 	struct ThreadInfo *prevThread;
 
-	int priority;
+	int priority;//48
 	bool fixedPriority;
 	int jiffiesRemaining;
 

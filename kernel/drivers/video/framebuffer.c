@@ -235,7 +235,8 @@ MODULE_INIT(fbInitDevFiles);
 
 int fbInitLate(void) {
 	ttyEarly = false;
-	int error = kthreadCreate(NULL, (void *(*)(void *))fbUpdateThread, NULL, THREAD_FLAG_DETACHED | THREAD_FLAG_RT);
+	thread_t updateThread;
+	int error = kthreadCreate(&updateThread, (void *(*)(void *))fbUpdateThread, NULL, THREAD_FLAG_DETACHED);
 	if (error) {
 		return error;
 	}

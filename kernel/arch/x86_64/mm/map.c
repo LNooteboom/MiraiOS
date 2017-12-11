@@ -150,9 +150,10 @@ static void mmUnmapUserspaceHelper(uintptr_t base, int lv) {
 	for (int i = 0; i < max; i++) {
 		if (lv && *pte & PAGE_FLAG_PRESENT) {
 			mmUnmapUserspaceHelper(pageBase, lv - 1);
+			*pte = 0;
 		} else if (!lv && *pte & PAGE_FLAG_PRESENT && *pte & PAGE_MASK) {
 			if (*pte & PAGE_FLAG_SHARED) {
-				printk("[MM] Shared pages are not implemented yet");
+				printk("[MM] Shared pages are not implemented yet\n");
 			} else {
 				//dealloc mapped page
 				deallocPhysPage(*pte & PAGE_MASK);
@@ -164,6 +165,7 @@ static void mmUnmapUserspaceHelper(uintptr_t base, int lv) {
 	//dealloc this page table
 	if (lv != NROF_PAGE_LEVELS - 1) { //do not dealloc root page table
 		pte = mmGetEntry(base, lv + 1);
+		deallocPhysPage(*pte & PAGE_MASK);
 	}
 }
 

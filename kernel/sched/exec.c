@@ -12,8 +12,10 @@
 #include <mm/pagemap.h>
 #include <sched/elf.h>
 #include <modules.h>
+#include <arch/tlb.h>
 
 extern void uthreadInit(struct ThreadInfo *info, void *start, uint64_t arg1, uint64_t arg2, uint64_t userspaceStackpointer);
+extern void initExecRetThread(thread_t thread, void *start, uint64_t arg1, uint64_t arg2);
 
 union elfBuf {
 	struct ElfHeader header;
@@ -49,9 +51,9 @@ static int elfLoad(struct File *f, struct ElfPHEntry *entry) {
 	if (entry->flags & PHFLAG_EXEC) {
 		flags |= PAGE_FLAG_EXEC;
 	}
-	if (entry->flags & PHFLAG_WRITE) {
+	//if (entry->flags & PHFLAG_WRITE) {
 		flags |= PAGE_FLAG_WRITE;
-	}
+	//}
 	//readable flag is ignored
 	allocPageAt(vaddr, entry->pMemSz, flags);
 
@@ -70,7 +72,7 @@ static int elfLoad(struct File *f, struct ElfPHEntry *entry) {
 	return error;
 }
 
-static int execCommon(thread_t mainThread, const char *fileName) {
+static int execCommon(thread_t mainThread, const char *fileName, void **startAddr) {
 	int error;
 	//Open the executable
 	struct File f;
@@ -139,9 +141,7 @@ static int execCommon(thread_t mainThread, const char *fileName) {
 		}
 		if (error) goto freeMemStruct;
 	}
-
-	//userspace regs are always at the top of the kernel stack
-	uthreadInit(mainThread, (void *)header.entryAddr, 0, 0, 0);
+	*startAddr = (void *)header.entryAddr;
 
 	return 0;
 	
@@ -187,10 +187,11 @@ int execInit(const char *fileName) {
 		goto freeProcess;
 	}
 
-	error = execCommon(mainThread, fileName);
+	void *start;
+	error = execCommon(mainThread, fileName, &start);
 	if (error) goto freeProcess;
 
-	printk("Loaded at: %x\n", ((uint64_t*)mainThread)[-5]);
+	uthreadInit(mainThread, start, 0, 0, 0);
 
 	readyQueuePush(mainThread);
 
@@ -206,19 +207,29 @@ int execInit(const char *fileName) {
 
 int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	int error;
+	int fnLen = strlen(fileName) + 1;
+	if (fnLen > PAGE_SIZE) return -EINVAL;
+	char namebuf[fnLen]; //vanilleVLA
 	error = validateUserString(fileName);
 	if (error) goto ret;
 
+	memcpy(namebuf, fileName, fnLen);
+
 	thread_t curThread = getCurrentThread();
 
-	mmUnmapUserspace();
+	mmUnmapUserspace(); //POINTERS TO USERSPACE ARE NO LONGER VALID AFTER THIS CALL
+	tlbReloadCR3();
 
 	kfree(curThread->process->pmem.entries);
 
-	error = execCommon(curThread, fileName);
+	void *start;
+	error = execCommon(curThread, namebuf, &start);
 	if (error) goto ret;
+	//while (1);
 
-	return 0;
+	initExecRetThread(curThread, start, 0, 0);
+	
+	return 42;
 
 	ret:
 	return error;

@@ -32,9 +32,7 @@ static void calcNewPriority(thread_t thread) {
 }
 
 static thread_t getThreadFromCPU(struct CpuInfo *cpu) {
-	//puts("pop");
 	thread_t ret;
-	//acquireSpinlock(&cpu->readyListLock);
 	for (int i = 0; i < NROF_QUEUE_PRIORITIES; i++) {
 		ret = threadQueuePop(&cpu->readyList[i]);
 		if (ret) {
@@ -43,7 +41,6 @@ static thread_t getThreadFromCPU(struct CpuInfo *cpu) {
 			break;
 		}
 	}
-	//releaseSpinlock(&cpu->readyListLock);
 	return ret;
 }
 

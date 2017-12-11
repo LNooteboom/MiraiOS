@@ -95,7 +95,6 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 }
 
 int forkRet(void) {
-	
 	thread_t curThread = getCurrentThread();
 	struct Process *proc = curThread->process;
 	struct MemoryEntry *entries = proc->pmem.entries;
@@ -157,6 +156,7 @@ int sysFork(void) {
 	newProc->mainThread = mainThread;
 
 	initForkRetThread(mainThread, curThread);
+	
 	readyQueuePush(mainThread);
 
 	return newProc->pid;

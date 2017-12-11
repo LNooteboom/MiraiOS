@@ -210,8 +210,8 @@ jiffyIrq:
 		mov rdi, rax
 		call loadThread
 
-		lea rdi, [rsp + 0xA0 - 0x30]
-		call tssSetRSP0
+		lea rdi, [rsp + 0xA0 - 0x30 + 0x10] ;total registers - opt registers + temp registers (rax&rdx)
+		call tssSetRSP0 ;tssSetRSP0(stackPointer + 0xA0 - 0x30 + 0x10)
 
 		pop rax
 
@@ -271,7 +271,6 @@ reschedIPI:
 	mov rax, 0xffffffff80000000
 	cmp [rsp + 0x48], rax
 	jae .noswapgs
-		;xchg bx, bx
 		swapgs
 		or [rsp + 0x68], dword 3
 	.noswapgs:
@@ -325,7 +324,7 @@ reschedIPI:
 		mov rdi, rax
 		call loadThread
 
-		lea rdi, [rsp + 0xA0 - 0x30]
+		lea rdi, [rsp + 0xA0 - 0x30 + 0x10]
 		call tssSetRSP0
 
 		pop rax

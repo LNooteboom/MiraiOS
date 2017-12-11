@@ -37,10 +37,12 @@ fi
 
 make -C init
 cp init/init $INITRDDIR
+cp init/test $INITRDDIR
 
 #create initrd
 cd $INITRDDIR
-echo "init" | cpio --create --format=newc > ../$BUILDDIR/initrd
+printf "init\ntest\n" | cpio --create --format=newc > ../$BUILDDIR/initrd
+#find . -type f -printf "%f\n" | cpio --create --format=newc > ../$BUILDDIR/initrd
 
 cd ..
 

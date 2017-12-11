@@ -69,10 +69,7 @@ void kmain(void) {
 	puts("[MAIN] Initialization complete\n");
 
 	int error = execInit("init");
-	printk("%d\n", error);
-	printk("ok\n");
 
-	//asm ("xchg bx, bx");
 	kthreadExit(NULL);
 }
 

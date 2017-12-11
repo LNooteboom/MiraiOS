@@ -86,6 +86,7 @@ static int parseInitrd(struct Inode *rootInode) {
 			curPosition &= ~3;
 			curPosition += 4;
 		}
+		//break;
 	}
 	
 	return 0;

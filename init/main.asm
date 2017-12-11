@@ -2,26 +2,37 @@ BITS 64
 
 global _start:function
 
+SECTION .text
+
 _start:
-mov rax, 17
+mov eax, 17
 syscall
 test rax, rax
 jnz .parent
+	
+	mov eax, 1
+	mov edi, 1
 	mov rsi, teststr2
-	mov edx, 15
-	jmp .end
-.parent:
-	mov rsi, teststr
-	mov edx, 14
-.end:
+	mov edx, 13
+	syscall
 
+	mov eax, 16
+	mov rdi, fileName
+	syscall
+.parent:
 mov eax, 1
 mov edi, 1
-;mov rsi, teststr
-;mov edx, 22
+mov rsi, teststr
+mov edx, 14
 syscall
+nop
 
 jmp $
+
+SECTION .rodata
+
+fileName:
+db 'test', 0
 
 teststr:
 db 'Parent hello!', 10, 0

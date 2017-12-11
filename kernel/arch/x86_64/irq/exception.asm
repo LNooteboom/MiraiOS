@@ -77,9 +77,8 @@ __excBase: ;error code in rax
 	mov rdi, excMessageBase
 	mov rsi, [excMsgList + r10 * 8]
 	mov rdx, rax
+	mov rcx, [rsp + 0x50]
 	call printk
-
-	xchg bx, bx
 
 	cmp [rsp + 0x48], dword 3
 	je .return
@@ -204,7 +203,7 @@ dummyInterrupt:
 
 SECTION .rodata
 
-excMessageBase:	db 'CPU exception: %s', 10, 'Error code: %d', 10, 0
+excMessageBase:	db 'CPU exception: %s', 10, 'Error code: %d', 10, 'At: %x', 10, 0
 nullStr: db 0
 
 ALIGN 8
