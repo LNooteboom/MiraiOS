@@ -121,7 +121,7 @@ void mmSetPageFlags(uintptr_t vaddr, pageFlags_t flags) {
 	}
 	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 1; i--) {
 		pte_t *entry = mmGetEntry(vaddr, i);
-		if ( !(*entry & PAGE_FLAG_PRESErue NT)) {
+		if ( !(*entry & PAGE_FLAG_PRESENT)) {
 			//Page entry higher does not exist
 			physPage_t page = allocCleanPhysPage();
 			freePhysPages--;
