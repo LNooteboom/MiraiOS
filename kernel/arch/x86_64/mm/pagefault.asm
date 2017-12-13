@@ -35,6 +35,7 @@ excPF:
 	cmp [rsp + 0x60], rax
 	jae .noswapgs
 		swapgs
+		or [rsp + 0x80], dword 3
 	.noswapgs:
 
     ;test if caused by not present page

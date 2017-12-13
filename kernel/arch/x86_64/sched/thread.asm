@@ -32,6 +32,8 @@ global uthreadInit:function
 
 global jiffyCounter:data
 
+global nextThread:function
+
 SECTION .text
 
 ;thread stack layout:
@@ -435,7 +437,7 @@ nextThread: ;r15 = old thread
 	mov r14, rax ;r14 = new thread
 
 	;Halt if no task is available
-	test r14, r14
+	test rax, rax
 	jnz .load
 		sti
 		hlt

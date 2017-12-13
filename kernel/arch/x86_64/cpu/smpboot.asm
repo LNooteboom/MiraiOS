@@ -22,6 +22,9 @@ extern perCpuTimer
 extern lapicEnableTimer
 
 extern syscallInit
+extern nextThread
+
+extern hexprintln64
 
 SECTION .text
 
@@ -106,45 +109,8 @@ smpbootStart:
 	;mov [cpuStartedUp], dword 1
 	mov [r15 + 0x20], dword 1
 
-	.loadThread:
-	call readyQueuePop
-	test rax, rax
-	jnz .threadLoaded
-		sti
-		hlt
-		cli
-		jmp .loadThread
-	.threadLoaded:
-	mov r15, rax ;15 now contains current thread
-	lea rdi, [rax + 0x14]
-	call acquireSpinlock
-	mov rdi, r15
-	mov [r15 + 0x10], dword 1 ;set state to RUNNING
-	call setCurrentThread
-
-	;get new rsp
-	mov rsp, [r15]
-	lea rdi, [r15 + 0x14]
-	call releaseSpinlock
-
-	;restore all registers
-	mov rax, [rsp + 0x70]
-	mov rcx, [rsp + 0x68]
-	mov rdx, [rsp + 0x60]
-	mov rdi, [rsp + 0x58]
-	mov rsi, [rsp + 0x50]
-	mov r8,  [rsp + 0x48]
-	mov r9,  [rsp + 0x40]
-	mov r10, [rsp + 0x38]
-	mov r11, [rsp + 0x30]
-	mov rbx, [rsp + 0x28]
-	mov rbp, [rsp + 0x20]
-	mov r12, [rsp + 0x18]
-	mov r13, [rsp + 0x10]
-	mov r14, [rsp + 0x08]
-	mov r15, [rsp]
-	add rsp, 0x78
-	iretq ;will likely set irq flag
+	xor r15, r15
+	jmp nextThread
 
 	.error:
 	cli

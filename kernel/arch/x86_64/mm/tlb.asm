@@ -4,6 +4,7 @@ global tlbInit:function
 global tlbInvalidateGlobal:function
 global tlbInvalidateLocal:function
 global tlbReloadCR3:function
+global tlbReloadCR3Local:function
 
 extern mapIdtEntry
 extern acquireSpinlock
@@ -67,6 +68,10 @@ tlbInvalidateGlobal: ;(void *base, uint64_t numPages) returns void
 	pop rbx
 	ret
 
+tlbReloadCR3Local:
+	mov rax, cr3
+	mov cr3, rax
+
 tlbReloadCR3:
 	mov rax, cr3
 	mov cr3, rax
@@ -117,6 +122,7 @@ tlbInvalIrq:
 	cmp [rsp + 0x48], rax
 	jae .noswapgs
 		swapgs
+		or [rsp + 0x68], dword 3
 	.noswapgs:
 
 	cmp [tlbDoReloadCR3], dword 0

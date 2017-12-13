@@ -113,7 +113,7 @@ int forkRet(void) {
 		}
 	}
 
-	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
+	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty0");
 	fsOpen(stdout, &proc->inlineFDs[1]);
 	return 0;
 }
@@ -124,11 +124,11 @@ int sysFork(void) {
 	int error;
 
 	struct Process *newProc = kmalloc(sizeof(struct Process));
-	memset(newProc, 0, sizeof(struct Process));
 	if (!newProc) {
 		error = -ENOMEM;
 		goto ret;
 	}
+	memset(newProc, 0, sizeof(struct Process));
 
 	newProc->pid = curPid++;
 

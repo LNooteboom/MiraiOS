@@ -138,9 +138,6 @@ syscallEntry64:
 	call r10
 
 sysret64:
-
-	mov rdi, [rsp + 0x38]
-	
 	;rax need not be restored
 	mov rcx, [rsp + 0x38]
 	mov rdx, [rsp + 0x30]
@@ -188,6 +185,7 @@ irqCommon:
 	cmp [rsp + 0x50], rax
 	jae .noswapgs
 		swapgs
+		or [rsp + 0x68], dword 3
 	.noswapgs:
 
 	mov rdi, [rsp + 0x48]

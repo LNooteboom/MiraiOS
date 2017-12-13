@@ -23,4 +23,9 @@ Reloads cr3 on all cpus
 */
 void tlbReloadCR3(void);
 
+/*
+Reload CR3 on this CPU
+*/
+void tlbReloadCR3Local(void);
+
 #endif

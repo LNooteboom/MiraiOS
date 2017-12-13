@@ -18,6 +18,9 @@
 #define SCROLLBACK_LINES 256
 #define NROF_VTTYS	8
 
+#define FGCOL		0xD00000
+#define BGCOL		0
+
 #define BPP	4
 
 struct FbColorInfo {
@@ -81,9 +84,9 @@ static void drawChar(char *vmem, unsigned int newline, char c) {
 	for (unsigned int charY = 0; charY < FONT_HEIGHT; charY++) {
 		unsigned char line = font8x16[charIndex++];
 		for (unsigned int charX = 0; charX < 8; charX++) {
-			uint32_t color = 0;
+			uint32_t color = BGCOL;
 			if (line & 1) {
-				color = 0xAAAAAA;
+				color = FGCOL;
 				//color = 0xAA0000;
 			}
 			write32(vmem, color);

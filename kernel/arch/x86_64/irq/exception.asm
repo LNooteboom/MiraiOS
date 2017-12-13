@@ -71,6 +71,7 @@ __excBase: ;error code in rax
 	test [rsp + 0x54], dword 0x80000000
 	jnz .noswapgs
 		swapgs
+		or [rsp + 0x68], dword 3
 	.noswapgs:
 
 	mov r10, [rsp + 0x48]

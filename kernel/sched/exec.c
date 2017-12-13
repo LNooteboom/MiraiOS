@@ -181,7 +181,7 @@ int execInit(const char *fileName) {
 	asm ("mov rax, cr3" : "=a"(cr3));
 	proc->addressSpace = cr3;
 
-	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
+	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty0");
 	error = fsOpen(stdout, &proc->inlineFDs[1]);
 	if (error) {
 		goto freeProcess;
@@ -214,11 +214,12 @@ int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	if (error) goto ret;
 
 	memcpy(namebuf, fileName, fnLen);
+	printk("exec\n");
 
 	thread_t curThread = getCurrentThread();
 
 	mmUnmapUserspace(); //POINTERS TO USERSPACE ARE NO LONGER VALID AFTER THIS CALL
-	tlbReloadCR3();
+	tlbReloadCR3Local();
 
 	kfree(curThread->process->pmem.entries);
 
@@ -228,8 +229,9 @@ int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	//while (1);
 
 	initExecRetThread(curThread, start, 0, 0);
+	printk("exec done\n");
 	
-	return 42;
+	return 0;
 
 	ret:
 	return error;

@@ -82,6 +82,7 @@ smpCallIrq:
 	cmp [rsp + 0x48], rax
 	jae .noswapgs
 		swapgs
+		or [rsp + 0x68], dword 3
 	.noswapgs:
 
 	mov rax, [smpCallFunc]
