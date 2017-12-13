@@ -94,6 +94,9 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 	return error;
 }
 
+/*
+Return from fork (child process)
+*/
 int forkRet(void) {
 	thread_t curThread = getCurrentThread();
 	struct Process *proc = curThread->process;
@@ -118,6 +121,10 @@ int forkRet(void) {
 	return 0;
 }
 
+/*
+Create a copy of the current process.
+Will return child PID to the parent, 0 to the child
+*/
 int sysFork(void) {
 	thread_t curThread = getCurrentThread();
 	struct Process *curProc = curThread->process;

@@ -28,8 +28,14 @@ Reserves a physical page in memory
 */
 void mmSetPageFlags(uintptr_t vaddr, pageFlags_t flags);
 
+/*
+Unmaps and deallocates all mapped userspace pages belonging to the current process
+*/
 void mmUnmapUserspace(void);
 
+/*
+Creates an empty address space for usermode, with only kernel pages mapped
+*/
 uintptr_t mmCreateAddressSpace(void);
 
 #endif

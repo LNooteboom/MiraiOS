@@ -17,6 +17,9 @@ struct IoApicInfo {
 extern unsigned int nrofIOApics;
 extern struct IoApicInfo *ioApicInfos;
 
+/*
+Initialize the IO-APIC
+*/
 void ioApicInit(void);
 
 #endif

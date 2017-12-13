@@ -12,6 +12,9 @@ struct MmapEntry {
 	uint32_t reserved;
 };
 
+/*
+Information structure passed by pre-kmain init functions
+*/
 struct BootInfo {
 	struct MmapEntry *mmap;
 	uint64_t mmapLen;

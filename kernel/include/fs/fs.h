@@ -132,8 +132,14 @@ Sets the current offset of a file stream
 */
 int fsSeek(struct File *file, int64_t offset, int whence);
 
+/*
+Device-file specific function
+*/
 int fsIoctl(struct File *file, unsigned long request, ...);
 
+/*
+Gets directory entries
+*/
 int fsGetDents(struct Inode *dir, struct GetDents *buf, unsigned int nrofEntries);
 
 #endif

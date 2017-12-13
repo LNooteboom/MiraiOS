@@ -21,7 +21,7 @@ static inline void memcpy(volatile void *dst, const void *src, size_t n) {
 
 /*
 Compares n bytes of data.
-Returns true if equal.
+Returns 0 if equal.
 */
 static inline bool memcmp(const void *a, const void *b, size_t n) {
 	for (uintptr_t i = 0; i < n; i++) {
@@ -32,6 +32,9 @@ static inline bool memcmp(const void *a, const void *b, size_t n) {
 	return 0;
 }
 
+/*
+Get the length of a string
+*/
 static inline size_t strlen(const char *str) {
 	size_t result = 0;
 	while (*str++) {

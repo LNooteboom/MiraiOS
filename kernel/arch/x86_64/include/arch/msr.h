@@ -1,11 +1,17 @@
 #ifndef INCLUDE_ARCH_MSR_H
 #define INCLUDE_ARCH_MSR_H
 
+/*
+WRMSR instruction wrapper
+*/
 static inline void wrmsr(uint32_t addr, uint64_t value) {
 	uint32_t high = value >> 32;
 	asm volatile ("wrmsr" : : "c"(addr), "a"(value), "d"(high));
 }
 
+/*
+RDMSR instruction wrapper
+*/
 static inline uint64_t rdmsr(uint32_t addr) {
 	uint32_t high;
 	uint32_t low;

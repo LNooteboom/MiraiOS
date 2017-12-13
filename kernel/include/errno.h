@@ -10,5 +10,6 @@
 #define ENOSYS		7
 #define EROFS		8
 #define EBADF		9
+#define EFAULT		10
 
 #endif

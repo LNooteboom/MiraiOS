@@ -56,6 +56,9 @@ struct CpuGDTR {
 	uint64_t base;
 } __attribute__((packed));
 
+/*
+Per-CPU info
+*/
 struct CpuInfo {
 	//asm accessible
 	struct CpuInfo *addr;	//00
@@ -83,19 +86,48 @@ extern unsigned int nrofCPUs;
 extern unsigned int nrofActiveCPUs;
 extern struct CpuInfo *cpuInfos;
 
+/*
+Internal per-cpu read functions
+*/
 uint64_t doPcpuRead64(uint64_t addr);
 uint32_t doPcpuRead32(uint64_t addr);
 void doPcpuWrite64(uint64_t addr, uint64_t value);
 void doPcpuWrite32(uint64_t addr, uint32_t value);
 
+/*
+Initialize the local APIC
+*/
 void lapicInit(void);
+
+/*
+Enable the local APIC timer
+*/
 void lapicEnableTimer(interrupt_t vec);
+
+/*
+Initialize GDT and TSS
+*/
 void tssGdtInit(struct CpuInfo *info);
+
+/*
+Start up application processors
+*/
 void lapicDoSMPBoot(void);
+
+/*
+Send interrupt to other processor
+*/
 void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type);
 
+/*
+Acknowledge an interrupt in the local APIC
+*/
 void ackIRQ(void);
 
+/*
+Set RSP0 field in TSS.
+This field will become the stack pointer when an interrupt occurs from userspace.
+*/
 void tssSetRSP0(void *rsp);
 
 #endif

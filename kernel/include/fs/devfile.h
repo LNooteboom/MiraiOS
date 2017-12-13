@@ -5,6 +5,9 @@
 #include <stdarg.h>
 #include <fs/fs.h>
 
+/*
+Device file functions
+*/
 struct DevFileOps {
 	ssize_t (*read)(struct File *file, void *buffer, size_t bufSize);
 	int (*write)(struct File *file, void *buffer, size_t bufSize);
@@ -12,6 +15,9 @@ struct DevFileOps {
 	int (*del)(struct Inode *inode);
 };
 
+/*
+Create a device file
+*/
 struct Inode *fsCreateCharDev(struct Inode *dir, const char *name, struct DevFileOps *ops, void *privateData);
 
 #endif

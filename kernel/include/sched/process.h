@@ -1,6 +1,10 @@
 #ifndef INCLUDE_SCHED_PROCESS_H
 #define INCLUDE_SCHED_PROCESS_H
 
+/*
+Userspace process information
+*/
+
 #include <sched/thread.h>
 #include <fs/fs.h>
 #include <sched/spinlock.h>

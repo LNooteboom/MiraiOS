@@ -25,6 +25,9 @@ enum threadState {
 	THREADSTATE_SLEEP
 };
 
+/*
+Per-thread storage, located at the top of a kernel stack
+*/
 struct ThreadInfo {
 	//asm accessible part
 	uintptr_t stackPointer;		//0x00 current stack pointer
@@ -97,7 +100,9 @@ Deallocates a thread from memory
 */
 void deallocThread(thread_t thread);
 
-
+/*
+Allocates an 8KB area in memory for thread stack and TLS
+*/
 struct ThreadInfo *allocKStack(void);
 
 #endif
