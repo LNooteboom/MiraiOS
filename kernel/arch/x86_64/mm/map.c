@@ -153,7 +153,7 @@ static void mmUnmapUserspaceHelper(uintptr_t base, int lv) {
 			*pte = 0;
 		} else if (!lv && *pte & PAGE_FLAG_PRESENT && *pte & PAGE_MASK) {
 			if (*pte & PAGE_FLAG_SHARED) {
-				printk("[MM] Shared pages are not implemented yet\n");
+				//printk("[MM] Shared pages are not implemented yet\n");
 			} else {
 				//dealloc mapped page
 				deallocPhysPage(*pte & PAGE_MASK);

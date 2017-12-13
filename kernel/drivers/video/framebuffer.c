@@ -18,7 +18,7 @@
 #define SCROLLBACK_LINES 256
 #define NROF_VTTYS	8
 
-#define FGCOL		0xD00000
+#define FGCOL		0xAAAAAA
 #define BGCOL		0
 
 #define BPP	4

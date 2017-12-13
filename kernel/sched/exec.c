@@ -169,7 +169,7 @@ int execInit(const char *fileName) {
 	struct Process *proc = kmalloc(sizeof(struct Process));
 	if (!proc) {
 		error = -ENOMEM;
-		goto ret;
+		goto deallocMainThread;
 	}
 	memset(proc, 0, sizeof(struct Process));
 	mainThread->process = proc;
@@ -181,7 +181,7 @@ int execInit(const char *fileName) {
 	asm ("mov rax, cr3" : "=a"(cr3));
 	proc->addressSpace = cr3;
 
-	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty0");
+	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
 	error = fsOpen(stdout, &proc->inlineFDs[1]);
 	if (error) {
 		goto freeProcess;
@@ -205,31 +205,50 @@ int execInit(const char *fileName) {
 	return error;
 }
 
-int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
+static int destroyProcessMem(struct Process *proc) {
+	//Destroy page mapping
+	mmUnmapUserspace(); //POINTERS TO USERSPACE ARE NO LONGER VALID AFTER THIS CALL
+	tlbReloadCR3Local();
+
+	//dealloc process pmem entries
+	for (unsigned int i = 0; i < proc->pmem.nrofEntries; i++) {
+		if (proc->pmem.entries[i].flags & MEM_FLAG_SHARED) {
+			acquireSpinlock(&proc->pmem.entries[i].shared->lock);
+			int refcount = proc->pmem.entries[i].shared->refCount--;
+			releaseSpinlock(&proc->pmem.entries[i].shared->lock);
+			if (!refcount) {
+				kfree(proc->pmem.entries[i].shared);
+			}
+			proc->pmem.entries[i].shared->refCount--;
+		}
+	}
+	kfree(proc->pmem.entries);
+
+	return 0;
+}
+
+int sysExec(const char *fileName, char *const argv[] __attribute__ ((unused)), char *const envp[] __attribute__ ((unused))) {
 	int error;
 	int fnLen = strlen(fileName) + 1;
 	if (fnLen > PAGE_SIZE) return -EINVAL;
-	char namebuf[fnLen]; //vanilleVLA
+	char namebuf[fnLen];
+
 	error = validateUserString(fileName);
 	if (error) goto ret;
 
 	memcpy(namebuf, fileName, fnLen);
-	printk("exec\n");
 
 	thread_t curThread = getCurrentThread();
 
-	mmUnmapUserspace(); //POINTERS TO USERSPACE ARE NO LONGER VALID AFTER THIS CALL
-	tlbReloadCR3Local();
+	destroyProcessMem(curThread->process);
 
 	kfree(curThread->process->pmem.entries);
 
 	void *start;
 	error = execCommon(curThread, namebuf, &start);
 	if (error) goto ret;
-	//while (1);
 
 	initExecRetThread(curThread, start, 0, 0);
-	printk("exec done\n");
 	
 	return 0;
 

@@ -24,6 +24,8 @@ struct SharedMemory {
 	unsigned long nrofPhysPages;
 	uintptr_t alignedVaddr;
 
+	spinlock_t lock;
+
 	physPage_t phys[1]; //extendable
 };
 

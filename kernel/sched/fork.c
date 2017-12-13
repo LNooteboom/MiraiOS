@@ -113,7 +113,7 @@ int forkRet(void) {
 		}
 	}
 
-	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty0");
+	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
 	fsOpen(stdout, &proc->inlineFDs[1]);
 	return 0;
 }

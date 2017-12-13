@@ -15,7 +15,6 @@ extern void migrateMainStack(thread_t mainThread);
 extern void kthreadInit(thread_t thread, void *(*start)(void *), void *arg);
 
 void deallocThread(thread_t thread) {
-	//hexprintln64(thread);
 	uintptr_t stackBottom = (uintptr_t)(thread) - (THREAD_STACK_SIZE - sizeof(struct ThreadInfo));
 	deallocPages((void*)stackBottom, THREAD_STACK_SIZE);
 }

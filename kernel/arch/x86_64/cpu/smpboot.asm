@@ -24,8 +24,6 @@ extern lapicEnableTimer
 extern syscallInit
 extern nextThread
 
-extern hexprintln64
-
 SECTION .text
 
 smpbootStart:
