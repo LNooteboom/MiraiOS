@@ -94,6 +94,49 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 	return error;
 }
 
+static int copyFD(struct ProcessFile *pf, struct ProcessFile *newPF) {
+	if ( !(pf->flags & PROCFILE_FLAG_USED)) {
+		return 0;
+	}
+	if ( !(pf->flags & PROCFILE_FLAG_SHARED)) {
+		//Make it shared
+		//TODO add RW lock to prevent race condition with read or write syscall
+		struct File *shared = kmalloc(sizeof(struct File));
+		if (!shared) return -ENOMEM;
+		memset(shared, 0, sizeof(struct File));
+		shared->inode = pf->file.inode;
+		shared->refCount = 1;
+		pf->flags |= PROCFILE_FLAG_SHARED;
+		pf->sharedFile = shared;
+	}
+	newPF->flags = pf->flags;
+	newPF->sharedFile = pf->sharedFile;
+	acquireSpinlock(&pf->sharedFile->lock);
+	pf->sharedFile->refCount++;
+	releaseSpinlock(&pf->sharedFile->lock);
+	return 0;
+}
+
+static int copyFiles(struct Process *proc, struct Process *newProc) {
+	int error;
+	for (int i = 0; i < NROF_INLINE_FDS; i++) {
+		error = copyFD(&proc->inlineFDs[i], &newProc->inlineFDs[i]);
+		if (error) return error;
+	}
+	if (!proc->nrofFDs) {
+		return 0;
+	}
+	newProc->fds = kmalloc(proc->nrofFDs * sizeof(struct ProcessFile));
+	if (!newProc->fds) return -ENOMEM;
+	newProc->nrofFDs = proc->nrofFDs;
+	newProc->nrofUsedFDs = proc->nrofUsedFDs;
+	for (int i = 0; i < newProc->nrofFDs; i++) {
+		error = copyFD(&proc->fds[i], &newProc->fds[i]);
+		if (error) return error;
+	}
+	return 0;
+}
+
 /*
 Return from fork (child process)
 */
@@ -116,8 +159,8 @@ int forkRet(void) {
 		}
 	}
 
-	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
-	fsOpen(stdout, &proc->inlineFDs[1]);
+	//struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
+	//fsOpen(stdout, &proc->inlineFDs[1]);
 	return 0;
 }
 
@@ -138,6 +181,10 @@ int sysFork(void) {
 	memset(newProc, 0, sizeof(struct Process));
 
 	newProc->pid = curPid++;
+	newProc->ppid = curProc->pid;
+
+	error = copyFiles(curProc, newProc);
+	if (error) goto freeProc; //TODO clean fds on error
 
 	error = copyMem(curProc, newProc);
 	if (error) goto freeProc;

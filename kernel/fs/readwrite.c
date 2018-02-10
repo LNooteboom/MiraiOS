@@ -25,15 +25,19 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 	struct Inode *inode = file->inode;
 	acquireSpinlock(&inode->lock);
 
+	ssize_t bytesCopied = 0;
+	if ((inode->type & ITYPE_MASK) == ITYPE_DIR) {
+		bytesCopied = -EISDIR;
+		goto ret;
+	}
+
 	if ((inode->type & ITYPE_MASK) == ITYPE_CHAR) {
-		ssize_t ret = -ENOSYS;
+		bytesCopied = -ENOSYS;
 		struct DevFileOps *ops = inode->ops;
 		if (ops && ops->read) {
-			ret = ops->read(file, buffer, bufSize);
+			bytesCopied = ops->read(file, buffer, bufSize);
 		}
-		releaseSpinlock(&inode->lock);
-		releaseSpinlock(&file->lock);
-		return ret;
+		goto ret;
 	}
 
 	size_t bytesLeft = inode->fileSize - file->offset;
@@ -45,14 +49,12 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 		memcpy(buffer, inode->cachedData + 1 + file->offset, bytesLeft);
 		file->offset += bytesLeft;
 
-		releaseSpinlock(&inode->lock);
-		releaseSpinlock(&file->lock);
-		return bytesLeft;
+		bytesCopied = bytesLeft;
+		goto ret;
 	}
 
 	struct CachedFile *cf = inode->cachedData;
 
-	size_t bytesCopied = 0;
 	while (bytesLeft) {
 		struct CfEntry *entry = NULL;
 		uint64_t offset;
@@ -64,12 +66,10 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 			}
 		}
 		if (!entry) {
-			releaseSpinlock(&inode->lock);
-			releaseSpinlock(&file->lock);
-
 			//load entry from fs, reacquire spinlocks and reload cf
 			printk("Error reading file: unimplemented");
-			return bytesCopied;
+			bytesCopied = -ENOSYS;
+			goto ret;
 			//continue;
 		}
 		entry->lastAccessed = jiffyCounter;
@@ -83,6 +83,8 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 		bytesLeft -= nrofBytes;
 		bytesCopied += nrofBytes;
 	}
+
+	ret:
 	releaseSpinlock(&inode->lock);
 	releaseSpinlock(&file->lock);
 	return bytesCopied;
@@ -93,21 +95,24 @@ int fsWrite(struct File *file, void *buffer, size_t bufSize) {
 	struct Inode *inode = file->inode;
 	acquireSpinlock(&inode->lock);
 
+	int error = 0;
+	if ((inode->type & ITYPE_MASK) == ITYPE_DIR) {
+		error = -EISDIR;
+		goto ret;
+	}
+
 	if ((inode->type & ITYPE_MASK) == ITYPE_CHAR) {
-		int ret = -ENOSYS;
+		error = -ENOSYS;
 		struct DevFileOps *ops = inode->ops;
 		if (ops && ops->write) {
-			ret = ops->write(file, buffer, bufSize);
+			error = ops->write(file, buffer, bufSize);
 		}
-		releaseSpinlock(&inode->lock);
-		releaseSpinlock(&file->lock);
-		return ret;
+		goto ret;
 	}
 
 	if (inode->ramfs & RAMFS_INITRD) {
-		releaseSpinlock(&inode->lock);
-		releaseSpinlock(&file->lock);
-		return -EROFS;
+		error = -EROFS;
+		goto ret;
 	}
 
 	struct CachedFile *cf = inode->cachedData;
@@ -126,9 +131,8 @@ int fsWrite(struct File *file, void *buffer, size_t bufSize) {
 				newCFSize = inode->cachedDataSize + (sizeof(struct CfEntry) * nrofPages);
 				struct CachedFile *newCF = krealloc(cf, newCFSize);
 				if (!newCF) {
-					releaseSpinlock(&inode->lock);
-					releaseSpinlock(&file->lock);
-					return -ENOMEM;
+					error = -ENOMEM;
+					goto ret;
 				}
 				cf = newCF;
 			} else {
@@ -136,9 +140,8 @@ int fsWrite(struct File *file, void *buffer, size_t bufSize) {
 				newCFSize = sizeof(struct CachedFile) + (nrofPages - 1) * sizeof(struct CfEntry);
 				cf = kmalloc(newCFSize);
 				if (!cf) {
-					releaseSpinlock(&inode->lock);
-					releaseSpinlock(&file->lock);
-					return -ENOMEM;
+					error = -ENOMEM;
+					goto ret;
 				}
 				cf->nrofEntries = 0;
 			}
@@ -149,9 +152,8 @@ int fsWrite(struct File *file, void *buffer, size_t bufSize) {
 				//alloc page
 				void *page = allocKPages(PAGE_SIZE, PAGE_FLAG_WRITE);
 				if (!page) {
-					releaseSpinlock(&inode->lock);
-					releaseSpinlock(&file->lock);
-					return -ENOMEM;
+					error = -ENOMEM;
+					goto ret;
 				}
 
 				//map it in the entry
@@ -185,12 +187,10 @@ int fsWrite(struct File *file, void *buffer, size_t bufSize) {
 			}
 		}
 		if (!entry) {
-			releaseSpinlock(&inode->lock);
-			releaseSpinlock(&file->lock);
-
 			//load entry from fs, reacquire spinlocks and reload cf
-			printk("Error writing file: unimplemented");
-			return -ENOSYS;
+			printk("Error reading file: unimplemented");
+			error = -ENOSYS;
+			goto ret;
 			//continue;
 		}
 		entry->lastAccessed = jiffyCounter;
@@ -208,9 +208,10 @@ int fsWrite(struct File *file, void *buffer, size_t bufSize) {
 		}
 	}
 
+	ret:
 	releaseSpinlock(&inode->lock);
 	releaseSpinlock(&file->lock);
-	return 0;
+	return error;
 }
 
 int fsSeek(struct File *file, int64_t offset, int whence) {
@@ -251,23 +252,4 @@ int fsSeek(struct File *file, int64_t offset, int whence) {
 	releaseSpinlock(&file->inode->lock);
 	releaseSpinlock(&file->lock);
 	return error;
-}
-
-int fsIoctl(struct File *file, unsigned long request, ...) {
-	va_list args;
-	va_start(args, request);
-	acquireSpinlock(&file->lock);
-	acquireSpinlock(&file->inode->lock);
-
-	struct DevFileOps *ops = file->inode->ops;
-	int ret = -ENOSYS;
-	if ((file->inode->type & ITYPE_MASK) == ITYPE_CHAR && ops && ops->ioctl) {
-		ret = ops->ioctl(file, request, args);
-	}
-
-	releaseSpinlock(&file->inode->lock);
-	releaseSpinlock(&file->lock);
-	va_end(args);
-
-	return ret;
 }

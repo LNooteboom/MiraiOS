@@ -183,10 +183,10 @@ static int ttyWrite(struct File *file, void *buffer, size_t bufSize) {
 }
 
 void ttyScroll(int amount) {
-	acquireSpinlock(&kernelTty->earlyLock);
-	int y = kernelTty->scrollbackY + amount;
+	acquireSpinlock(&currentTty->earlyLock);
+	int y = currentTty->scrollbackY + amount;
 	if (y < 0) {
-		if (kernelTty->full) {
+		if (currentTty->full) {
 			y = SCROLLBACK_LINES + y;
 		} else {
 			y = 0;
@@ -194,12 +194,12 @@ void ttyScroll(int amount) {
 	} else if (y >= SCROLLBACK_LINES) {
 		y = y % SCROLLBACK_LINES;
 	}
-	if (y == (kernelTty->cursorY - kernelTty->charHeight + 1) % SCROLLBACK_LINES) {
-		y = (kernelTty->cursorY - kernelTty->charHeight) % SCROLLBACK_LINES;
+	if (y == (currentTty->cursorY - currentTty->charHeight + 1) % SCROLLBACK_LINES) {
+		y = (currentTty->cursorY - currentTty->charHeight) % SCROLLBACK_LINES;
 	}
-	kernelTty->scrollbackY = y;
-	semSignal(&kernelTty->sem);
-	releaseSpinlock(&kernelTty->earlyLock);
+	currentTty->scrollbackY = y;
+	semSignal(&currentTty->sem);
+	releaseSpinlock(&currentTty->earlyLock);
 }
 
 void ttySwitch(unsigned int ttynr) {

@@ -24,9 +24,9 @@ int dirCacheAdd(struct DirEntry **newEntry, struct Inode *dir) {
 	dir->cachedData = new;
 	dir->cacheDirty = true;
 	
-	struct DirEntry *newEntry2 = &new->entries[new->nrofEntries];
+	struct DirEntry *newEntry2 = &new->entries[dir->fileSize];
 	memcpy(newEntry2, *newEntry, sizeof(struct DirEntry));
-	newEntry2->index = new->nrofEntries++;
+	newEntry2->index = dir->fileSize++;
 	newEntry2->parent = dir;
 	*newEntry = newEntry2;
 
@@ -37,9 +37,9 @@ int dirCacheRemove(struct DirEntry *entry) {
 	struct Inode *dir = entry->parent;
 	struct CachedDir *cd = dir->cachedData;
 
-	memcpy(entry, entry + 1, (cd->nrofEntries - entry->index - 1) * sizeof(struct DirEntry)); //copy backwards so memcpy is safe
+	memcpy(entry, entry + 1, (dir->fileSize - entry->index - 1) * sizeof(struct DirEntry)); //copy backwards so memcpy is safe
 
-	cd->nrofEntries--;
+	dir->fileSize--;
 	dir->cachedDataSize -= sizeof(struct DirEntry);
 	dir->cachedData = krealloc(cd, dir->cachedDataSize);
 	dir->cacheDirty = true;
@@ -54,7 +54,7 @@ struct DirEntry *dirCacheLookup(struct Inode *dir, const char *name) {
 	struct CachedDir *cd = dir->cachedData;
 	struct DirEntry *entry = NULL;
 	size_t nameLen = strlen(name);
-	for (unsigned int i = 0; i < cd->nrofEntries; i++) {
+	for (unsigned int i = 0; i < dir->fileSize; i++) {
 		if (cd->entries[i].nameLen != nameLen) {
 			continue;
 		}
@@ -77,7 +77,7 @@ struct DirEntry *dirCacheLookup(struct Inode *dir, const char *name) {
 
 int dirCacheDelete(struct Inode *dir) {
 	struct CachedDir *cd = dir->cachedData;
-	for (unsigned int i = 0; i < cd->nrofEntries; i++) {
+	for (unsigned int i = 0; i < dir->fileSize; i++) {
 		if (cd->entries[i].nameLen > 31) {
 			kfree(cd->entries[i].name);
 		}
@@ -86,23 +86,23 @@ int dirCacheDelete(struct Inode *dir) {
 	return 0;
 }
 
-int dirCacheList(struct Inode *dir, struct GetDents *buf, unsigned int nrofEntries) {
+int dirCacheGet(struct Inode *dir, struct GetDent *buf, unsigned int index) {
 	struct CachedDir *cd = dir->cachedData;
-	if (nrofEntries > cd->nrofEntries) {
-		nrofEntries = cd->nrofEntries;
+	if (index >= dir->fileSize) {
+		return 0;
 	}
-	for (unsigned int i = 0; i < nrofEntries; i++) {
-		struct DirEntry *curEntry = &cd->entries[i];
-		buf[i].inode = curEntry->inode;
-		if (curEntry->nameLen > 31) {
-			memcpy(&buf[i].name, curEntry->name, curEntry->nameLen);
-		} else {
-			memcpy(&buf[i].name, curEntry->inlineName, curEntry->nameLen);
-		}
-		buf[i].name[curEntry->nameLen] = 0;
-	}
+	struct DirEntry *curEntry = &cd->entries[index];
+	buf[index].inodeID = curEntry->inode->inodeID;
+	buf[index].type = curEntry->inode->type;
 
-	return nrofEntries;
+	if (curEntry->nameLen > 31) {
+		memcpy(&buf->name, curEntry->name, curEntry->nameLen);
+	} else {
+		memcpy(&buf->name, curEntry->inlineName, curEntry->nameLen);
+	}
+	buf[index].name[curEntry->nameLen] = 0;
+
+	return curEntry->nameLen;
 }
 
 int dirCacheInit(struct Inode *dir, struct Inode *parentDir) {
@@ -114,7 +114,7 @@ int dirCacheInit(struct Inode *dir, struct Inode *parentDir) {
 	dir->cachedDataSize = sizeof(struct CachedDir);
 
 	//"." entry, points to same dir
-	cd->nrofEntries = 2;
+	dir->fileSize = 2;
 	cd->entries[0].inode = dir;
 	cd->entries[0].parent = dir;
 	cd->entries[0].index = 0;

@@ -1,18 +1,17 @@
 #include <fs/fs.h>
 
+#include <fs/devfile.h>
 #include <mm/paging.h>
 #include <errno.h>
 #include <print.h>
 #include <mm/memset.h>
+#include <mm/heap.h>
 #include <sched/process.h>
-#include <syscall.h>
-#include <modules.h>
+
 
 struct RbNode *activeInodes;
 
 struct Inode *rootDir;
-
-char testString[] = "Test string!";
 
 int mountRoot(struct Inode *rootInode) {
 	rootDir = rootInode;
@@ -35,23 +34,27 @@ static struct DirEntry *getDirEntryFromPath(struct Inode *cwd, const char *path,
 	int curNameEnd = -1; //points to next slash
 	struct Inode *curDir = (cwd)? cwd : rootDir;
 
+	if (path[0] == '/') {
+		curDir = rootDir;
+		curNameEnd = 0;
+	}
+
 	while (true) {
-		int slash = findSlash(path, pathLen, curNameEnd + 1);
+		curNameStart = curNameEnd + 1;
+		int slash = findSlash(path, pathLen, curNameStart);
 		if (slash < 0 || slash == (int)pathLen - 1) {
+			curNameEnd = (slash < 0)? (int)pathLen : slash;
+			memcpy(name, &path[curNameStart], curNameEnd - curNameStart);
+			name[curNameEnd - curNameStart] = 0;
 			if (fileNameIndex) {
-				*fileNameIndex = curNameEnd + 1;
+				*fileNameIndex = curNameStart;
 				return (struct DirEntry *)curDir;
 			} else {
 				acquireSpinlock(&curDir->lock);
-				struct DirEntry *file = dirCacheLookup(curDir, &path[curNameEnd + 1]);
+				struct DirEntry *file = dirCacheLookup(curDir, name);
 				return file; //SPINLOCK MUST BE RELEASED BY THE CALLER
 			}
-		} else if (slash == 0) {
-			curDir = rootDir; //path starts with a slash, use rootdir
-			curNameEnd = 0;
-			continue;
 		}
-		curNameStart = curNameEnd + 1;
 		curNameEnd = slash;
 
 		int len = curNameEnd - curNameStart;
@@ -74,6 +77,8 @@ static struct DirEntry *getDirEntryFromPath(struct Inode *cwd, const char *path,
 }
 
 struct Inode *getInodeFromPath(struct Inode *cwd, const char *path) {
+	if (!path[0]) return NULL;
+	if (path[0] == '/' && !path[1]) return rootDir;
 	struct DirEntry *entry = getDirEntryFromPath(cwd, path, NULL);
 	if (!entry) {
 		return NULL;
@@ -84,41 +89,37 @@ struct Inode *getInodeFromPath(struct Inode *cwd, const char *path) {
 }
 
 struct Inode *getBaseDirFromPath(struct Inode *cwd, int *fileNameIndex, const char *path) {
+	if (!path[0]) return NULL;
+	if (path[0] == '/' && !path[1]) return rootDir;
 	return (struct Inode *)getDirEntryFromPath(cwd, path, fileNameIndex);
 }
 
-int fsGetDents(struct Inode *dir, struct GetDents *buf, unsigned int nrofEntries) {
+int fsGetDent(struct Inode *dir, struct GetDent *buf, unsigned int index) {
 	acquireSpinlock(&dir->lock);
 
-	int ret = dirCacheList(dir, buf, nrofEntries);
+	int ret;
+	if (dir->cachedData) {
+		ret = dirCacheGet(dir, buf, index);
+	} else {
+		//load from FS
+		ret = -ENOSYS;
+	}
 
 	releaseSpinlock(&dir->lock);
 	return ret;
 }
 
-int sysWrite(unsigned int fd, void *buffer, size_t size) {
-	int error = validateUserPointer(buffer, size);
-	if (error) {
-		return error;
-	}
-
+int fsCloseOnExec(void) {
 	struct Process *proc = getCurrentThread()->process;
-	struct File *f;
-	if (fd < NROF_INLINE_FDS) {
-		f = &proc->inlineFDs[fd];
-	} else {
-		//todo
-		return -ENOSYS;
+	for (int i = 0; i < NROF_INLINE_FDS; i++) {
+		if (proc->inlineFDs[i].flags & PROCFILE_FLAG_USED && proc->inlineFDs[i].flags & PROCFILE_FLAG_CLOEXEC) {
+			sysClose(i);
+		}
 	}
-	if (!f->inode) {
-		return -EBADF;
+	for (int i = 0; i < proc->nrofFDs; i++) {
+		if (proc->fds[i].flags & PROCFILE_FLAG_USED && proc->fds[i].flags & PROCFILE_FLAG_CLOEXEC) {
+			sysClose(i);
+		}
 	}
-	error = fsWrite(f, buffer, size);
-	return error;
-}
-
-int registerFSSyscalls(void) {
-	registerSyscall(1, sysWrite);
 	return 0;
 }
-MODULE_INIT(registerFSSyscalls);

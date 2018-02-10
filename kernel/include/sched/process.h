@@ -18,6 +18,13 @@ Userspace process information
 #define MEM_FLAG_EXEC	(1 << 1)
 #define MEM_FLAG_SHARED	(1 << 2)
 
+#define PROCFILE_FLAG_USED		SYSOPEN_FLAG_CREATE
+#define PROCFILE_FLAG_READ		SYSOPEN_FLAG_READ
+#define PROCFILE_FLAG_WRITE		SYSOPEN_FLAG_WRITE
+#define PROCFILE_FLAG_CLOEXEC	SYSOPEN_FLAG_CLOEXEC
+#define PROCFILE_FLAG_APPEND	SYSOPEN_FLAG_APPEND
+#define PROCFILE_FLAG_SHARED	(1 << NROF_SYSOPEN_FLAGS)
+
 struct ProcessMemory;
 
 struct SharedMemory {
@@ -45,8 +52,17 @@ struct ProcessMemory {
 	struct MemoryEntry *entries;
 };
 
+struct ProcessFile {
+	unsigned int flags;
+	union {
+		struct File file;
+		struct File *sharedFile;
+	};
+};
+
 struct Process {
 	uint64_t pid;
+	uint64_t ppid;
 	physPage_t addressSpace;
 	union {
 		char inlineName[32];
@@ -56,18 +72,23 @@ struct Process {
 
 	struct ProcessMemory pmem;
 
-	char *cwd;
+	struct Inode *cwd;
 
 	unsigned long id;
 	void *rootPT;
 
 	spinlock_t lock;
+	int nrofReaders;
+	spinlock_t readLock;
+
 	int exitValue;
 
 	thread_t mainThread;
 
-	struct File inlineFDs[NROF_INLINE_FDS];
-	struct File *fds;
+	struct ProcessFile inlineFDs[NROF_INLINE_FDS];
+	struct ProcessFile *fds;
+	int nrofFDs; //excluding inlined FDs
+	int nrofUsedFDs; //ditto
 };
 
 #endif

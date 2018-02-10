@@ -174,18 +174,18 @@ int execInit(const char *fileName) {
 	memset(proc, 0, sizeof(struct Process));
 	mainThread->process = proc;
 	proc->pid = 1;
-	proc->cwd = "/";
+	//proc->cwd = "/";
 
-	//TODO make this arch independant
+	//TODO make this arch independent
 	uint64_t cr3;
 	asm ("mov rax, cr3" : "=a"(cr3));
 	proc->addressSpace = cr3;
 
-	struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
+	/*struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
 	error = fsOpen(stdout, &proc->inlineFDs[1]);
 	if (error) {
 		goto freeProcess;
-	}
+	}*/
 
 	void *start;
 	error = execCommon(mainThread, fileName, &start);
@@ -238,10 +238,11 @@ int sysExec(const char *fileName, char *const argv[] __attribute__ ((unused)), c
 
 	memcpy(namebuf, fileName, fnLen);
 
+	error = fsCloseOnExec();
+	if (error) goto ret;
+
 	thread_t curThread = getCurrentThread();
-
 	destroyProcessMem(curThread->process);
-
 	kfree(curThread->process->pmem.entries);
 
 	void *start;

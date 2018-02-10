@@ -17,6 +17,13 @@
 #define SEEK_CUR	1
 #define SEEK_END	2
 
+#define SYSOPEN_FLAG_CREATE		(1 << 0)
+#define SYSOPEN_FLAG_READ		(1 << 1)
+#define SYSOPEN_FLAG_WRITE		(1 << 2)
+#define SYSOPEN_FLAG_CLOEXEC	(1 << 3)
+#define SYSOPEN_FLAG_APPEND		(1 << 4)
+#define NROF_SYSOPEN_FLAGS		5
+
 #define RAMFS_PRESENT	1 //always set if inode belongs to ramfs
 #define RAMFS_INITRD	2 //set if file comes from initrd
 #define RAMFS_DEVFILE	3
@@ -29,13 +36,9 @@ struct DevFileOps;
 
 struct File {
 	spinlock_t lock;
+	unsigned int refCount;
 	struct Inode *inode;
 	uint64_t offset;
-};
-
-struct UserDentry {
-	struct Inode *inode;
-	char name[256];
 };
 
 struct SuperBlock {
@@ -63,7 +66,7 @@ struct Inode {
 	
 	unsigned int ramfs;
 
-	uint64_t fileSize; //unused for dirs
+	uint64_t fileSize; //can also be number of dents
 
 	struct SuperBlock *superBlock;
 
@@ -101,11 +104,14 @@ Opens a file
 int fsOpen(struct Inode *inode, struct File *output);
 
 /*
+Closes a file
+*/
+void fsClose(struct File *file);
+
+/*
 Creates a file or directory
 */
 int fsCreate(struct File *output, struct Inode *dir, const char *name, uint32_t type);
-
-int fsGetDirEntry(struct Inode *dir, unsigned int index, struct UserDentry *dentry);
 
 /*
 Creates a directory entry for a specified inode
@@ -133,13 +139,21 @@ Sets the current offset of a file stream
 int fsSeek(struct File *file, int64_t offset, int whence);
 
 /*
-Device-file specific function
-*/
-int fsIoctl(struct File *file, unsigned long request, ...);
-
-/*
 Gets directory entries
 */
-int fsGetDents(struct Inode *dir, struct GetDents *buf, unsigned int nrofEntries);
+int fsGetDent(struct Inode *dir, struct GetDent *buf, unsigned int index);
+
+/*
+Closes all file descriptors with the PROCFILE_CLOEXEC flag set
+*/
+int fsCloseOnExec(void);
+
+//System calls
+
+int sysWrite(int fd, void *buffer, size_t size);
+int sysRead(int fd, void *buffer, size_t size);
+int sysIoctl(int fd, unsigned long request, ...);
+int sysOpen(const char *fileName, unsigned int flags);
+int sysClose(int fd);
 
 #endif

@@ -83,12 +83,12 @@ $(KERNEL): $(obj-y) $(tools) $(LDSCRIPT) config
 
 %.o: %.c
 %.o: %.c $(DEPDIR)/%.d
-	@echo "(CC) $@"
+	@echo "(CC)	$@"
 	@${CC} ${CFLAG} -o $@ $<
 	@mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
 
 %.o: %.asm
-	@echo "(NASM) $@"
+	@echo "(NASM)	$@"
 	@${NASM} ${NASMFLAG} -o $@ $<
 
 %.d: ;

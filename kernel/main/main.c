@@ -68,7 +68,7 @@ void kmain(void) {
 
 	puts("[MAIN] Initialization complete\n");
 
-	int error = execInit("init");
+	execInit("/init");
 
 	kthreadExit(NULL);
 }
