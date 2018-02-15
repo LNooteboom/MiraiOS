@@ -227,9 +227,3 @@ int sysExec(const char *fileName, char *const argv[] __attribute__ ((unused)), c
 	ret:
 	return error;
 }
-
-int initExecSyscall(void) {
-	registerSyscall(16, sysExec);
-	return 0;
-}
-MODULE_INIT(initExecSyscall);

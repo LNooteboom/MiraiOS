@@ -213,9 +213,3 @@ int sysFork(void) {
 	ret:
 	return error;
 }
-
-int registerForkSyscall(void) {
-	registerSyscall(17, sysFork);
-	return 0;
-}
-MODULE_INIT(registerForkSyscall);

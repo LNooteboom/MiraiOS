@@ -53,12 +53,6 @@ int sysArchPrctl(int which, void *addr) {
 	return error;
 }
 
-int registerArchPrctl(void) {
-	registerSyscall(32, sysArchPrctl);
-	return 0;
-}
-MODULE_INIT(registerArchPrctl);
-
 void loadThread(thread_t new) {
 	if (new->process) {
 		//userspace thread

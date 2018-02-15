@@ -8,10 +8,10 @@ _start:
 mov eax, 3
 mov rdi, ttyName
 mov esi, 2
-syscall ;open tty
+syscall ;sysOpen
 
-mov eax, 17
-syscall
+mov eax, 7
+syscall ;sysFork
 test rax, rax
 jnz .parent
 	
@@ -19,24 +19,24 @@ jnz .parent
 	mov edi, 0
 	mov rsi, teststr2
 	mov edx, 13
-	syscall
+	syscall ;sysWrite
 
-	mov eax, 16
+	mov eax, 6
 	mov rdi, fileName
-	syscall
+	syscall ;sysExec
 .parent:
 
-mov eax, 19
+mov eax, 9
 mov edi, 0
 mov esi, 0
 mov edx, 0
-syscall
+syscall ;sysWaitPid
 
 mov eax, 1
 mov edi, 0
 mov rsi, teststr
 mov edx, 7 ;14
-syscall
+syscall ;sysWrite
 jmp $
 
 SECTION .rodata

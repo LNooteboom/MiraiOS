@@ -3,9 +3,11 @@
 
 global initIrqStubs:function
 global syscallInit:function
-global registerSyscall:function
+;global registerSyscall:function
 global initExecRetThread:function
 global initForkRetThread:function
+
+extern syscallTable
 
 extern mapIdtEntry
 
@@ -212,7 +214,7 @@ irqCommon:
 	add rsp, 0x50
 	iretq
 
-SECTION .bss
+;SECTION .bss
 
-syscallTable:
-resq SYSCALL_MAX
+;syscallTable:
+;resq SYSCALL_MAX

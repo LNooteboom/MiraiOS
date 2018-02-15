@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <errno.h>
+#include <stdbool.h>
 
 /*
 #define DEFINE_SYSCALL(func) \

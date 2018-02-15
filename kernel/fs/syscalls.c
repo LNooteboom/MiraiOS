@@ -191,14 +191,3 @@ int sysGetDent(int fd, struct GetDent *buf) {
 	releaseSpinlock(&f->lock);
 	return ret;
 }
-
-int registerFSSyscalls(void) {
-	registerSyscall(0, sysRead);
-	registerSyscall(1, sysWrite);
-	registerSyscall(2, (void *)sysIoctl);
-	registerSyscall(3, sysOpen);
-	registerSyscall(4, sysClose);
-	registerSyscall(5, sysGetDent);
-	return 0;
-}
-MODULE_INIT(registerFSSyscalls);

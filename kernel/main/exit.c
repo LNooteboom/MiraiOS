@@ -158,12 +158,3 @@ pid_t sysWaitPid(pid_t filter, int *waitStatus, int options) {
 
 	return curThread->waitPid;
 }
-
-extern int sysSleep(void);
-int registerExitSyscall(void) {
-	registerSyscall(18, (void *)sysExit);
-	registerSyscall(19, (void *)sysWaitPid);
-	registerSyscall(20, sysSleep);
-	return 0;
-}
-MODULE_INIT(registerExitSyscall);
