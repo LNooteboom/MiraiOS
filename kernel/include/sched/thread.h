@@ -15,6 +15,8 @@
 
 #define THREAD_STACK_SIZE	0x2000
 
+typedef int64_t pid_t;
+
 struct Process;
 
 enum threadState {
@@ -22,7 +24,8 @@ enum threadState {
 	THREADSTATE_RUNNING,
 	THREADSTATE_SCHEDWAIT,
 	THREADSTATE_LOCKWAIT,
-	THREADSTATE_SLEEP
+	THREADSTATE_SLEEP,
+	THREADSTATE_PIDWAIT
 };
 
 /*
@@ -43,6 +46,8 @@ struct ThreadInfo {
 
 	struct ThreadInfo *nextThread;
 	struct ThreadInfo *prevThread;
+
+	pid_t waitPid;
 
 	int priority;//48
 	bool fixedPriority;
@@ -91,7 +96,7 @@ Exit the current thread, freeing any joined threads
 void kthreadExit(void *ret);
 
 /*
-Puts the current thread to sleep
+Puts the current thread to sleep, spinlock on current thread must be held
 */
 void kthreadStop(void);
 

@@ -60,9 +60,16 @@ struct ProcessFile {
 	};
 };
 
+enum ProcessState {
+	PROCSTATE_RUNNING = 0,
+	PROCSTATE_WAIT, //Waiting for sleep or waitpid
+	PROCSTATE_FINISHED, //zombie process
+	PROCSTATE_REMOVE //zombie process after waitpid has been called
+};
+
 struct Process {
-	uint64_t pid;
-	uint64_t ppid;
+	pid_t pid;
+	pid_t ppid;
 	physPage_t addressSpace;
 	union {
 		char inlineName[32];
@@ -70,16 +77,22 @@ struct Process {
 	};
 	unsigned int nameLen;
 
+	enum ProcessState state;
+
+	struct Process *parent;
+	struct Process *children;
+	//Owned by parent lock
+	struct Process *prevChild;
+	struct Process *nextChild;
+
 	struct ProcessMemory pmem;
 
-	struct Inode *cwd;
+	struct Inode *cwd; //unused
 
 	unsigned long id;
 	void *rootPT;
 
 	spinlock_t lock;
-	int nrofReaders;
-	spinlock_t readLock;
 
 	int exitValue;
 
@@ -90,5 +103,15 @@ struct Process {
 	int nrofFDs; //excluding inlined FDs
 	int nrofUsedFDs; //ditto
 };
+
+extern struct Process initProcess;
+
+void linkChild(struct Process *parent, struct Process *child);
+
+int destroyProcessMem(struct Process *proc);
+
+void removeProcess(struct Process *proc);
+
+void exitProcess(struct Process *proc, int exitValue);
 
 #endif

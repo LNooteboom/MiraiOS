@@ -26,7 +26,7 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 	acquireSpinlock(&inode->lock);
 
 	ssize_t bytesCopied = 0;
-	if ((inode->type & ITYPE_MASK) == ITYPE_DIR) {
+	if (isDir(inode)) {
 		bytesCopied = -EISDIR;
 		goto ret;
 	}
@@ -96,7 +96,7 @@ int fsWrite(struct File *file, void *buffer, size_t bufSize) {
 	acquireSpinlock(&inode->lock);
 
 	int error = 0;
-	if ((inode->type & ITYPE_MASK) == ITYPE_DIR) {
+	if (isDir(inode)) {
 		error = -EISDIR;
 		goto ret;
 	}

@@ -146,7 +146,7 @@ void lapicSendIPI(uint32_t destination, uint8_t vec, enum ipiTypes type) {
 	write32(lapicBase + LAPIC_ICRL, vec | ((type & 7) << 8) | (1 << 14));
 }
 
-void lapicSendIPIToAll(uint8_t vec, enum ipiTypes type) {
+void lapicSendIPIToAll(uint8_t vec, enum ipiTypes type) { //TODO test & fix this
 	write32(lapicBase + LAPIC_ICRH, 0xFF << 24);
 	write32(lapicBase + LAPIC_ICRL, vec | ((type & 7) << 8) | (1 << 14) | (3 << 18));
 }

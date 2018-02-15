@@ -11,5 +11,6 @@
 #define EROFS		8
 #define EBADF		9
 #define EFAULT		10
+#define ECHILD		11
 
 #endif

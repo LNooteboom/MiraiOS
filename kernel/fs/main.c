@@ -66,7 +66,7 @@ static struct DirEntry *getDirEntryFromPath(struct Inode *cwd, const char *path,
 
 		acquireSpinlock(&curDir->lock);
 		struct DirEntry *entry = dirCacheLookup(curDir, name);
-		if (!entry || (entry->inode->type & ITYPE_MASK) != ITYPE_DIR) {
+		if (!entry || !isDir(entry->inode)) {
 			releaseSpinlock(&curDir->lock);
 			return NULL;
 		}

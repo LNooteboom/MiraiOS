@@ -13,21 +13,8 @@ extern void initForkRetThread(thread_t newThread, thread_t parent);
 
 static uint64_t curPid = 2;
 
-static void deleteMem(struct Process *proc) {
-	struct MemoryEntry *entries = proc->pmem.entries;
-	for (unsigned int i = 0; i < proc->pmem.nrofEntries; i++) {
-		if (entries[i].flags & MEM_FLAG_SHARED) {
-			entries[i].shared->refCount--;
-			if (!entries[i].shared->refCount) {
-				kfree(entries[i].shared);
-			}
-		}
-	}
-	kfree(proc->pmem.entries);
-}
-
 static int copyMem(struct Process *proc, struct Process *newProc) {
-	int error;
+	int error = 0;
 	struct MemoryEntry *entries = proc->pmem.entries;
 	struct MemoryEntry *newEntries = kmalloc(sizeof(struct MemoryEntry) * proc->pmem.nrofEntries);
 	if (!newEntries) {
@@ -58,7 +45,7 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 			struct SharedMemory *shared = kmalloc(sizeof(struct SharedMemory) + (nrofPages - 1) * sizeof(physPage_t));
 			if (!shared) {
 				error = -ENOMEM;
-				goto freeEveryThing;
+				goto ret;
 			}
 
 			shared->nrofPhysPages = nrofPages;
@@ -79,17 +66,6 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 	newProc->pmem.entries = newEntries;
 	newProc->pmem.nrofEntries = proc->pmem.nrofEntries;
 
-	return 0;
-
-	freeEveryThing:
-	for (unsigned int j = 0; j < i; j++) {
-		entries[i].shared->refCount--;
-		if (entries[i].shared->refCount <= 1) {
-			kfree(entries[i].shared);
-			entries[i].flags &= ~MEM_FLAG_SHARED;
-		}
-	}
-	kfree(newEntries);
 	ret:
 	return error;
 }
@@ -137,6 +113,17 @@ static int copyFiles(struct Process *proc, struct Process *newProc) {
 	return 0;
 }
 
+void linkChild(struct Process *parent, struct Process *child) {
+	child->ppid = parent->pid;
+	child->parent = parent;
+	//insert at front
+	if (parent->children) {
+		child->nextChild = parent->children;
+		parent->children->prevChild = child;
+	}
+	parent->children = child;
+}
+
 /*
 Return from fork (child process)
 */
@@ -180,26 +167,30 @@ int sysFork(void) {
 	}
 	memset(newProc, 0, sizeof(struct Process));
 
+	acquireSpinlock(&curProc->lock);
+
 	newProc->pid = curPid++;
-	newProc->ppid = curProc->pid;
+	linkChild(curProc, newProc);
 
 	error = copyFiles(curProc, newProc);
-	if (error) goto freeProc; //TODO clean fds on error
+	if (error) goto exitProc;
 
 	error = copyMem(curProc, newProc);
-	if (error) goto freeProc;
+	if (error) goto exitProc;
+
+	releaseSpinlock(&curProc->lock);
 
 	newProc->addressSpace = mmCreateAddressSpace();
 	if (!newProc->addressSpace) {
 		error = -ENOMEM;
-		goto deleteMem;
+		goto exitProc;
 	}
 
 	//create a main thread for the new process
 	struct ThreadInfo *mainThread = allocKStack();
 	if (!mainThread) {
 		error = -ENOMEM;
-		goto deleteAddressSpace;
+		goto exitProc;
 	}
 	mainThread->priority = 1;
 	mainThread->jiffiesRemaining = TIMESLICE_BASE << 1;
@@ -209,18 +200,16 @@ int sysFork(void) {
 
 	newProc->mainThread = mainThread;
 
+	acquireSpinlock(&curThread->lock);
 	initForkRetThread(mainThread, curThread);
+	releaseSpinlock(&curThread->lock);
 	
 	readyQueuePush(mainThread);
 
 	return newProc->pid;
 
-	deleteAddressSpace:
-	deallocPhysPage(newProc->addressSpace);
-	deleteMem:
-	deleteMem(newProc);
-	freeProc:
-	kfree(newProc);
+	exitProc:
+	exitProcess(newProc, error);
 	ret:
 	return error;
 }

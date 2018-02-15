@@ -117,6 +117,13 @@ kthreadExit:
 	mov [r15 + 8], r14 ;set return value
 	mov [r15 + 0x10], dword 0 ;set threadstate to FINISHED
 
+	;switch to exception stack
+	mov rsp, [gs:0x10]
+	mov rbp, [gs:0x10]
+	;set current thread to NULL
+	xor edi, edi
+	call setCurrentThread
+
 	mov eax, [r15 + 0x18]
 	test eax, eax
 	jnz nextThread ;don't free joined if thread is detached
@@ -124,16 +131,16 @@ kthreadExit:
 		call kthreadFreeJoined
 
 		;switch to exception stack
-		mov rsp, [gs:0x10]
-		mov rbp, [gs:0x10]
+		;mov rsp, [gs:0x10]
+		;mov rbp, [gs:0x10]
 
 		and [r15 + 0x14], dword ~2
 		lea rdi, [r15 + 0x14]
 		call releaseSpinlock
 
 		xor r15d, r15d
-		xor edi, edi
-		call setCurrentThread
+		;xor edi, edi
+		;call setCurrentThread
 		jmp nextThread
 	
 

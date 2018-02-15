@@ -57,3 +57,9 @@ bool sleepSkipTime(thread_t curThread) {
 	}
 	return higherThreadReleased;
 }
+
+int sysSleep(uint64_t seconds, uint32_t nanoSeconds) {
+	uint64_t millis = seconds * 1000 + nanoSeconds / 1000000;
+	kthreadSleep(millis);
+	return 0;
+}

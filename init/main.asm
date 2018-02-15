@@ -26,6 +26,12 @@ jnz .parent
 	syscall
 .parent:
 
+mov eax, 19
+mov edi, 0
+mov esi, 0
+mov edx, 0
+syscall
+
 mov eax, 1
 mov edi, 0
 mov rsi, teststr

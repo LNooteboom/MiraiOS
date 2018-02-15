@@ -71,6 +71,7 @@ tlbInvalidateGlobal: ;(void *base, uint64_t numPages) returns void
 tlbReloadCR3Local:
 	mov rax, cr3
 	mov cr3, rax
+	ret
 
 tlbReloadCR3:
 	mov rax, cr3

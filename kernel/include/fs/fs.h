@@ -82,6 +82,10 @@ struct Inode {
 
 extern struct Inode *rootDir;
 
+static inline bool isDir(struct Inode *inode) {
+	return (inode->type & ITYPE_MASK) == ITYPE_DIR;
+}
+
 /*
 Mounts the root directory
 */

@@ -9,10 +9,10 @@
 #include <syscall.h>
 #include <mm/memset.h>
 #include <mm/heap.h>
-#include <mm/pagemap.h>
 #include <sched/elf.h>
 #include <modules.h>
-#include <arch/tlb.h>
+
+struct Process initProcess;
 
 extern void uthreadInit(struct ThreadInfo *info, void *start, uint64_t arg1, uint64_t arg2, uint64_t userspaceStackpointer);
 extern void initExecRetThread(thread_t thread, void *start, uint64_t arg1, uint64_t arg2);
@@ -166,20 +166,15 @@ int execInit(const char *fileName) {
 	mainThread->jiffiesRemaining = TIMESLICE_BASE << 1;
 	mainThread->cpuAffinity = 1;
 
-	struct Process *proc = kmalloc(sizeof(struct Process));
-	if (!proc) {
-		error = -ENOMEM;
-		goto deallocMainThread;
-	}
-	memset(proc, 0, sizeof(struct Process));
-	mainThread->process = proc;
-	proc->pid = 1;
+	mainThread->process = &initProcess;
+	initProcess.mainThread = mainThread;
+	initProcess.pid = 1;
 	//proc->cwd = "/";
 
 	//TODO make this arch independent
 	uint64_t cr3;
 	asm ("mov rax, cr3" : "=a"(cr3));
-	proc->addressSpace = cr3;
+	initProcess.addressSpace = cr3;
 
 	/*struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
 	error = fsOpen(stdout, &proc->inlineFDs[1]);
@@ -189,7 +184,7 @@ int execInit(const char *fileName) {
 
 	void *start;
 	error = execCommon(mainThread, fileName, &start);
-	if (error) goto freeProcess;
+	if (error) goto deallocMainThread;
 
 	uthreadInit(mainThread, start, 0, 0, 0);
 
@@ -197,34 +192,10 @@ int execInit(const char *fileName) {
 
 	return 0;
 
-	freeProcess:
-	kfree(proc);
 	deallocMainThread:
 	deallocPages((void *)kernelStackBottom, THREAD_STACK_SIZE);
 	ret:
 	return error;
-}
-
-static int destroyProcessMem(struct Process *proc) {
-	//Destroy page mapping
-	mmUnmapUserspace(); //POINTERS TO USERSPACE ARE NO LONGER VALID AFTER THIS CALL
-	tlbReloadCR3Local();
-
-	//dealloc process pmem entries
-	for (unsigned int i = 0; i < proc->pmem.nrofEntries; i++) {
-		if (proc->pmem.entries[i].flags & MEM_FLAG_SHARED) {
-			acquireSpinlock(&proc->pmem.entries[i].shared->lock);
-			int refcount = proc->pmem.entries[i].shared->refCount--;
-			releaseSpinlock(&proc->pmem.entries[i].shared->lock);
-			if (!refcount) {
-				kfree(proc->pmem.entries[i].shared);
-			}
-			proc->pmem.entries[i].shared->refCount--;
-		}
-	}
-	kfree(proc->pmem.entries);
-
-	return 0;
 }
 
 int sysExec(const char *fileName, char *const argv[] __attribute__ ((unused)), char *const envp[] __attribute__ ((unused))) {

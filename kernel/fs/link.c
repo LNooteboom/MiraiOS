@@ -9,7 +9,7 @@
 
 int fsLink(struct Inode *dir, struct Inode *inode, const char *name) {
 	acquireSpinlock(&inode->lock);
-	if (inode->nrofLinks && (inode->type & ITYPE_MASK) == ITYPE_DIR) {
+	if (inode->nrofLinks && isDir(inode)) {
 		releaseSpinlock(&inode->lock);
 		return -EINVAL; //hardlinks are not allowed for dirs
 	}
@@ -47,7 +47,7 @@ static void deleteInode(struct Inode *inode) {
 	if (inode->ramfs) {
 		//delete cache
 		if (inode->cachedData) {
-			if ((inode->type & ITYPE_MASK) == ITYPE_DIR) {
+			if (isDir(inode)) {
 				dirCacheDelete(inode);
 			} else if (!(inode->ramfs & RAMFS_INITRD)) {
 				//file

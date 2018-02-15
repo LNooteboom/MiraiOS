@@ -80,7 +80,7 @@ int fsCreate(struct File *output, struct Inode *dir, const char *name, uint32_t 
 	newInode->nrofLinks = 1;
 	newInode->ramfs = dir->ramfs;
 
-	if ((type & ITYPE_MASK) == ITYPE_DIR) {
+	if (isDir(newInode)) {
 		dirCacheInit(newInode, dir);
 	}
 
