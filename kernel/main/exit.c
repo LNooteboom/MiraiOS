@@ -103,7 +103,7 @@ void exitProcess(struct Process *proc, int exitValue) { //can also be called on 
 
 void sysExit(int exitValue) {
 	thread_t curThread = getCurrentThread();
-	if (curThread->process->pid = 1) {
+	if (curThread->process->pid == 1) {
 		panic("\n[PANIC] Attempted to kill init!");
 	}
 	//kill all other threads
