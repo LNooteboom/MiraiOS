@@ -19,7 +19,7 @@ miraiBoot
 miraiBoot.efi
 efibuild
 
-init
+init/init
 
 config
 
