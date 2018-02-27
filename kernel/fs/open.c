@@ -101,10 +101,9 @@ int fsCreate(struct File *output, struct Inode *dir, const char *name, uint32_t 
 		}
 		return error;
 	}
-	if (output && (newInode->type & ITYPE_MASK) == ITYPE_FILE) {
+	if (output) {
+		memset(output, 0, sizeof(struct File));
 		output->inode = newInode;
-		output->lock = 0;
-		output->offset = 0;
 	}
 	return 0;
 }

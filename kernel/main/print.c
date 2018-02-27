@@ -4,15 +4,8 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <sched/spinlock.h>
-
-//struct Console *currentConsole = NULL;
 
 static int (*stdout)(const char *str) = NULL;
-
-/*static void __putc(char c) {
-	currentConsole->putc(currentConsole, c);
-}*/
 
 #define PRINTK_STACK_BUF_SZ	512
 

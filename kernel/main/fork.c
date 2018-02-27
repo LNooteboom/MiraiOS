@@ -6,7 +6,7 @@
 #include <mm/memset.h>
 #include <mm/physpaging.h>
 #include <sched/readyqueue.h>
-#include <syscall.h>
+#include <userspace.h>
 #include <modules.h>
 
 extern void initForkRetThread(thread_t newThread, thread_t parent);
@@ -43,6 +43,7 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 			uintptr_t alignedAddr = (uintptr_t)(entries[i].vaddr) - ((uintptr_t)(entries[i].vaddr) % PAGE_SIZE);
 
 			struct SharedMemory *shared = kmalloc(sizeof(struct SharedMemory) + (nrofPages - 1) * sizeof(physPage_t));
+			memset(shared, 0, sizeof(struct SharedMemory));
 			if (!shared) {
 				error = -ENOMEM;
 				goto ret;

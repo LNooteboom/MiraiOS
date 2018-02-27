@@ -33,7 +33,7 @@ smpCallFunction: ;(void (*func)(void* arg), void *arg, bool wait) returns void
 	.wait:
 		pause
 		cmp [smpCallCpuCount], dword 0
-		jne .wait
+		;jne .wait
 
 	mov rdi, smpCallLock
 	call acquireSpinlock
@@ -49,11 +49,10 @@ smpCallFunction: ;(void (*func)(void* arg), void *arg, bool wait) returns void
 
 	test r13d, r13d
 	jz .noWait
-		mov eax, [nrofActiveCPUs]
 		.wait2:
-			pause
-			cmp [smpCallCpuCount], eax
-			jne .wait2
+		pause
+		cmp [smpCallCpuCount], dword 0
+		jne .wait2
 	.noWait:
 
 	mov rdi, smpCallLock

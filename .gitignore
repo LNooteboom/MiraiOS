@@ -1,14 +1,19 @@
 
 build/
 initrd/
+sysroot
 .*/
 
 *.o
+*.a
 *.img
 *.iso
 *.ini
 *.bxrc
 *.bin
+
+kernel/main/syscalltbl.c
+phlibc/syscalls.asm
 
 miraiBoot
 miraiBoot.efi

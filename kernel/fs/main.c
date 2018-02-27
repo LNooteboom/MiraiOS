@@ -18,15 +18,6 @@ int mountRoot(struct Inode *rootInode) {
 	return 0;
 }
 
-static int findSlash(const char *str, size_t len, int pos) {
-	for (unsigned int i = pos; i < len; i++) {
-		if (str[i] == '/') {
-			return i;
-		}
-	}
-	return -1;
-}
-
 static struct DirEntry *getDirEntryFromPath(struct Inode *cwd, const char *path, int *fileNameIndex) {
 	char name[256];
 	size_t pathLen = strlen(path);
@@ -41,7 +32,7 @@ static struct DirEntry *getDirEntryFromPath(struct Inode *cwd, const char *path,
 
 	while (true) {
 		curNameStart = curNameEnd + 1;
-		int slash = findSlash(path, pathLen, curNameStart);
+		int slash = findChar(path, '/', pathLen, curNameStart);
 		if (slash < 0 || slash == (int)pathLen - 1) {
 			curNameEnd = (slash < 0)? (int)pathLen : slash;
 			memcpy(name, &path[curNameStart], curNameEnd - curNameStart);
@@ -52,7 +43,10 @@ static struct DirEntry *getDirEntryFromPath(struct Inode *cwd, const char *path,
 			} else {
 				acquireSpinlock(&curDir->lock);
 				struct DirEntry *file = dirCacheLookup(curDir, name);
-				return file; //SPINLOCK MUST BE RELEASED BY THE CALLER
+				if (!file) {
+					releaseSpinlock(&curDir->lock);
+				}
+				return file; //ON SUCCESS, SPINLOCK MUST BE RELEASED BY THE CALLER
 			}
 		}
 		curNameEnd = slash;

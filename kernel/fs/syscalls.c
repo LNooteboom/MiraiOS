@@ -3,7 +3,7 @@
 #include <sched/process.h>
 #include <mm/heap.h>
 #include <errno.h>
-#include <syscall.h>
+#include <userspace.h>
 #include <modules.h>
 #include <stdarg.h>
 
@@ -187,7 +187,9 @@ int sysGetDent(int fd, struct GetDent *buf) {
 	if (!f) return -EBADF;
 	acquireSpinlock(&f->lock);
 	ret = fsGetDent(f->inode, buf, f->offset);
-	f->offset += 1;
+	if (ret) {
+		f->offset += 1;
+	}
 	releaseSpinlock(&f->lock);
 	return ret;
 }

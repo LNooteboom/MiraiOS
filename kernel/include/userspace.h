@@ -1,15 +1,10 @@
-#ifndef INCLUDE_SYSCALL_H
-#define INCLUDE_SYSCALL_H
+#ifndef USERSPACE_H
+#define USERSPACE_H
 
 #include <stdint.h>
 #include <stddef.h>
 #include <errno.h>
 #include <stdbool.h>
-
-/*
-#define DEFINE_SYSCALL(func) \
-	static int (*syscall_##func)(...) __attribute__((used, section (".syscalls"))) = func
-*/
 
 /*
 Validate whether a pointer points to userspace memory, doesn't check page mapping
@@ -36,10 +31,5 @@ static inline int validateUserString(const char *str) {
 		str++;
 	}
 }
-
-/*
-Register a system call for userspace
-*/
-void registerSyscall(int nr, int (*func)());
 
 #endif

@@ -43,4 +43,13 @@ static inline size_t strlen(const char *str) {
 	return result;
 }
 
+static inline int findChar(const char *str, char c, size_t len, int pos) {
+	for (unsigned int i = pos; i < len; i++) {
+		if (str[i] == c) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 #endif

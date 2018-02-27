@@ -4,9 +4,10 @@
 #include <mm/physpaging.h>
 #include <fs/fs.h>
 #include <arch/tlb.h>
-#include <syscall.h>
+#include <userspace.h>
 #include <modules.h>
 #include <sched/readyqueue.h>
+#include <panic.h>
 
 static void unlinkChild(struct Process *proc) {
 	struct Process *parent = proc->parent;
@@ -102,6 +103,9 @@ void exitProcess(struct Process *proc, int exitValue) { //can also be called on 
 
 void sysExit(int exitValue) {
 	thread_t curThread = getCurrentThread();
+	if (curThread->process->pid = 1) {
+		panic("\n[PANIC] Attempted to kill init!");
+	}
 	//kill all other threads
 	//set current thread as mainThread
 

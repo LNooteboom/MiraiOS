@@ -6,7 +6,7 @@
 #include <mm/paging.h>
 #include <fs/fs.h>
 #include <print.h>
-#include <syscall.h>
+#include <userspace.h>
 #include <mm/memset.h>
 #include <mm/heap.h>
 #include <sched/elf.h>
@@ -14,8 +14,8 @@
 
 struct Process initProcess;
 
-extern void uthreadInit(struct ThreadInfo *info, void *start, uint64_t arg1, uint64_t arg2, uint64_t userspaceStackpointer);
-extern void initExecRetThread(thread_t thread, void *start, uint64_t arg1, uint64_t arg2);
+extern void uthreadInit(thread_t thread, void *start, uint64_t arg1, uint64_t arg2, void *userspaceStackpointer);
+extern void initExecRetThread(thread_t thread, void *start, uint64_t arg1, uint64_t arg2, void *userspaceStackpointer);
 
 union elfBuf {
 	struct ElfHeader header;
@@ -72,7 +72,7 @@ static int elfLoad(struct File *f, struct ElfPHEntry *entry) {
 	return error;
 }
 
-static int execCommon(thread_t mainThread, const char *fileName, void **startAddr) {
+static int execCommon(thread_t mainThread, const char *fileName, void **startAddr, void **sp) {
 	int error;
 	//Open the executable
 	struct File f;
@@ -99,7 +99,7 @@ static int execCommon(thread_t mainThread, const char *fileName, void **startAdd
 	if (error) goto closef;
 
 	//count nrof load commands
-	unsigned int nrofLoads = 0;
+	unsigned int nrofLoads = 1; //Set to 1 to allocate stack as well
 	struct ElfPHEntry phEntry;
 	error = fsSeek(&f, header.phOff, SEEK_SET);
 	if (error) goto closef;
@@ -121,6 +121,8 @@ static int execCommon(thread_t mainThread, const char *fileName, void **startAdd
 	memset(proc->pmem.entries, 0, sizeof(struct MemoryEntry) * nrofLoads);
 
 	//loop over all program header entries
+	uintptr_t highestAddr = 0;
+	uintptr_t end;
 	nrofLoads = 0;
 	for (unsigned int i = 0; i < header.phnum; i++) {
 		error = fsSeek(&f, header.phOff + (i * sizeof(struct ElfPHEntry)), SEEK_SET);
@@ -134,6 +136,12 @@ static int execCommon(thread_t mainThread, const char *fileName, void **startAdd
 				proc->pmem.entries[nrofLoads].vaddr = (void *)(phEntry.pVAddr);
 				proc->pmem.entries[nrofLoads].size = phEntry.pMemSz;
 				proc->pmem.entries[nrofLoads].flags = phEntry.flags & ~MEM_FLAG_SHARED;
+
+				end = (uintptr_t)(proc->pmem.entries[nrofLoads].vaddr) + proc->pmem.entries[nrofLoads].size;
+				if (end > highestAddr) {
+					highestAddr = end;
+				}
+
 				nrofLoads++;
 				break;
 			default:
@@ -142,6 +150,18 @@ static int execCommon(thread_t mainThread, const char *fileName, void **startAdd
 		if (error) goto freeMemStruct;
 	}
 	*startAddr = (void *)header.entryAddr;
+
+	//allocate stack
+	if (highestAddr & (PAGE_SIZE - 1)) {
+		highestAddr &= ~(PAGE_SIZE - 1);
+		highestAddr += PAGE_SIZE;
+	}
+	*sp = (void *)(highestAddr + THREAD_STACK_SIZE); //stack pointer is also program break
+	proc->pmem.entries[nrofLoads].vaddr = (void *)highestAddr;
+	proc->pmem.entries[nrofLoads].size = THREAD_STACK_SIZE;
+	proc->pmem.entries[nrofLoads].flags = MEM_FLAG_WRITE;
+	allocPageAt(proc->pmem.entries[nrofLoads].vaddr, proc->pmem.entries[nrofLoads].size,
+		PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN | PAGE_FLAG_USER | PAGE_FLAG_WRITE);
 
 	return 0;
 	
@@ -183,10 +203,11 @@ int execInit(const char *fileName) {
 	}*/
 
 	void *start;
-	error = execCommon(mainThread, fileName, &start);
+	void *sp;
+	error = execCommon(mainThread, fileName, &start, &sp);
 	if (error) goto deallocMainThread;
 
-	uthreadInit(mainThread, start, 0, 0, 0);
+	uthreadInit(mainThread, start, 0, 0, sp);
 
 	readyQueuePush(mainThread);
 
@@ -217,10 +238,11 @@ int sysExec(const char *fileName, char *const argv[] __attribute__ ((unused)), c
 	kfree(curThread->process->pmem.entries);
 
 	void *start;
-	error = execCommon(curThread, namebuf, &start);
+	void *sp;
+	error = execCommon(curThread, namebuf, &start, &sp);
 	if (error) goto ret;
 
-	initExecRetThread(curThread, start, 0, 0);
+	initExecRetThread(curThread, start, 0, 0, sp);
 	
 	return 0;
 

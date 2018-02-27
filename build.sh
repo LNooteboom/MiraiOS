@@ -1,7 +1,13 @@
 #!/bin/bash
 
+#config options
+export TARGET_KERNEL=x86_64-elf
+export TARGET_USER=x86_64-miraios
+
 BUILDDIR=build;
-INITRDDIR=initrd;
+
+export INITRDDIR=$PWD/initrd;
+export SYSROOT=$PWD/sysroot
 
 KERNELDIR=kernel;
 KERNELNAME=miraiBoot;
@@ -35,14 +41,24 @@ else
 	cp "$KERNELDIR/$KERNELNAME" $BUILDDIR
 fi
 
+mkdir -p $SYSROOT/include
+mkdir -p $SYSROOT/lib
+mkdir -p $SYSROOT/bin
+cp $KERNELDIR/include/errno.h $SYSROOT/include
+cp $KERNELDIR/include/syscalls.h $SYSROOT/include
+
+make -C phlibc
+cp phlibc/libc.a $SYSROOT/lib/
+cp phlibc/crt0.o $SYSROOT/lib/
+cp -r phlibc/userinclude/* $SYSROOT/include/
+
 make -C init
-cp init/init $INITRDDIR
-cp init/test $INITRDDIR
+cp init/init $SYSROOT
 
 #create initrd
 cd $INITRDDIR
-printf "init\ntest\n" | cpio --create --format=newc > ../$BUILDDIR/initrd
-#find . -type f -printf "%f\n" | cpio --create --format=newc > ../$BUILDDIR/initrd
+#printf "init\ntest\n" | cpio --create --format=newc > ../$BUILDDIR/initrd
+find * -type f | cpio --create --format=newc > ../$BUILDDIR/initrd
 
 cd ..
 

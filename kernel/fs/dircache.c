@@ -92,15 +92,15 @@ int dirCacheGet(struct Inode *dir, struct GetDent *buf, unsigned int index) {
 		return 0;
 	}
 	struct DirEntry *curEntry = &cd->entries[index];
-	buf[index].inodeID = curEntry->inode->inodeID;
-	buf[index].type = curEntry->inode->type;
+	buf->inodeID = curEntry->inode->inodeID;
+	buf->type = curEntry->inode->type;
 
 	if (curEntry->nameLen > 31) {
 		memcpy(&buf->name, curEntry->name, curEntry->nameLen);
 	} else {
 		memcpy(&buf->name, curEntry->inlineName, curEntry->nameLen);
 	}
-	buf[index].name[curEntry->nameLen] = 0;
+	buf->name[curEntry->nameLen] = 0;
 
 	return curEntry->nameLen;
 }

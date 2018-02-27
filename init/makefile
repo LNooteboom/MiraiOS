@@ -1,16 +1,37 @@
+DEPDIR := .d
+$(shell mkdir -p $(DEPDIR) > /dev/null)
 
-.PHONY = all clean
+CC = $(TARGET_USER)-gcc
 
-all: init test
+FLAG_WARN = -Wall -Wextra
+FLAG_DEP = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
+CFLAG = $(FLAG_WARN) $(FLAG_DEP) -c
 
-init: main.o
-	x86_64-elf-ld -o $@ main.o
+LIBS = 
+LD = $(CC)
 
-test: test.o
-	x86_64-elf-ld -o $@ test.o
+OUTPUT = init
+OBJECTS = main.o
 
-%.o: %.asm
-	nasm -f elf64 -g -F dwarf -o $@ $<
-	
+.PHONY: all clean
+
+all: $(OUTPUT)
+
 clean:
-	rm -f init test test.o main.o
+	rm -f $(OUTPUT) $(OBJECTS)
+
+$(OUTPUT): $(OBJECTS)
+	@echo "(LD) $@"
+	@$(LD) -o $@ $+ $(LIBS)
+
+%.o: %.c
+%.o: %.c $(DEPDIR)/%.d
+	@echo "(CC)	$@"
+	@${CC} ${CFLAG} -o $@ $<
+	@mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
+
+$(DEPDIR)/%.d: ;
+
+.PRECIOUS: $(DEPDIR)/%.d
+
+include $(wildcard $(patsubst %,$(DEPDIR)/%.d,$(basename $(OBJECTS)) ))

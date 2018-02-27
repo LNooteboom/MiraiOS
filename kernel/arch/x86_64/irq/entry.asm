@@ -69,9 +69,10 @@ initExecRetThread: ;(thread_t thread, void *start, uint64_t arg1, uint64_t arg2)
 	;mov [r8 - 0x28], r9
 	;mov [r8 - 0x30], rdx
 
-	mov [rdi - 0x18], rsi
-	mov [rdi - 0x28], r9
-	mov [rdi - 0x30], rdx
+	mov [rdi - 0x08], r8  ;rsp on sysret stack
+	mov [rdi - 0x18], rsi ;rcx on sysret stack
+	mov [rdi - 0x28], rcx ;rsi on sysret stack
+	mov [rdi - 0x30], rdx ;rdi on sysret stack
 
 	ret
 
@@ -150,6 +151,7 @@ sysret64:
 	mov r10, [rsp + 0x08]
 	mov r11, [rsp]
 
+	cli
 	mov rsp, [rsp + 0x48]
 	
 	swapgs
@@ -187,7 +189,7 @@ irqCommon:
 	cmp [rsp + 0x50], rax
 	jae .noswapgs
 		swapgs
-		or [rsp + 0x68], dword 3
+		or [rsp + 0x70], dword 3
 	.noswapgs:
 
 	mov rdi, [rsp + 0x48]

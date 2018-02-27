@@ -1,4 +1,4 @@
-TARGET := x86_64-elf
+TARGET := $(TARGET_KERNEL)
 ARCH := x86_64
 
 KERNEL = miraiBoot
@@ -9,7 +9,7 @@ $(shell mkdir -p $(DEPDIR) > /dev/null)
 
 FLAG_WARNINGS := -Wall -Wextra
 FLAG_FREESTANDING := -ffreestanding -nostdlib -nostartfiles -fno-pie
-FLAG_KERNEL := -masm=intel -mno-red-zone -fshort-wchar
+FLAG_KERNEL := -masm=intel -mno-red-zone -fshort-wchar -D__KERNEL__
 FLAG_MEMMODEL := -mcmodel=kernel
 FLAG_INCLUDES := -I$(KERNEL_ROOT)/include/ -I$(KERNEL_ROOT)/arch/${ARCH}/include
 FLAG_DEBUG := -g
@@ -40,7 +40,7 @@ $(KERNEL).efi: $(KERNEL) $(EFIBUILD)
 	@./$(EFIBUILD) $(KERNEL) $@
 
 clean:
-	rm -rf $(obj-y) $(DEPDIR) $(KERNEL) $(KERNEL).efi $(EFIBUILD)
+	rm -rf $(obj-y) $(DEPDIR) $(KERNEL) $(KERNEL).efi $(EFIBUILD) $+
 else
 all: $(KERNEL)
 

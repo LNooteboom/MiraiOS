@@ -4,7 +4,7 @@
 #include <arch/cpu.h>
 #include <arch/msr.h>
 #include <modules.h>
-#include <syscall.h>
+#include <userspace.h>
 #include <errno.h>
 
 #define PRCTL_FS	1

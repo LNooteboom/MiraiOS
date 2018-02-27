@@ -44,6 +44,7 @@ acquireSpinlock:
 .error:
 	xchg bx, bx
 	mov rdi, spinlockStuckMsg
+	pop rsi
 	call panic
 
 releaseSpinlock:
@@ -58,4 +59,4 @@ releaseSpinlock:
 
 SECTION .rodata
 
-spinlockStuckMsg: db 'Spinlock timed out.', 10, 'Ret addr: ', 0
+spinlockStuckMsg: db 'Spinlock timed out.', 10, 'Ret addr: %x', 0

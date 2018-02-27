@@ -24,7 +24,7 @@ struct CpioHeader {
 	char rdevminor[8];
 	char namesize[8];
 	char check[8];
-};
+} __attribute__((packed));
 
 static char cpioMagic[6] = "070701";
 static char cpioEndName[] = "TRAILER!!!";
@@ -45,48 +45,80 @@ static uint32_t parseHex(char *str) {
 	return result;
 }
 
+static int createDirs(struct Inode *root, char *name, size_t nameLen, uint32_t fileSize, void *data) {
+	int start = 0;
+	char buf[256];
+	struct Inode *curDir = root;
+	while (true) {
+		int slash = findChar(name, '/', nameLen, start);
+		if (slash < 0) {
+			break;
+		}
+		int segLen = slash - start;
+		memcpy(buf, name + start, segLen);
+		buf[segLen] = 0;
+
+		struct Inode *tmp = getInodeFromPath(curDir, buf);
+		if (tmp) {
+			curDir = tmp;
+		} else {
+			struct File f;
+			fsCreate(&f, curDir, buf, ITYPE_DIR);
+			curDir = f.inode;
+		}
+
+		start = slash + 1;
+	}
+
+	struct Inode *newInode = kmalloc(sizeof(struct Inode));
+	memset(newInode, 0, sizeof(struct Inode));
+
+	newInode->cachedData = data;
+	newInode->fileSize = fileSize;
+	newInode->ramfs = RAMFS_PRESENT | RAMFS_INITRD;
+	newInode->type = ITYPE_FILE;
+	newInode->superBlock = &ramfsSuperBlock;
+	newInode->attr.accessPermissions = 0664;
+
+	return fsLink(curDir, newInode, name + start);
+}
+
 static int parseInitrd(struct Inode *rootInode) {
 	//char *initrd = bootInfo.initrd;
 	char *initrd = ioremap((uintptr_t)bootInfo.initrd, bootInfo.initrdLen);
 	struct CpioHeader *initrdHeader;
 	unsigned long curPosition = 0;
+
 	while (curPosition < bootInfo.initrdLen) {
 		initrdHeader = (struct CpioHeader *)(&initrd[curPosition]);
 		if (memcmp(initrdHeader->magic, cpioMagic, 6)) {
 			printk("Invalid CPIO header: %s\n", initrdHeader->magic);
 			return -EINVAL;
 		}
+
 		uint32_t nameLen = parseHex(initrdHeader->namesize);
 		char *name = &initrd[curPosition + sizeof(struct CpioHeader)];
-		if (/*nameLen == sizeof(cpioEndName) &&*/ !memcmp(name, cpioEndName, sizeof(cpioEndName))) {
+		if (nameLen == sizeof(cpioEndName) && !memcmp(name, cpioEndName, sizeof(cpioEndName))) {
 			break;
 		}
 		
 		//TODO add support for directories (and hardlinks?)
-
 		printk("[INITRD] Found file: %s\n", name);
-		struct Inode *newInode = kmalloc(sizeof(struct Inode));
-		memset(newInode, 0, sizeof(struct Inode));
-
-		newInode->cachedData = name + nameLen;
 		uint32_t fileSize = parseHex(initrdHeader->filesize);
-		newInode->fileSize = fileSize;
-		newInode->ramfs = RAMFS_PRESENT | RAMFS_INITRD;
-		newInode->type = ITYPE_FILE;
-		newInode->superBlock = &ramfsSuperBlock;
-		rootInode->attr.accessPermissions = 0664;
 
-		int error = fsLink(rootInode, newInode, name);
-		if (error) {
-			return error;
-		}
-
-		curPosition += sizeof(struct CpioHeader) + nameLen + fileSize;
+		curPosition += sizeof(struct CpioHeader) + nameLen;
 		if (curPosition & 3) {
 			curPosition &= ~3;
 			curPosition += 4;
 		}
-		//break;
+		createDirs(rootInode, name, nameLen, fileSize, &initrd[curPosition]);
+
+		//curPosition += sizeof(struct CpioHeader) + nameLen + fileSize + 1;
+		curPosition += fileSize;
+		if (curPosition & 3) {
+			curPosition &= ~3;
+			curPosition += 4;
+		}
 	}
 	
 	return 0;

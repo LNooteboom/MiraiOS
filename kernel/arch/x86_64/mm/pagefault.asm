@@ -116,74 +116,15 @@ excPF:
     .L0:
 	add rsp, 0x58
 
-    ;print error message
-    mov rdi, PFmsg
-    call puts
-
-    ;print return addr
-    mov rdi, addressText ;"At: "
-    call puts
-    mov rdi, [rsp+8]
-    call hexprintln64
-
-    ;print "attempted to access"
-    mov rdi, PFAddr
-    call puts
-    mov rdi, cr2
-    call hexprintln64
-
-    ;print error code
-    mov rdi, errorCode
-    call puts
-    mov edi, [rsp]
-    call hexprintln64
-    test [rsp], byte 0x01
-    jz .L9
-        mov rdi, PFPresent
-        call puts
-    .L9:
-    test [rsp], byte 0x02
-    jz .L10
-        mov rdi, PFRW
-        call puts
-    .L10:
-    test [rsp], byte 0x04
-    jz .L11
-        mov rdi, PFUS
-        call puts
-    .L11:
-    test [rsp], byte 0x08
-    jz .L12
-        mov rdi, PFRSV
-        call puts
-		mov rdi, cr2
-		mov rsi, 0
-		call mmGetEntry
-		mov rdi, [rax]
-		call hexprintln64
-    .L12:
-    test [rsp], byte 0x10
-    jz .L13
-        mov rdi, PFID
-        call puts
-    .L13:
-
-	mov rdi, PFmsg
+	mov rdi, PFmsg2
+	mov rsi, cr2
+	mov rdx, [rsp + 8]
+	mov rcx, [rsp]
 	call panic
-
-    jmp $
+	jmp $
 
 SECTION .rodata
-PFmsg:	db 'Page fault', endl
-addressText:    db 'At: ', 0
-errorCode:      db 'Error code: ', 0
-
-PFAddr:         db 'Attempted to access ', 0
-PFPresent:      db 'Page present', endl
-PFRW:           db 'Write', endl
-PFUS:           db 'Came from userspace', endl
-PFRSV:          db '1 found in reserved field', endl
-PFID:           db 'Caused by instruction fetch', endl
+PFmsg2: db 'Page fault cr2:%x rip:%x error:%x', 10, 0
 
 invAllocMsg:    db 'Invalid page alloc', endl
 
