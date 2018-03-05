@@ -85,7 +85,10 @@ struct Process {
 	struct Process *prevChild;
 	struct Process *nextChild;
 
-	struct ProcessMemory pmem;
+	struct MemoryEntry *memEntries;
+	struct MemoryEntry *brkEntry;
+	unsigned int nrofMemEntries;
+	spinlock_t memLock;
 
 	struct Inode *cwd; //unused
 
@@ -102,6 +105,7 @@ struct Process {
 	struct ProcessFile *fds;
 	int nrofFDs; //excluding inlined FDs
 	int nrofUsedFDs; //ditto
+	spinlock_t fdLock;
 };
 
 extern struct Process initProcess;

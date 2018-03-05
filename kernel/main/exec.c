@@ -112,13 +112,13 @@ static int execCommon(thread_t mainThread, const char *fileName, void **startAdd
 
 	//create process memory struct
 	struct Process *proc = mainThread->process;
-	proc->pmem.nrofEntries = nrofLoads;
-	proc->pmem.entries = kmalloc(sizeof(struct MemoryEntry) * nrofLoads);
-	if (!proc->pmem.entries) {
+	proc->nrofMemEntries = nrofLoads;
+	proc->memEntries = kmalloc(sizeof(struct MemoryEntry) * nrofLoads);
+	if (!proc->memEntries) {
 		error = -ENOMEM;
 		goto closef;
 	}
-	memset(proc->pmem.entries, 0, sizeof(struct MemoryEntry) * nrofLoads);
+	memset(proc->memEntries, 0, sizeof(struct MemoryEntry) * nrofLoads);
 
 	//loop over all program header entries
 	uintptr_t highestAddr = 0;
@@ -133,11 +133,11 @@ static int execCommon(thread_t mainThread, const char *fileName, void **startAdd
 				break;
 			case PHTYPE_LOAD:
 				error = elfLoad(&f, &phEntry);
-				proc->pmem.entries[nrofLoads].vaddr = (void *)(phEntry.pVAddr);
-				proc->pmem.entries[nrofLoads].size = phEntry.pMemSz;
-				proc->pmem.entries[nrofLoads].flags = phEntry.flags & ~MEM_FLAG_SHARED;
+				proc->memEntries[nrofLoads].vaddr = (void *)(phEntry.pVAddr);
+				proc->memEntries[nrofLoads].size = phEntry.pMemSz;
+				proc->memEntries[nrofLoads].flags = phEntry.flags & ~MEM_FLAG_SHARED;
 
-				end = (uintptr_t)(proc->pmem.entries[nrofLoads].vaddr) + proc->pmem.entries[nrofLoads].size;
+				end = (uintptr_t)(proc->memEntries[nrofLoads].vaddr) + proc->memEntries[nrofLoads].size;
 				if (end > highestAddr) {
 					highestAddr = end;
 				}
@@ -156,17 +156,20 @@ static int execCommon(thread_t mainThread, const char *fileName, void **startAdd
 		highestAddr &= ~(PAGE_SIZE - 1);
 		highestAddr += PAGE_SIZE;
 	}
-	*sp = (void *)(highestAddr + THREAD_STACK_SIZE); //stack pointer is also program break
-	proc->pmem.entries[nrofLoads].vaddr = (void *)highestAddr;
-	proc->pmem.entries[nrofLoads].size = THREAD_STACK_SIZE;
-	proc->pmem.entries[nrofLoads].flags = MEM_FLAG_WRITE;
-	allocPageAt(proc->pmem.entries[nrofLoads].vaddr, proc->pmem.entries[nrofLoads].size,
+	
+	*sp = (void *)(highestAddr + THREAD_STACK_SIZE); //stack pointer = program break
+	proc->brkEntry = &proc->memEntries[nrofLoads];
+
+	proc->memEntries[nrofLoads].vaddr = (void *)highestAddr;
+	proc->memEntries[nrofLoads].size = THREAD_STACK_SIZE;
+	proc->memEntries[nrofLoads].flags = MEM_FLAG_WRITE;
+	allocPageAt(proc->memEntries[nrofLoads].vaddr, proc->memEntries[nrofLoads].size,
 		PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN | PAGE_FLAG_USER | PAGE_FLAG_WRITE);
 
 	return 0;
 	
 	freeMemStruct:
-	kfree(proc->pmem.entries);
+	kfree(proc->memEntries);
 	closef:
 	ret:
 	return error;
@@ -235,7 +238,7 @@ int sysExec(const char *fileName, char *const argv[] __attribute__ ((unused)), c
 
 	thread_t curThread = getCurrentThread();
 	destroyProcessMem(curThread->process);
-	kfree(curThread->process->pmem.entries);
+	kfree(curThread->process->memEntries);
 
 	void *start;
 	void *sp;

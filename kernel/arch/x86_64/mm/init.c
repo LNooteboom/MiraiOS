@@ -8,6 +8,7 @@
 #include <mm/pagemap.h>
 #include <mm/lowmem.h>
 #include <mm/physpaging.h>
+#include <mm/memset.h>
 
 #define ENTRYTYPE_FREE 1
 #define NROF_PAGE_STACKS 4
@@ -38,10 +39,7 @@ void mmInitPaging(void) {
 
 		if (first && nrofPages >= NROF_PAGE_STACKS + 1) {
 			uintptr_t bssEnd = (uintptr_t)&BSS_END_ADDR;
-			if (bssEnd % LARGEPAGE_SIZE) {
-				bssEnd -= bssEnd % LARGEPAGE_SIZE;
-				bssEnd += LARGEPAGE_SIZE;
-			}
+			bssEnd = align(bssEnd, LARGEPAGE_SIZE);
 			mmSetPageEntry(bssEnd, 1, addr | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE);
 			addr += PAGE_SIZE;
 			nrofPages--;

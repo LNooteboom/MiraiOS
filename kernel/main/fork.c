@@ -15,15 +15,15 @@ static uint64_t curPid = 2;
 
 static int copyMem(struct Process *proc, struct Process *newProc) {
 	int error = 0;
-	struct MemoryEntry *entries = proc->pmem.entries;
-	struct MemoryEntry *newEntries = kmalloc(sizeof(struct MemoryEntry) * proc->pmem.nrofEntries);
+	struct MemoryEntry *entries = proc->memEntries;
+	struct MemoryEntry *newEntries = kmalloc(sizeof(struct MemoryEntry) * proc->nrofMemEntries);
 	if (!newEntries) {
 		error = -ENOMEM;
 		goto ret;
 	}
 
 	unsigned int i;
-	for (i = 0; i < proc->pmem.nrofEntries; i++) {
+	for (i = 0; i < proc->nrofMemEntries; i++) {
 		newEntries[i].vaddr = entries[i].vaddr;
 		newEntries[i].size = entries[i].size;
 		newEntries[i].shared = entries[i].shared;
@@ -64,8 +64,8 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 		}
 	}
 
-	newProc->pmem.entries = newEntries;
-	newProc->pmem.nrofEntries = proc->pmem.nrofEntries;
+	newProc->memEntries = newEntries;
+	newProc->nrofMemEntries = proc->nrofMemEntries;
 
 	ret:
 	return error;
@@ -131,9 +131,9 @@ Return from fork (child process)
 int forkRet(void) {
 	thread_t curThread = getCurrentThread();
 	struct Process *proc = curThread->process;
-	struct MemoryEntry *entries = proc->pmem.entries;
+	struct MemoryEntry *entries = proc->memEntries;
 
-	for (unsigned int i = 0; i < proc->pmem.nrofEntries; i++) {
+	for (unsigned int i = 0; i < proc->nrofMemEntries; i++) {
 		pageFlags_t flags = PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN | PAGE_FLAG_USER | PAGE_FLAG_SHARED;
 		if (entries[i].flags & MEM_FLAG_WRITE) {
 			flags |= PAGE_FLAG_COW;
@@ -173,7 +173,9 @@ int sysFork(void) {
 	newProc->pid = curPid++;
 	linkChild(curProc, newProc);
 
+	acquireSpinlock(&curProc->fdLock);
 	error = copyFiles(curProc, newProc);
+	releaseSpinlock(&curProc->fdLock);
 	if (error) goto exitProc;
 
 	error = copyMem(curProc, newProc);

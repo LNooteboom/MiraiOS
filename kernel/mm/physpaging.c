@@ -102,7 +102,7 @@ static physPage_t splitLargePage(struct PageStackInfo *_largePages, struct PageS
 	if (!largePage) {
 		return 0;
 	}
-	for (physPage_t i = PAGE_SIZE; i < (LARGE_PAGE_SIZE); i += PAGE_SIZE) {
+	for (physPage_t i = PAGE_SIZE; i < (LARGEPAGE_SIZE); i += PAGE_SIZE) {
 		pushPage(_smallPages, largePage + i);
 	}
 	return largePage;
@@ -209,5 +209,5 @@ void deallocLargePhysPage(physPage_t page) {
 }
 
 uint64_t getNrofPages(void) {
-	return smallPages.nrofPages + smallCleanPages.nrofPages + largePages.nrofPages * (LARGE_PAGE_SIZE / PAGE_SIZE);
+	return smallPages.nrofPages + smallCleanPages.nrofPages + largePages.nrofPages * (LARGEPAGE_SIZE / PAGE_SIZE);
 }

@@ -102,7 +102,6 @@ static int parseInitrd(struct Inode *rootInode) {
 			break;
 		}
 		
-		//TODO add support for directories (and hardlinks?)
 		printk("[INITRD] Found file: %s\n", name);
 		uint32_t fileSize = parseHex(initrdHeader->filesize);
 

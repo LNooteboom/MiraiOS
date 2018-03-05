@@ -142,10 +142,7 @@ void *kmalloc(size_t size) {
 			return NULL;
 		}
 		size_t remainingSize = totalSize - lastAreaSize;
-		uint32_t nrofPages = remainingSize / PAGE_SIZE;
-		if (remainingSize % PAGE_SIZE) {
-			nrofPages++;
-		}
+		uint32_t nrofPages = sizeToPages(remainingSize);
 		allocPageAt((void *)newArea, remainingSize, PAGE_FLAG_INUSE | PAGE_FLAG_KERNEL | PAGE_FLAG_WRITE);
 
 		size_t newHeapSize = heapSize + nrofPages * PAGE_SIZE;

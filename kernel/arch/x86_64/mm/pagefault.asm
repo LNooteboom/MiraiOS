@@ -6,6 +6,8 @@ extern hexprintln64
 extern cprint
 
 extern panic
+extern printk
+extern sysExit
 
 extern mmGetEntry
 extern allocPhysPage
@@ -120,6 +122,14 @@ excPF:
 	mov rsi, cr2
 	mov rdx, [rsp + 8]
 	mov rcx, [rsp]
+
+	mov rax, 0xffffffff80000000
+	cmp rdx, rax ;TODO use error code for this
+	jae .panic
+		call printk
+		mov rdi, -1
+		call sysExit
+	.panic:
 	call panic
 	jmp $
 

@@ -37,18 +37,18 @@ int destroyProcessMem(struct Process *proc) { //also called by exec
 	tlbReloadCR3Local();
 
 	//dealloc process pmem entries
-	for (unsigned int i = 0; i < proc->pmem.nrofEntries; i++) {
-		if (proc->pmem.entries[i].flags & MEM_FLAG_SHARED) {
-			acquireSpinlock(&proc->pmem.entries[i].shared->lock);
-			int refcount = proc->pmem.entries[i].shared->refCount--;
-			releaseSpinlock(&proc->pmem.entries[i].shared->lock);
+	for (unsigned int i = 0; i < proc->nrofMemEntries; i++) {
+		if (proc->memEntries[i].flags & MEM_FLAG_SHARED) {
+			acquireSpinlock(&proc->memEntries[i].shared->lock);
+			int refcount = proc->memEntries[i].shared->refCount--;
+			releaseSpinlock(&proc->memEntries[i].shared->lock);
 			if (!refcount) {
-				kfree(proc->pmem.entries[i].shared);
+				kfree(proc->memEntries[i].shared);
 			}
-			proc->pmem.entries[i].shared->refCount--;
+			proc->memEntries[i].shared->refCount--;
 		}
 	}
-	kfree(proc->pmem.entries);
+	kfree(proc->memEntries);
 
 	return 0;
 }

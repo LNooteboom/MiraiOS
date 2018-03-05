@@ -43,6 +43,9 @@ static inline size_t strlen(const char *str) {
 	return result;
 }
 
+/*
+Find a char in a string
+*/
 static inline int findChar(const char *str, char c, size_t len, int pos) {
 	for (unsigned int i = pos; i < len; i++) {
 		if (str[i] == c) {
@@ -50,6 +53,15 @@ static inline int findChar(const char *str, char c, size_t len, int pos) {
 		}
 	}
 	return -1;
+}
+
+static inline uintptr_t align(uintptr_t ptr, size_t align) {
+	uintptr_t mod = ptr % align;
+	if (mod) {
+		ptr -= mod;
+		ptr += align;
+	}
+	return ptr;
 }
 
 #endif

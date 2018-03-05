@@ -125,9 +125,9 @@ int sysOpen(const char *fileName, unsigned int flags) {
 	if (error) return error;
 
 	struct Process *proc = getCurrentThread()->process;
-	acquireSpinlock(&proc->lock);
+	acquireSpinlock(&proc->fdLock);
 	int fileno = allocateFD(proc);
-	releaseSpinlock(&proc->lock);
+	releaseSpinlock(&proc->fdLock);
 	if (fileno < 0) {
 		return fileno;
 	}
@@ -167,7 +167,7 @@ int sysClose(int fd) {
 		//todo
 		return -ENOSYS;
 	}
-	acquireSpinlock(&proc->lock);
+	acquireSpinlock(&proc->fdLock);
 	fsClose(&pf->file);
 	pf->flags = 0;
 	if (fd >= NROF_INLINE_FDS) {
@@ -175,7 +175,7 @@ int sysClose(int fd) {
 			kfree(proc->fds);
 		}
 	}
-	releaseSpinlock(&proc->lock);
+	releaseSpinlock(&proc->fdLock);
 	return 0;
 }
 

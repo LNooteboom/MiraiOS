@@ -120,10 +120,7 @@ int fsWrite(struct File *file, void *buffer, size_t bufSize) {
 	while (bufSize) {
 		inode->cacheDirty = true;
 		if (file->offset == inode->fileSize && !(inode->fileSize % PAGE_SIZE)) { //offset can never be greater
-			unsigned int nrofPages = bufSize / PAGE_SIZE;
-			if (bufSize % PAGE_SIZE) {
-				nrofPages++;
-			}
+			unsigned int nrofPages = sizeToPages(bufSize);
 			
 			size_t newCFSize;
 			if (file->offset) {

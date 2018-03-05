@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <mm/init.h> //for BSS_END_ADDR
 #include <mm/pagemap.h>
+#include <mm/memset.h>
 #include <sched/spinlock.h>
 #include <mm/physpaging.h>
 #include <arch/tlb.h>
@@ -178,10 +179,7 @@ static void deallocVMem(pte_t *start, unsigned int nrofPages) {
 
 void mmInitVirtPaging(void) {
 	uintptr_t bssEnd = (uintptr_t)(&BSS_END_ADDR);
-	if (bssEnd % LARGEPAGE_SIZE) {
-		bssEnd -= bssEnd % LARGEPAGE_SIZE;
-		bssEnd += LARGEPAGE_SIZE;
-	}
+	bssEnd = align(bssEnd, LARGEPAGE_SIZE);
 	bssEnd += 5 * PAGE_SIZE;
 
 	KVMemEnd = (void *)bssEnd;
@@ -205,10 +203,7 @@ void mmInitVirtPaging(void) {
 
 void *allocKPages(size_t size, pageFlags_t flags) {
 	flags |= PAGE_FLAG_INUSE | PAGE_FLAG_KERNEL;
-	unsigned int nrofPages = size / PAGE_SIZE;
-	if (size % PAGE_SIZE) {
-		nrofPages++;
-	}
+	unsigned int nrofPages = sizeToPages(size);
 
 	if (nrofPages > freePhysPages || freePhysPages - nrofPages < MIN_PHYSPAGES) {
 		return NULL;
@@ -230,10 +225,7 @@ void *allocKPages(size_t size, pageFlags_t flags) {
 }
 
 void allocPageAt(void *addr, size_t size, pageFlags_t flags) {
-	unsigned int nrofPages = size / PAGE_SIZE;
-	if (size % PAGE_SIZE) {
-		nrofPages++;
-	}
+	unsigned int nrofPages = sizeToPages(size);
 
 	if (flags & PAGE_FLAG_INUSE) {
 		freePhysPages -= nrofPages;
@@ -246,10 +238,7 @@ void allocPageAt(void *addr, size_t size, pageFlags_t flags) {
 }
 
 void deallocPages(void *addr, size_t size) {
-	unsigned int nrofPages = size / PAGE_SIZE;
-	if (size % PAGE_SIZE) {
-		nrofPages++;
-	}
+	unsigned int nrofPages = sizeToPages(size);
 
 	freePhysPages += nrofPages;
 
@@ -275,10 +264,7 @@ void deallocPages(void *addr, size_t size) {
 void *ioremap(uintptr_t paddr, size_t size) {
 	unsigned int paddrDiff = paddr % PAGE_SIZE;
 	size += paddrDiff;
-	unsigned int nrofPages = size / PAGE_SIZE;
-	if (size % PAGE_SIZE) {
-		nrofPages++;
-	}
+	unsigned int nrofPages = sizeToPages(size);
 
 	acquireSpinlock(&KVMemLock);
 	pte_t *mem = allocVMem(nrofPages);
@@ -300,10 +286,8 @@ void iounmap(void *addr, size_t size) {
 	unsigned int addrDiff = (uintptr_t)addr % PAGE_SIZE;
 	size += addrDiff;
 	addr = (void*)((uintptr_t)addr - addrDiff);
-	unsigned int nrofPages = size / PAGE_SIZE;
-	if (size % PAGE_SIZE) {
-		nrofPages++;
-	}
+	unsigned int nrofPages = sizeToPages(size);
+	
 	pte_t *mem = mmGetEntry((uintptr_t)addr, 0);
 	for (unsigned int i = 0; i < nrofPages; i++) {
 		mem[i] = 0;

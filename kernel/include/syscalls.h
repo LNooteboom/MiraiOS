@@ -31,6 +31,7 @@ typedef long pid_t;
 /*09*/ pid_t sysWaitPid(pid_t filter, int *waitStatus, int options);
 /*0A*/ int sysSleep(uint64_t seconds, uint32_t nanoSeconds);
 /*0B*/ int sysArchPrctl(int which, void *addr);
+/*0C*/ void* sysSbrk(int64_t new);
 //END
 
 #endif

@@ -35,6 +35,14 @@ extern char VMEM_OFFSET;
 extern unsigned long totalPhysPages;
 extern atomic_ulong freePhysPages;
 
+static inline long sizeToPages(size_t size) {
+	long ret = size / PAGE_SIZE;
+	if (size % PAGE_SIZE) {
+		ret++;
+	}
+	return ret;
+}
+
 /*
 Allocates a set of contiguous virtual pages in kernel memory
 */
