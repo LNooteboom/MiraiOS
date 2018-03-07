@@ -134,7 +134,7 @@ excPF:
 	jmp $
 
 SECTION .rodata
-PFmsg2: db 'Page fault cr2:%x rip:%x error:%x', 10, 0
+PFmsg2: db 'Page fault cr2:%X rip:%X error:%x', 10, 0
 
 invAllocMsg:    db 'Invalid page alloc', endl
 

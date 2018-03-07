@@ -11,6 +11,8 @@
 #include <arch/tlb.h>
 #include <arch/map.h>
 
+#include <print.h>
+
 #define KERNEL_VMEM_END 0xFFFFFFFFC0000000
 
 #define MIN_PHYSPAGES	16
@@ -101,7 +103,7 @@ static pte_t *allocVMem(uint32_t nrofPages) {
 	if (!found) {
 		pte_t *newEntry = mmGetEntry((uintptr_t)KVMemEnd, 0); //cannot be dereferenced until a new PT is created
 		unsigned int morePagesNeeded = nrofPages;
-		if (curFree && newEntry == &curFree[curNrofPages]) {
+		if (curFree && KVMemEnd == &curFree[curNrofPages]) {
 			morePagesNeeded -= curNrofPages;
 		}
 		unsigned int nrofPTs = morePagesNeeded / 512;
@@ -189,7 +191,7 @@ void mmInitVirtPaging(void) {
 
 	//create first vmem list entry
 	pte_t *entry = mmGetEntry(bssEnd, 0);
-	if (entry == KVMemEnd) {
+	if (bssEnd == (uintptr_t)KVMemEnd) {
 		//create new PT
 		physPage_t page = allocCleanPhysPage();
 		mmSetPageEntry(bssEnd, 1, page | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE);

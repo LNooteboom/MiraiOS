@@ -1,0 +1,286 @@
+#include "tty.h"
+
+#include <arch/bootinfo.h>
+#include <modules.h>
+#include <io.h>
+#include <errno.h>
+#include <mm/heap.h>
+#include <mm/paging.h>
+#include <mm/memset.h>
+#include <sched/thread.h>
+#include <fs/fs.h>
+#include <fs/devfile.h>
+#include <print.h>
+
+#include <arch/map.h>
+
+extern char font8x16[];
+
+static bool ttyEarly = true;
+
+#define BPP 4
+
+static uint32_t colors[NROF_COLORS] = {
+	0x000000,
+	0x0000AA,
+	0x00AA00,
+	0x00AAAA,
+	0xAA0000,
+	0xAA00AA,
+	0xAA5500,
+	0xAAAAAA,
+	0x555555,
+	0x5555FF,
+	0x55FF55,
+	0x55FFFF,
+	0xFF5555,
+	0xFF55FF,
+	0xFFFFFF
+};
+
+static void drawChar(char *vmem, int newline, struct VttyChar *vc) {
+	char c = vc->c;
+	if (c < 32 || c > 126) {
+		c = ' ';
+	}
+
+	uint32_t fgPix = colors[vc->fgCol];
+	//uint32_t fgPix = 0xFF;
+	uint32_t bgPix = colors[vc->bgCol];
+
+	unsigned int charIndex = (c - 32) * FONT_HEIGHT;
+	for (unsigned int charY = 0; charY < FONT_HEIGHT; charY++) {
+		unsigned char line = font8x16[charIndex++];
+		for (unsigned int charX = 0; charX < 8; charX++) {
+			if (line & 1) {
+				write32(vmem, fgPix);
+			} else {
+				write32(vmem, bgPix);
+			}
+			vmem += BPP;
+			line >>= 1;
+		}
+		vmem += newline;
+	}
+}
+
+static int fbUpdate(struct Vtty *tty) {
+	if (!tty->focus) return 0;
+	struct Framebuffer *fb = tty->fb;
+
+	int newline = fb->pitch - (FONT_WIDTH * BPP);
+
+	char *lineAddr = fb->vmem;
+	char *addr;
+	struct VttyChar *vc = tty->buf + tty->scrollbackY * tty->charWidth;
+
+	for (int y = 0; y < tty->charHeight; y++) {
+		addr = lineAddr;
+		for (int x = 0; x < tty->charWidth; x++) {
+			if (vc->dirty || tty->globalDirty) {
+				drawChar(addr, newline, vc);
+				vc->dirty = 0;
+			}
+			vc++;
+			addr += (FONT_WIDTH * BPP);
+		}
+		lineAddr += fb->pitch * FONT_HEIGHT;
+	}
+	return 0;
+}
+
+static void newline(struct Vtty *tty) {
+	tty->cursorX = 0;
+	tty->cursorY++;
+	if (tty->cursorY >= SCROLLBACK_LINES) {
+		tty->full = true;
+		tty->cursorY = 0;
+	}
+
+	//clear line
+	struct VttyChar *vc = &tty->buf[tty->cursorY * tty->charWidth];
+	for (int x = 0; x < tty->charWidth; x++) {
+		vc->c = 0;
+		vc->bgCol = 0;
+		vc->dirty = 1;
+		vc++;
+	}
+
+	//adjust scrollback pos
+	int y = tty->cursorY - tty->charHeight;
+	if (y < 0) {
+		if (tty->full) {
+			y = SCROLLBACK_LINES + y;
+		} else {
+			y = 0;
+		}
+	} else if (y >= SCROLLBACK_LINES) {
+		y = y % SCROLLBACK_LINES;
+	}
+	if (tty->scrollbackY != y) {
+		tty->scrollbackY = y;
+		tty->globalDirty = true;
+	}
+}
+
+static uint8_t sgrToColor(int sgr) {
+	uint8_t ret = sgr & 0xA;
+	ret |= (sgr & 1) << 2;
+	ret |= (sgr & 4) >> 2;
+	return ret;
+}
+
+//Returns nrof chars to skip
+static int parseEscape(struct Vtty *tty, const char *text) {
+	if (text[1] != '[') {
+		return 0;
+	}
+	int args[8];
+	memset(args, 0, 8 * sizeof(int));
+	int nrofArgs = 0;
+	int i = 2;
+	bool noArgs = true;
+	int final = 0;
+
+	while (text[i]) {
+		if (text[i] >= '0' && text[i] <= '9') {
+			noArgs = false;
+			args[nrofArgs] *= 10;
+			args[nrofArgs] += text[i] - '0';
+		} else if (text[i] == ';' && nrofArgs < 7) {
+			nrofArgs++;
+		} else if (text[i] >= 0x40 && text[i] <= 0x7E) {
+			final = i;
+			break;
+		}
+		i++;
+	}
+	if (!final) {
+		return 0;
+	}
+	if (!noArgs) {
+		nrofArgs++;
+	}
+
+	switch (text[final]) {
+		case 'm': //Set graphic rendition
+			for (i = 0; i < nrofArgs; i++) {
+				if (!args[i]) { //reset
+					tty->curFGCol = 7;
+					tty->curBGCol = 0;
+				} else if (args[i] == 1) { //toggle bold
+					tty->curFGCol ^= 8;
+				} else if (args[i] >= 30 && args[i] <= 37) { //fg color
+					tty->curFGCol = sgrToColor(args[i] - 30);
+				} else if (args[i] >= 40 && args[i] <= 47) { //bg color
+					tty->curBGCol = sgrToColor(args[i] - 40);
+				} else if (args[i] >= 90 && args[i] <= 97) { //fg bright color
+					tty->curFGCol = sgrToColor(args[i] - 90) + 8;
+				} else if (args[i] >= 100 && args[i] <= 107) { //bg bright color
+					tty->curBGCol = sgrToColor(args[i] - 100) + 8;
+				}
+			}
+			break;
+	}
+	return final;
+}
+
+int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
+	//acquireSpinlock(&tty->lock);
+	int linePos = tty->cursorY * tty->charWidth;
+	struct VttyChar *vc;
+	for (unsigned int i = 0; i < textLen; i++) {
+		switch (text[i]) {
+			case '\r':
+				tty->cursorX = 0;
+				break;
+			case '\n':
+				newline(tty);
+				linePos = tty->cursorY * tty->charWidth;
+				break;
+			case '\e':
+				i += parseEscape(tty, &text[i]);
+				break;
+			default:
+				vc = &tty->buf[linePos + tty->cursorX];
+				vc->c = text[i];
+				vc->fgCol = tty->curFGCol;
+				vc->bgCol = tty->curBGCol;
+				vc->dirty = 1;
+
+				tty->cursorX++;
+				if (tty->cursorX >= tty->charWidth) {
+					newline(tty);
+				}
+				break;
+		}
+	}
+	if (ttyEarly) {
+		fbUpdate(tty);
+		//releaseSpinlock(&tty->lock);
+	} else {
+		//releaseSpinlock(&tty->lock);
+		semSignal(&tty->updateSem);
+	}
+	return 0;
+}
+
+void ttyScroll(int amount) {
+	acquireSpinlock(&currentTty->lock);
+
+	int y = currentTty->scrollbackY + amount;
+	if (y < 0) {
+		if (currentTty->full) {
+			y = SCROLLBACK_LINES + y;
+		} else {
+			y = 0;
+		}
+	} else if (y >= SCROLLBACK_LINES) {
+		y = y % SCROLLBACK_LINES;
+	}
+	if (y == (currentTty->cursorY - currentTty->charHeight + 1) % SCROLLBACK_LINES) {
+		y = (currentTty->cursorY - currentTty->charHeight) % SCROLLBACK_LINES;
+	}
+	currentTty->scrollbackY = y;
+	currentTty->globalDirty = true;
+	semSignal(&currentTty->updateSem);
+
+	releaseSpinlock(&currentTty->lock);
+}
+
+void ttySwitch(unsigned int ttynr) {
+	if (ttynr >= NROF_VTTYS) return;
+
+	struct Vtty *tty = &ttys[ttynr];
+	struct Vtty *oldCurrent = currentTty;
+	oldCurrent->focus = false;
+	currentTty = tty;
+	tty->focus = true;
+	tty->globalDirty = true;
+
+	semSignal(&oldCurrent->updateSem);
+}
+
+static void fbUpdateThread(void) {
+	while (true) {
+		fbUpdate(currentTty);
+		semWait(&currentTty->updateSem);
+		//kthreadSleep(17);
+	}
+}
+
+void fbPanicUpdate(void) {
+	ttys[0].focus = true;
+	fbUpdate(&ttys[0]);
+}
+
+int fbInitLate(void) {
+	ttyEarly = false;
+	thread_t updateThread;
+	int error = kthreadCreate(&updateThread, (void *(*)(void *))fbUpdateThread, NULL, THREAD_FLAG_DETACHED);
+	if (error) {
+		return error;
+	}
+	return 0;
+}
+MODULE_INIT_LEVEL(fbInitLate, 2);

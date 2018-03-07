@@ -9,9 +9,9 @@ static int (*stdout)(const char *str) = NULL;
 
 #define PRINTK_STACK_BUF_SZ	512
 
-static void hexprint(char *dest, uint32_t value) {
-	for (int8_t i = 7; i >= 0; i--) {
-		char currentNibble = (value >> (i * 4)) & 0x0F;
+static void hexprint(char *dest, int len, uint64_t value) {
+	for (; len >= 0; len--) {
+		char currentNibble = (value >> (len * 4)) & 0x0F;
 		if (currentNibble < 10) {
 			//0-9
 			currentNibble += '0';
@@ -90,8 +90,14 @@ void vprintk(const char *fmt, va_list args) {
 			}
 			case 'x': {
 				uint32_t num = va_arg(args, uint32_t);
-				hexprint(&buf[i], num);
+				hexprint(&buf[i], 7, num);
 				i += 8;
+				break;
+			}
+			case 'X': {
+				uint64_t num = va_arg(args, uint64_t);
+				hexprint(&buf[i], 15, num);
+				i += 16;
 				break;
 			}
 			case '%':

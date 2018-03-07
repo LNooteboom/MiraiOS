@@ -27,7 +27,7 @@ MULTIBOOT_HEADER_PADDR	equ multiBootHeader
 
 PAGESIZE				equ 0x1000
 LARGE_PAGE_SIZE_2		equ 0x200000
-PAGEFLAGS				equ 0x103
+PAGEFLAGS				equ 0x003
 PDEFLAGS				equ 0x183
 
 SECTION multiboot
@@ -99,15 +99,15 @@ __init:
 		mov [nxEnabled - VMEM_OFFSET], byte 1
 	.noNX:
 	;setup pml4t
-	;add last entry pointing to itself
-	;mov [PML4T + (511 * 8)], ((PML4T) + PAGEFLAGS)
+	;add entry pointing to itself
+	;mov [PML4T + (510 * 8)], ((PML4T) + PAGEFLAGS)
 	mov eax, [PML4TEntryToItself]
 	mov edx, [PML4TEntryToItself + 4]
 	mov [(PML4T - VMEM_OFFSET) + (510 * 8)], eax
 	mov [(PML4T - VMEM_OFFSET) + (510 * 8) + 4], edx
 
 	;add entry pointing to kernel 
-	;mov [PML4T + (510 * 8)], ((PDPT) + PAGEFLAGS)
+	;mov [PML4T + (511 * 8)], ((PDPT) + PAGEFLAGS)
 	mov eax, [PML4TEntryToKernel]
 	mov edx, [PML4TEntryToKernel + 4]
 	mov [(PML4T - VMEM_OFFSET) + (511 * 8)], eax
@@ -171,15 +171,18 @@ __init:
 		or eax, (1 << 11) ;set NX bit
 	.noNX2:
 	wrmsr
+
+	;load multibootinfo ptr in edi
+	mov edi, [multiBootInfo - VMEM_OFFSET]
+
 	;enable paging
 	mov eax, cr0
 	or eax, (1 << 31)
-	mov cr0, eax
+	mov cr0, eax ;instruction following this must be a branch
 	
-	;load multibootinfo ptr in edi
-	mov edi, [multiBootInfo - VMEM_OFFSET]
 	;now jump to 64 bit (in another file)
-	jmp far dword [jumpVect]
+	;jmp far dword [jumpVect]
+	jmp 0x08:(init64 - VMEM_OFFSET)
 
 detectLongMode:
 	mov eax, 0x80000000
@@ -241,10 +244,6 @@ bootError:
 		jmp .halt
 
 SECTION bootdata
-
-jumpVect:
-	dd (init64 - VMEM_OFFSET)
-	dw 0x08
 
 PML4TEntryToItself:
 	dq ((PML4T - VMEM_OFFSET) + PAGEFLAGS)

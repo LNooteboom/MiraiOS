@@ -1,6 +1,6 @@
 #include <syscalls.h>
 
-char str[] = "Hello From C!!!\n";
+char str[] = "\e[47;31mHello From C!!!\n";
 
 int main(void) {
 	sysOpen("/dev/tty0", SYSOPEN_FLAG_WRITE);
