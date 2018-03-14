@@ -13,9 +13,9 @@ void mmInit(void) {
 	initHeap();
 }
 
-static void setProcMemSize(struct MemoryEntry *entry, size_t size) {
+/*static void setProcMemSize(struct MemoryEntry *entry, size_t size) {
 	entry->size = size;
-	if (entry->flags & MEM_FLAG_SHARED) {
+	if (entry->flags & MMAP_FLAG_SHARED) {
 		acquireSpinlock(&entry->shared->lock);
 		entry->shared->size = size;
 		entry->shared->nrofPhysPages = sizeToPages(size);
@@ -66,4 +66,4 @@ void *sysSbrk(int64_t new) {
 	ret:
 	releaseSpinlock(&proc->memLock);
 	return ret;
-}
+}*/

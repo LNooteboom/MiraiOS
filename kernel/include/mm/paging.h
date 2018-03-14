@@ -18,12 +18,12 @@ typedef uint64_t pageFlags_t;
 #define PAGE_FLAG_KERNEL	(1 << 8)	//global bit: disables tlb flush for kernel pages
 
 //alloc settings
-#define PAGE_FLAG_INUSE		(1 << 9)	//page will be allocated upon access
+#define PAGE_FLAG_INUSE		(1 << 9)	//page will be allocated upon access, is an allocated page
 #define PAGE_FLAG_CLEAN		(1 << 10)	//page to be allocated must be clean
 
 //shared page settings
 #define PAGE_FLAG_SHARED	(1 << 11)
-#define PAGE_FLAG_COW		(1 << 9)
+#define PAGE_FLAG_COW		(1 << 10)
 
 //internal settings
 #define PAGE_FLAG_PRESENT 	(1 << 0)

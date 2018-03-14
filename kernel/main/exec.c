@@ -9,6 +9,7 @@
 #include <userspace.h>
 #include <mm/memset.h>
 #include <mm/heap.h>
+#include <mm/mmap.h>
 #include <sched/elf.h>
 #include <modules.h>
 
@@ -16,12 +17,6 @@ struct Process initProcess;
 
 extern void uthreadInit(thread_t thread, void *start, uint64_t arg1, uint64_t arg2, void *userspaceStackpointer);
 extern void initExecRetThread(thread_t thread, void *start, uint64_t arg1, uint64_t arg2, void *userspaceStackpointer);
-
-union elfBuf {
-	struct ElfHeader header;
-	struct ElfPHEntry phEntry;
-
-};
 
 static int checkElfHeader(struct ElfHeader *header) {
 	if (memcmp(&header->magic[0], "\x7f""ELF", 4)) {
@@ -43,7 +38,7 @@ static int elfLoad(struct File *f, struct ElfPHEntry *entry) {
 	int error = fsSeek(f, entry->pOffset, SEEK_SET);
 	if (error) return error;
 
-	void *vaddr = (void *)entry->pVAddr;
+	void *vaddr = (void *)alignLow(entry->pVAddr, entry->alignment);
 	error = validateUserPointer(vaddr, entry->pMemSz);
 	if (error) return error;
 
@@ -51,13 +46,13 @@ static int elfLoad(struct File *f, struct ElfPHEntry *entry) {
 	if (entry->flags & PHFLAG_EXEC) {
 		flags |= PAGE_FLAG_EXEC;
 	}
-	//if (entry->flags & PHFLAG_WRITE) {
+	if (entry->flags & PHFLAG_WRITE) {
 		flags |= PAGE_FLAG_WRITE;
-	//}
+	}
 	//readable flag is ignored
-	allocPageAt(vaddr, entry->pMemSz, flags);
+	allocPageAt(vaddr, align(entry->pMemSz, entry->alignment), flags);
 
-	error = fsRead(f, vaddr, entry->pFileSz);
+	error = fsRead(f, (void *)entry->pVAddr, entry->pFileSz);
 	if (error != (int)entry->pFileSz) {
 		if (error >= 0) {
 			error = -EINVAL;
@@ -98,79 +93,64 @@ static int execCommon(thread_t mainThread, const char *fileName, void **startAdd
 	error = checkElfHeader(&header);
 	if (error) goto closef;
 
-	//count nrof load commands
-	unsigned int nrofLoads = 1; //Set to 1 to allocate stack as well
-	struct ElfPHEntry phEntry;
-	error = fsSeek(&f, header.phOff, SEEK_SET);
-	if (error) goto closef;
-	for (unsigned int i = 0; i < header.phnum; i++) {
-		fsRead(&f, &phEntry, sizeof(struct ElfPHEntry));
-		if (phEntry.type == PHTYPE_LOAD) {
-			nrofLoads++;
-		}
-	}
-
-	//create process memory struct
 	struct Process *proc = mainThread->process;
-	proc->nrofMemEntries = nrofLoads;
-	proc->memEntries = kmalloc(sizeof(struct MemoryEntry) * nrofLoads);
-	if (!proc->memEntries) {
-		error = -ENOMEM;
-		goto closef;
-	}
-	memset(proc->memEntries, 0, sizeof(struct MemoryEntry) * nrofLoads);
 
 	//loop over all program header entries
-	uintptr_t highestAddr = 0;
-	uintptr_t end;
-	nrofLoads = 0;
+	struct ElfPHEntry phEntry;
 	for (unsigned int i = 0; i < header.phnum; i++) {
 		error = fsSeek(&f, header.phOff + (i * sizeof(struct ElfPHEntry)), SEEK_SET);
-		if (error) goto freeMemStruct;
-		fsRead(&f, &phEntry, sizeof(struct ElfPHEntry));
+		if (error) goto closef;
+		ssize_t r = fsRead(&f, &phEntry, sizeof(struct ElfPHEntry));
+		if (r < 0) {
+			error = r;
+			goto dealloc;
+		}
+
 		switch (phEntry.type) {
 			case PHTYPE_NULL:
 				break;
 			case PHTYPE_LOAD:
-				error = elfLoad(&f, &phEntry);
-				proc->memEntries[nrofLoads].vaddr = (void *)(phEntry.pVAddr);
-				proc->memEntries[nrofLoads].size = phEntry.pMemSz;
-				proc->memEntries[nrofLoads].flags = phEntry.flags & ~MEM_FLAG_SHARED;
-
-				end = (uintptr_t)(proc->memEntries[nrofLoads].vaddr) + proc->memEntries[nrofLoads].size;
-				if (end > highestAddr) {
-					highestAddr = end;
+				if (phEntry.alignment % PAGE_SIZE) {
+					error = -EINVAL;
+					goto dealloc;
 				}
 
-				nrofLoads++;
+				error = elfLoad(&f, &phEntry);
+				if (error) goto dealloc;
+				struct MemoryEntry entry = {
+					.vaddr = (void *)(alignLow(phEntry.pVAddr, phEntry.alignment)),
+					.size = align(phEntry.pMemSz, phEntry.alignment),
+					.flags = (phEntry.flags & ~MMAP_FLAG_SHARED) | MMAP_FLAG_FIXED | MMAP_FLAG_ANON | MMAP_FLAG_COW
+				};
+				error = mmapCreateEntry(NULL, proc, &entry);
+				if (error) goto dealloc;
 				break;
+
 			default:
 				error = -EINVAL;
 		}
-		if (error) goto freeMemStruct;
 	}
 	*startAddr = (void *)header.entryAddr;
 
 	//allocate stack
-	if (highestAddr & (PAGE_SIZE - 1)) {
-		highestAddr &= ~(PAGE_SIZE - 1);
-		highestAddr += PAGE_SIZE;
-	}
-	
-	*sp = (void *)(highestAddr + THREAD_STACK_SIZE); //stack pointer = program break
-	proc->brkEntry = &proc->memEntries[nrofLoads];
+	struct MemoryEntry stackEntry = {
+		.vaddr = NULL,
+		.size = THREAD_STACK_SIZE,
+		.flags = MMAP_FLAG_WRITE | MMAP_FLAG_ANON | MMAP_FLAG_COW
+	};
+	error = mmapCreateEntry(sp, proc, &stackEntry);
+	if (error) goto dealloc;
 
-	proc->memEntries[nrofLoads].vaddr = (void *)highestAddr;
-	proc->memEntries[nrofLoads].size = THREAD_STACK_SIZE;
-	proc->memEntries[nrofLoads].flags = MEM_FLAG_WRITE;
-	allocPageAt(proc->memEntries[nrofLoads].vaddr, proc->memEntries[nrofLoads].size,
+	allocPageAt(*sp, THREAD_STACK_SIZE,
 		PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN | PAGE_FLAG_USER | PAGE_FLAG_WRITE);
+	*sp = (void *)((uintptr_t)*sp + THREAD_STACK_SIZE);
 
+	fsClose(&f);
 	return 0;
-	
-	freeMemStruct:
-	kfree(proc->memEntries);
+
+	dealloc:
 	closef:
+	fsClose(&f);
 	ret:
 	return error;
 }
@@ -192,18 +172,13 @@ int execInit(const char *fileName) {
 	mainThread->process = &initProcess;
 	initProcess.mainThread = mainThread;
 	initProcess.pid = 1;
-	//proc->cwd = "/";
+	initProcess.cwd = getInodeFromPath(NULL, "/"); //Root directory must exist
+	initProcess.cwd->refCount++;
 
 	//TODO make this arch independent
 	uint64_t cr3;
 	asm ("mov rax, cr3" : "=a"(cr3));
 	initProcess.addressSpace = cr3;
-
-	/*struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
-	error = fsOpen(stdout, &proc->inlineFDs[1]);
-	if (error) {
-		goto freeProcess;
-	}*/
 
 	void *start;
 	void *sp;
@@ -237,18 +212,19 @@ int sysExec(const char *fileName, char *const argv[] __attribute__ ((unused)), c
 	if (error) goto ret;
 
 	thread_t curThread = getCurrentThread();
-	destroyProcessMem(curThread->process);
-	kfree(curThread->process->memEntries);
-
+	mmapDestroy(curThread->process);
+	
 	void *start;
 	void *sp;
 	error = execCommon(curThread, namebuf, &start, &sp);
-	if (error) goto ret;
+	if (error) goto exitProc;
 
 	initExecRetThread(curThread, start, 0, 0, sp);
 	
 	return 0;
 
+	exitProc:
+	sysExit(error);
 	ret:
 	return error;
 }

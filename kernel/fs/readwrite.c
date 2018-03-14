@@ -90,7 +90,7 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 	return bytesCopied;
 }
 
-int fsWrite(struct File *file, void *buffer, size_t bufSize) {
+int fsWrite(struct File *file, const void *buffer, size_t bufSize) {
 	acquireSpinlock(&file->lock);
 	struct Inode *inode = file->inode;
 	acquireSpinlock(&inode->lock);

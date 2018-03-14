@@ -66,7 +66,7 @@ static int allocateFD(struct Process *proc) {
 	return fileno;
 }
 
-int sysWrite(int fd, void *buffer, size_t size) {
+int sysWrite(int fd, const void *buffer, size_t size) {
 	int error = validateUserPointer(buffer, size);
 	if (error) {
 		return error;

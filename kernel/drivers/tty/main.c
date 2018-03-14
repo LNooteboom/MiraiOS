@@ -16,7 +16,7 @@ struct Vtty ttys[NROF_VTTYS];
 struct Vtty *kernelTty = &ttys[0];
 struct Vtty *currentTty = &ttys[0];
 
-static int ttyWrite(struct File *file, void *buffer, size_t bufSize);
+static int ttyWrite(struct File *file, const void *buffer, size_t bufSize);
 static struct DevFileOps ttyOps = {
 	.write = ttyWrite
 };
@@ -27,7 +27,7 @@ static int kernelPuts(const char *text) {
 	return error;
 }
 
-static int ttyWrite(struct File *file, void *buffer, size_t bufSize) {
+static int ttyWrite(struct File *file, const void *buffer, size_t bufSize) {
 	return ttyPuts(file->inode->cachedData, buffer, bufSize);
 }
 

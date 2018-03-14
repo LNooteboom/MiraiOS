@@ -22,12 +22,14 @@ bool perCpuTimer = false;
 extern void jiffyIrq(void);
 extern void reschedIPI(void);
 extern void syscallInit(void);
+extern void setupCRegs(void);
 
 void earlyArchInit(void) {
 	uint64_t pat = rdmsr(0x277);
 	pat &= ~(0xFF << 8);
 	pat |= (0x01 << 8);
 	wrmsr(0x277, pat);
+	setupCRegs();
 	acpiInit();
 
 	lapicInit();

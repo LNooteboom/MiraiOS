@@ -135,7 +135,7 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize);
 /*
 Writes to a file
 */
-int fsWrite(struct File *file, void *buffer, size_t bufSize);
+int fsWrite(struct File *file, const void *buffer, size_t bufSize);
 
 /*
 Sets the current offset of a file stream
@@ -154,7 +154,7 @@ int fsCloseOnExec(void);
 
 //System calls
 
-int sysWrite(int fd, void *buffer, size_t size);
+int sysWrite(int fd, const void *buffer, size_t size);
 int sysRead(int fd, void *buffer, size_t size);
 int sysIoctl(int fd, unsigned long request, ...);
 int sysOpen(const char *fileName, unsigned int flags);

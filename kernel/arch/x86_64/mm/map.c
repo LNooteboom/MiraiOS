@@ -59,13 +59,25 @@ physPage_t mmGetPageEntry(uintptr_t vaddr) {
 		if ( !(*entry & PAGE_FLAG_PRESENT)) {
 			//Page entry higher does not exist
 			return 0;
-		} else if (i == 0 || *entry & PAGE_FLAG_SIZE) {
+		} else if ((i == 0 || *entry & PAGE_FLAG_SIZE) && *entry & PAGE_FLAG_PRESENT) {
 			return (physPage_t)(*entry & PAGE_MASK);
 		}
 	}
 	return 0;
 }
 
+
+static void allocTables(uintptr_t vaddr, pageFlags_t flags) {
+	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 1; i--) {
+		pte_t *entry = mmGetEntry(vaddr, i);
+		if ( !(*entry & PAGE_FLAG_PRESENT)) {
+			//Page entry higher does not exist
+			physPage_t page = allocCleanPhysPage();
+			freePhysPages--;
+			*entry = page | PAGE_FLAG_PRESENT | flags | PAGE_FLAG_WRITE;
+		}
+	}
+}
 
 /*
 Maps a page with physical address paddr to the virtual address vaddr.
@@ -76,42 +88,11 @@ void mmMapPage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
 	} else {
 		flags &= ~PAGE_FLAG_EXEC;
 	}
-	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 1; i--) {
-		pte_t *entry = mmGetEntry(vaddr, i);
-		if ( !(*entry & PAGE_FLAG_PRESENT)) {
-			//Page entry higher does not exist
-			physPage_t page = allocCleanPhysPage();
-			freePhysPages--;
-			*entry = page | PAGE_FLAG_PRESENT | flags;
-		}
-	}
+	allocTables(vaddr, flags);
 	pte_t entry = paddr | flags | PAGE_FLAG_PRESENT | PAGE_FLAG_INUSE;
 	mmSetPageEntry(vaddr, 0, entry);
 	return;
 }
-
-/*
-Maps a large page with physical address paddr to the virtual address vaddr.
-*/
-/*void mmMapLargePage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
-	if (nxEnabled) {
-		flags ^= PAGE_FLAG_EXEC; //flip exec bit to get NX bit
-	} else {
-		flags &= ~PAGE_FLAG_EXEC;
-	}
-	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 2; i--) {
-		pte_t *entry = mmGetEntry(vaddr, i);
-		if ( !(*entry & PAGE_FLAG_PRESENT)) {
-			//Page entry higher does not exist
-			physPage_t page = allocCleanPhysPage();
-			freePhysPages--;
-			*entry = page | PAGE_FLAG_PRESENT | flags;
-		}
-	}
-	pte_t entry = paddr | flags | PAGE_FLAG_PRESENT | PAGE_FLAG_INUSE | PAGE_FLAG_SIZE;
-	mmSetPageEntry(vaddr, 1, entry);
-	return;
-}*/
 
 void mmSetPageFlags(uintptr_t vaddr, pageFlags_t flags) {
 	if (nxEnabled) {
@@ -119,15 +100,7 @@ void mmSetPageFlags(uintptr_t vaddr, pageFlags_t flags) {
 	} else {
 		flags &= ~PAGE_FLAG_EXEC;
 	}
-	for (int8_t i = NROF_PAGE_LEVELS - 1; i >= 1; i--) {
-		pte_t *entry = mmGetEntry(vaddr, i);
-		if ( !(*entry & PAGE_FLAG_PRESENT)) {
-			//Page entry higher does not exist
-			physPage_t page = allocCleanPhysPage();
-			freePhysPages--;
-			*entry = page | PAGE_FLAG_PRESENT | flags;
-		}
-	}
+	allocTables(vaddr, flags);
 	*mmGetEntry(vaddr, 0) = flags;
 }
 

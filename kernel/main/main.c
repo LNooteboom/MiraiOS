@@ -36,9 +36,7 @@ static void executeModuleCallLevel(unsigned int level) {
 	for (moduleCall_t *i = moduleInitLevels[level]; i < moduleInitLevels[level + 1]; i++) {
 		int error = (*i)();
 		if (error) {
-			puts("[MAIN] moduleCall at ");
-			hexprint64((uint64_t)i);
-			printk(" returned non-zero value: %d\n", error);
+			printk("[MAIN] moduleCall at %X returned non-zero value: %d\n", (uint64_t)i, error);
 		}
 	}
 }

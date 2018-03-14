@@ -64,4 +64,8 @@ static inline uintptr_t align(uintptr_t ptr, size_t align) {
 	return ptr;
 }
 
+static inline uintptr_t alignLow(uintptr_t ptr, size_t align) {
+	return ptr - ptr % align;
+}
+
 #endif

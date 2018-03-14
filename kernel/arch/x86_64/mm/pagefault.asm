@@ -7,6 +7,7 @@ extern cprint
 
 extern panic
 extern printk
+extern puts
 extern sysExit
 
 extern mmGetEntry
@@ -14,11 +15,18 @@ extern allocPhysPage
 extern allocCleanPhysPage
 extern allocLargePhysPage
 extern allocLargeCleanPhysPage
+extern mmDoCOW
+extern mmGetPageEntry
 
 %define endl 10, 0
 %define NROF_PAGE_LEVELS 4
 
 SECTION .text
+
+invAlloc:
+	mov rdi, invAllocMsg
+	call puts
+	jmp $
 
 excPF:
 	push rax
@@ -40,91 +48,122 @@ excPF:
 		or [rsp + 0x80], dword 3
 	.noswapgs:
 
-    ;test if caused by not present page
+    ;Check error code
     mov eax, [rsp + 0x58]
-    test eax, 1
-    jnz .L0
-        mov bl, NROF_PAGE_LEVELS - 1
-        .L1:
-            mov rdi, cr2
-            movzx esi, bl
-            call mmGetEntry
-            ;rax contains pointer to pte
-            mov r12, rax
-            mov rax, [rax]
-            test al, 0x01 ;present flag
-            jnz .L2
-                test eax, (1 << 9) ;inuse flag
-                jz .L0 ;give error if not in use
-                cmp bl, 0
-                jne .L3
-                    test eax, (1 << 10) ;clean flag
-                    jz .L4
-						call allocCleanPhysPage
-                        jmp .L7
-                    .L4:
-                        call allocPhysPage
-                        jmp .L7
-                .L3:
-                cmp bl, 1
-                jne .L5
-                    test ax, (1 << 10) ;clean flag
-                    jz .L6
-                        ;call allocLargeCleanPhysPage
-                        jmp .L7
-                    .L6:
-                        call allocLargePhysPage
-                        jmp .L7
-                .L5: ;else
-                    mov rdi, invAllocMsg
-                    call puts
-                    jmp $
-                .L7:
-                mov rdx, 0xFFF0000000000FFF
-                or al, 1 ;set present bit
-                and [r12], rdx  ;clear address field
-                or [r12], rax ;OR it with new address + present bit
-                jmp .L8
-            .L2:
-            sub bl, 1
-            jns .L1
-            ;page already alloced
-			mov rdi, weirdPF
-			call puts
-			jmp $
-        .L8:
-        xor rdi, rdi
-        mov cr2, rdi
+	cmp eax, 7
+	je .writeFault
 
-		mov rax, 0xffffffff80000000
-		cmp [rsp + 0x60], rax
-		jae .noswapgs2
-			swapgs
-		.noswapgs2:
-        
-        pop r12
-		pop rbx
-		pop r11
-		pop r10
-		pop r9
-		pop r8
-		pop rdi
-		pop rsi
-		pop rdx
-		pop rcx
-		pop rax
-        add rsp, 8 ;jump over error code
-        iretq
-    .L0:
+    test eax, 1
+    jnz .error
+
+	mov ebx, NROF_PAGE_LEVELS - 1
+	.L1:
+		mov rdi, cr2
+		mov esi, ebx
+		call mmGetEntry
+		;rax contains pointer to pte
+		mov r12, rax
+		mov rax, [rax]
+		test eax, 0x01 ;present flag
+		jnz .L2
+			test eax, (1 << 9) ;inuse flag
+			jz .error ;give error if not in use
+			cmp ebx, 0
+			jne .L3
+				test eax, (1 << 10) ;clean flag
+				jz .L4
+					call allocCleanPhysPage
+					jmp .L7
+				.L4:
+					call allocPhysPage
+					jmp .L7
+			.L3:
+			cmp ebx, 1
+			jne invAlloc
+				test eax, (1 << 10) ;clean flag
+				jz .L6
+					;call allocLargeCleanPhysPage
+					jmp .L7
+				.L6:
+					call allocLargePhysPage
+			.L7:
+			mov rdx, 0xFFF0000000000FFF
+			or rax, 1 ;set present bit
+			and [r12], rdx  ;clear address field
+			or [r12], rax ;OR it with new address + present bit
+			jmp .return
+		.L2:
+		sub ebx, 1
+		jns .L1
+		;page already alloced
+		mov rdi, weirdPF
+		call puts
+		jmp $
+
+	.writeFault:
+	mov rdi, cr2
+	call mmDoCOW
+	test eax, eax
+	jnz .error
+
+	.return:
+	xor rdi, rdi
+	mov cr2, rdi
+
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x60], rax
+	jae .noswapgs2
+		swapgs
+	.noswapgs2:
+	
+	pop r12
+	pop rbx
+	pop r11
+	pop r10
+	pop r9
+	pop r8
+	pop rdi
+	pop rsi
+	pop rdx
+	pop rcx
+	pop rax
+	add rsp, 8 ;jump over error code
+	iretq
+
+
+    .error:
 	add rsp, 0x58
 
+	;print stack trace
+	mov rbx, [rsp + 32]
+	mov rdi, rbx
+	call mmGetPageEntry
+	test rax, rax
+	jz .end
+
+	mov rdi, stStart
+	call puts
+	mov r13d, 8
+	.start:
+		mov rdi, stLoop
+		mov rsi, rbx
+		mov rdx, [rbx]
+		call printk
+		add rbx, 8
+		test rbx, 0xFFF
+		jz .end
+		dec r13d
+		jnz .start
+
+	.end:
 	mov rdi, PFmsg2
-	mov rsi, cr2
+	;mov rsi, cr2
+	mov rsi, [r12]
 	mov rdx, [rsp + 8]
 	mov rcx, [rsp]
 
 	mov rax, 0xffffffff80000000
-	cmp rdx, rax ;TODO use error code for this
+	cmp rdx, rax
 	jae .panic
 		call printk
 		mov rdi, -1
@@ -134,6 +173,9 @@ excPF:
 	jmp $
 
 SECTION .rodata
+stStart: db 'Stack trace:', 10, 0
+stLoop: db '%X: %X', 10, 0
+
 PFmsg2: db 'Page fault cr2:%X rip:%X error:%x', 10, 0
 
 invAllocMsg:    db 'Invalid page alloc', endl

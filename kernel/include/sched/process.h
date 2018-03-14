@@ -14,9 +14,12 @@ Userspace process information
 
 #define INIT_PID	1
 
-#define MEM_FLAG_WRITE	(1 << 0)
-#define MEM_FLAG_EXEC	(1 << 1)
-#define MEM_FLAG_SHARED	(1 << 2)
+#define MMAP_FLAG_EXEC		(1 << 0)
+#define MMAP_FLAG_WRITE		(1 << 1)
+#define MMAP_FLAG_SHARED	(1 << 2) /*Indicates that .shared is valid, has nothing to do with POSIX MAP_SHARED*/
+#define MMAP_FLAG_FIXED		(1 << 3)
+#define MMAP_FLAG_ANON		(1 << 4)
+#define MMAP_FLAG_COW		(1 << 5) /*This flag specifies whether the actual memory mapping is shared or not*/
 
 #define PROCFILE_FLAG_USED		SYSOPEN_FLAG_CREATE
 #define PROCFILE_FLAG_READ		SYSOPEN_FLAG_READ
@@ -25,31 +28,23 @@ Userspace process information
 #define PROCFILE_FLAG_APPEND	SYSOPEN_FLAG_APPEND
 #define PROCFILE_FLAG_SHARED	(1 << NROF_SYSOPEN_FLAGS)
 
-struct ProcessMemory;
-
 struct SharedMemory {
-	void *vaddr;
-	size_t size;
-	unsigned int flags;
 	unsigned int refCount;
-	unsigned long nrofPhysPages;
-	uintptr_t alignedVaddr;
-
 	spinlock_t lock;
-
-	physPage_t phys[1]; //extendable
+	long nrofPages;
+	physPage_t phys[1];
 };
 
 struct MemoryEntry {
 	void *vaddr;
 	size_t size;
 	unsigned int flags;
-	struct SharedMemory *shared;
-};
 
-struct ProcessMemory {
-	unsigned int nrofEntries;
-	struct MemoryEntry *entries;
+	struct MemoryEntry *next;
+	struct MemoryEntry *prev;
+
+	struct SharedMemory *shared;
+	size_t sharedOffset;
 };
 
 struct ProcessFile {
@@ -85,12 +80,12 @@ struct Process {
 	struct Process *prevChild;
 	struct Process *nextChild;
 
-	struct MemoryEntry *memEntries;
-	struct MemoryEntry *brkEntry;
-	unsigned int nrofMemEntries;
+	struct MemoryEntry *firstMemEntry;
+	struct MemoryEntry *lastMemEntry;
+	//struct MemoryEntry *brkEntry;
 	spinlock_t memLock;
 
-	struct Inode *cwd; //unused
+	struct Inode *cwd;
 
 	unsigned long id;
 	void *rootPT;
@@ -112,10 +107,10 @@ extern struct Process initProcess;
 
 void linkChild(struct Process *parent, struct Process *child);
 
-int destroyProcessMem(struct Process *proc);
-
 void removeProcess(struct Process *proc);
 
 void exitProcess(struct Process *proc, int exitValue);
+
+void sysExit(int exitValue);
 
 #endif

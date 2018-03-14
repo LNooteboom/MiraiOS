@@ -6,10 +6,6 @@
 #include <print.h>
 
 int fsOpen(struct Inode *inode, struct File *output) {
-
-	/*if ((inode->type & ITYPE_MASK) == ITYPE_DIR) {
-		return -EISDIR;
-	}*/
 	acquireSpinlock(&inode->lock);
 
 	inode->refCount++;
@@ -17,7 +13,6 @@ int fsOpen(struct Inode *inode, struct File *output) {
 	output->inode = inode;
 
 	releaseSpinlock(&inode->lock);
-
 	return 0;
 }
 

@@ -16,6 +16,8 @@ extern ackIRQ
 
 extern forkRet
 
+extern printk
+
 SYSCALL_MAX:	equ 256
 
 SECTION .text
@@ -57,18 +59,6 @@ syscallInit:
 	ret
 
 initExecRetThread: ;(thread_t thread, void *start, uint64_t arg1, uint64_t arg2)
-	;mov r8, rdi
-	;mov r9, rcx
-	;mov r10, rsi
-	;sub rdi, 0x48 ;don't overwrite flags (r11)
-	;mov ecx, (0x48 / 8)
-	;xor eax, eax
-	;rep stosq
-
-	;mov [r8 - 0x18], r10 ;ret addr
-	;mov [r8 - 0x28], r9
-	;mov [r8 - 0x30], rdx
-
 	mov [rdi - 0x08], r8  ;rsp on sysret stack
 	mov [rdi - 0x18], rsi ;rcx on sysret stack
 	mov [rdi - 0x28], rcx ;rsi on sysret stack
@@ -77,32 +67,30 @@ initExecRetThread: ;(thread_t thread, void *start, uint64_t arg1, uint64_t arg2)
 	ret
 
 initForkRetThread: ;(thread_t newThread, thread_t parent) returns void
-	mov rax, [rsi - 0x08]
-	mov [rdi - 0x08], rax ;copy userspace stack pointer
-
-	mov rax, [rsi - 0x18]
-	mov [rdi - 0x18], rax ;copy ret addr (rcx)
-
-	mov rax, [rsi - 0x50]
-	;and rax, ~(1 << 9) ;delet this
-	mov [rdi - 0x50], rax ;copy flags (r11)
-	
-	;rdi - 0x10 -> -0x58 userspace regs
+	;sysret stack
+	mov ecx, (0x88 / 8)
+	sub rdi, 0x88
+	sub rsi, 0x88
+	rep movsq
+	mov qword [rdi - 0x10], 0 ;set rax to 0
 
 	;return addr
-	mov rax, sysret64
-	mov [rdi - 0x58], rax
+	mov rax, forkSysret64
+	mov [rdi - 0x88], rax
 	
 	;iretq stack
 	pushfq
-	mov qword [rdi - 0x60], 0x10 ;ss
-	lea rax, [rdi - 0x58]
-	mov [rdi - 0x68], rax ;rsp
-	pop qword [rdi - 0x70] ;rflags
-	mov qword [rdi - 0x78], 0x08 ;cs
+	pop rdx
+	or rdx, (1 << 9) ;set IF
+
+	mov qword [rdi - 0x90], 0x10 ;ss
+	lea rax, [rdi - 0x88]
+	mov [rdi - 0x98], rax ;rsp
+	mov [rdi - 0xA0], rdx ;rflags
+	mov qword [rdi - 0xA8], 0x08 ;cs
 	mov rax, forkRet
-	mov [rdi - 0x80], rax ;rip
-	lea rax, [rdi - 0xF8]
+	mov [rdi - 0xB0], rax ;rip
+	lea rax, [rdi - (0xB0 + 0x78)]
 	mov [rdi], rax ;set stackpointer in thread struct
 
 	ret
@@ -116,43 +104,65 @@ syscallEntry64:
 
 	sti
 
-	sub rsp, 0x48
-	mov [rsp + 0x40], rax
-	mov [rsp + 0x38], rcx
-	mov [rsp + 0x30], rdx
-	mov [rsp + 0x28], rsi
-	mov [rsp + 0x20], rdi
-	mov [rsp + 0x18], r8
-	mov [rsp + 0x10], r9
-	mov [rsp + 0x08], r10
-	mov [rsp], r11
+	sub rsp, 0x50
+	mov [rsp + 0x48], rax
+	mov [rsp + 0x40], rcx
+	mov [rsp + 0x38], rdx
+	mov [rsp + 0x30], rsi
+	mov [rsp + 0x28], rdi
+	mov [rsp + 0x20], r8
+	mov [rsp + 0x18], r9
+	mov [rsp + 0x10], r10
+	mov [rsp + 0x08], r11
+	mov [rsp], rbx
+
+	cld
 
 	mov rcx, r10
 
-	mov r10d, [rsp + 0x40]
-	cmp r10d, SYSCALL_MAX
+	mov rbx, [rsp + 0x48]
+	cmp rbx, SYSCALL_MAX
 	mov eax, -7 ;-ENOSYS
 	jae sysret64
 	
-	mov r10, [syscallTable + r10 * 8]
+	mov r10, [syscallTable + rbx * 8]
 	test r10, r10
 	jz sysret64 ;eax is still -ENOSYS
 
+	cmp ebx, 7
+	jne .noSaveForkRegs
+		push rbp
+		push r12
+		push r13
+		push r14
+		push r15
+	.noSaveForkRegs:
+
 	call r10
+
+	cmp ebx, 7
+	jne sysret64
+forkSysret64:
+		pop r15
+		pop r14
+		pop r13
+		pop r12
+		pop rbp
 
 sysret64:
 	;rax need not be restored
-	mov rcx, [rsp + 0x38]
-	mov rdx, [rsp + 0x30]
-	mov rsi, [rsp + 0x28]
-	mov rdi, [rsp + 0x20]
-	mov r8,  [rsp + 0x18]
-	mov r9,  [rsp + 0x10]
-	mov r10, [rsp + 0x08]
-	mov r11, [rsp]
+	mov rcx, [rsp + 0x40]
+	mov rdx, [rsp + 0x38]
+	mov rsi, [rsp + 0x30]
+	mov rdi, [rsp + 0x28]
+	mov r8,  [rsp + 0x20]
+	mov r9,  [rsp + 0x18]
+	mov r10, [rsp + 0x10]
+	mov r11, [rsp + 0x08]
+	mov rbx, [rsp]
 
 	cli
-	mov rsp, [rsp + 0x48]
+	mov rsp, [rsp + 0x50]
 	
 	swapgs
 	db 0x48 ;no sysretq in NASM
@@ -216,7 +226,5 @@ irqCommon:
 	add rsp, 0x50
 	iretq
 
-;SECTION .bss
-
-;syscallTable:
-;resq SYSCALL_MAX
+SECTION .rodata
+teststr: db `%X %X\n`, 0

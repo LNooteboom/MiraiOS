@@ -2,6 +2,7 @@
 #include <mm/pagemap.h>
 #include <mm/heap.h>
 #include <mm/physpaging.h>
+#include <mm/mmap.h>
 #include <fs/fs.h>
 #include <arch/tlb.h>
 #include <userspace.h>
@@ -29,28 +30,6 @@ static bool checkFilter(pid_t filter, struct Process *child) {
 	}
 	//TODO check for group id
 	return false;
-}
-
-int destroyProcessMem(struct Process *proc) { //also called by exec
-	//Destroy page mapping
-	mmUnmapUserspace(); //POINTERS TO USERSPACE ARE NO LONGER VALID AFTER THIS CALL
-	tlbReloadCR3Local();
-
-	//dealloc process pmem entries
-	for (unsigned int i = 0; i < proc->nrofMemEntries; i++) {
-		if (proc->memEntries[i].flags & MEM_FLAG_SHARED) {
-			acquireSpinlock(&proc->memEntries[i].shared->lock);
-			int refcount = proc->memEntries[i].shared->refCount--;
-			releaseSpinlock(&proc->memEntries[i].shared->lock);
-			if (!refcount) {
-				kfree(proc->memEntries[i].shared);
-			}
-			proc->memEntries[i].shared->refCount--;
-		}
-	}
-	kfree(proc->memEntries);
-
-	return 0;
 }
 
 void removeProcess(struct Process *proc) { //remove zombie
@@ -81,7 +60,7 @@ void exitProcess(struct Process *proc, int exitValue) { //can also be called on 
 	releaseSpinlock(&initProcess.lock);
 
 	//destroy memory
-	destroyProcessMem(proc);
+	mmapDestroy(proc);
 	
 	//destroy files
 	for (int i = 0; i < NROF_INLINE_FDS + proc->nrofFDs; i++) {

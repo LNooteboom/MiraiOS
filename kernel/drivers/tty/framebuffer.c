@@ -86,6 +86,7 @@ static int fbUpdate(struct Vtty *tty) {
 		}
 		lineAddr += fb->pitch * FONT_HEIGHT;
 	}
+	tty->globalDirty = false;
 	return 0;
 }
 
@@ -123,6 +124,7 @@ static void newline(struct Vtty *tty) {
 	}
 }
 
+//swap bit 0 and 2
 static uint8_t sgrToColor(int sgr) {
 	uint8_t ret = sgr & 0xA;
 	ret |= (sgr & 1) << 2;
@@ -186,7 +188,7 @@ static int parseEscape(struct Vtty *tty, const char *text) {
 }
 
 int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
-	//acquireSpinlock(&tty->lock);
+	acquireSpinlock(&tty->lock);
 	int linePos = tty->cursorY * tty->charWidth;
 	struct VttyChar *vc;
 	for (unsigned int i = 0; i < textLen; i++) {
@@ -217,9 +219,9 @@ int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 	}
 	if (ttyEarly) {
 		fbUpdate(tty);
-		//releaseSpinlock(&tty->lock);
+		releaseSpinlock(&tty->lock);
 	} else {
-		//releaseSpinlock(&tty->lock);
+		releaseSpinlock(&tty->lock);
 		semSignal(&tty->updateSem);
 	}
 	return 0;
@@ -263,9 +265,10 @@ void ttySwitch(unsigned int ttynr) {
 
 static void fbUpdateThread(void) {
 	while (true) {
+		acquireSpinlock(&currentTty->lock);
 		fbUpdate(currentTty);
+		releaseSpinlock(&currentTty->lock);
 		semWait(&currentTty->updateSem);
-		//kthreadSleep(17);
 	}
 }
 

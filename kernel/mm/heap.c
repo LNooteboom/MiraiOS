@@ -18,7 +18,7 @@
 #define AREA_SIZE	(~(HEAP_ALIGN - 1))
 #define AREA_INUSE	(1 << 0)
 
-#define MAX_ALLOC	4096
+#define MAX_ALLOC	(2048*1024)
 
 typedef uint64_t memArea_t;
 
@@ -56,7 +56,7 @@ static void *heapAlloc(size_t size, memArea_t *heap, size_t heapSize) {
 			printk("Heap is corrupted!\n");
 			break;
 		} else {
-			newHeader = (void*)(newHeader) + (*newHeader & ~1);
+			newHeader = (void*)(newHeader) + (*newHeader & AREA_SIZE);
 		}
 	}
 	if (!foundMem) {
@@ -68,14 +68,14 @@ static void *heapAlloc(size_t size, memArea_t *heap, size_t heapSize) {
 	*newHeader = totalSize;
 	memArea_t *newFooter = getFooterFromHeader(newHeader);
 
-	if (totalSize != oldSize) {
+	if (oldSize - totalSize > HEAP_ALIGN) {
 		//split and create new header for other area
-		//memArea_t *freeHeader = (void*)(newHeader) + *newHeader;
-		//*freeHeader = oldSize - totalSize;
-		//*freeFooter = *freeHeader;
 		*freeFooter = oldSize - totalSize;
 		memArea_t *freeHeader = getHeaderFromFooter(freeFooter);
 		*freeHeader = *freeFooter;
+	} else {
+		*newHeader = oldSize;
+		newFooter = getFooterFromHeader(newHeader);
 	}
 
 	*newHeader |= 1;
@@ -119,7 +119,7 @@ void *kmalloc(size_t size) {
 		return NULL;
 	}
 	if (size > MAX_ALLOC) {
-		printk("kmalloc: too big alloc!\n");
+		printk("[HEAP] kmalloc: too big alloc: %d\n", size);
 		return NULL;
 	}
 	if (size % HEAP_ALIGN) {
@@ -130,36 +130,31 @@ void *kmalloc(size_t size) {
 	void *retVal = heapAlloc(size, heapStart, heapSize);
 	if (!retVal) {
 		//allocate more heap space
+		size = align(size, HEAP_ALIGN);
 		size_t totalSize = size + sizeof(memArea_t) * 2;
 		uintptr_t newArea = (uintptr_t)heapStart + heapSize;
-		memArea_t *lastEntry = (memArea_t *)newArea - 2;
-		size_t lastAreaSize = 0;
-		if (!(*lastEntry & AREA_INUSE)) {
-			lastAreaSize = *lastEntry;
-		}
-		if (lastAreaSize >= totalSize) {
-			puts("heapAlloc error!");
-			return NULL;
-		}
-		size_t remainingSize = totalSize - lastAreaSize;
-		uint32_t nrofPages = sizeToPages(remainingSize);
-		allocPageAt((void *)newArea, remainingSize, PAGE_FLAG_INUSE | PAGE_FLAG_KERNEL | PAGE_FLAG_WRITE);
-
-		size_t newHeapSize = heapSize + nrofPages * PAGE_SIZE;
-		memArea_t *newFooter = (memArea_t *)((uintptr_t)heapStart + newHeapSize) - 2;
-		if (*lastEntry & AREA_INUSE) {
-			memArea_t *newHeader = (memArea_t *)newArea - 1;
-			*newHeader = nrofPages * PAGE_SIZE;
-			*newFooter = nrofPages * PAGE_SIZE;
+		memArea_t *lastFooter = (memArea_t *)newArea - 2;
+		size_t remaining = totalSize;
+		memArea_t *newHeader;
+		if (*lastFooter & AREA_INUSE) {
+			newHeader = lastFooter + 1;
+			*newHeader = 0;
 		} else {
-			//area is free, merge it
-			memArea_t *newHeader = getHeaderFromFooter(lastEntry);
-			*newHeader += nrofPages * PAGE_SIZE;
-			*newFooter = *newHeader;
+			newHeader = getHeaderFromFooter(lastFooter);
+			remaining -= *newHeader;
 		}
-		heapSize = newHeapSize;
+		allocPageAt((void *)newArea, remaining, PAGE_FLAG_INUSE | PAGE_FLAG_KERNEL | PAGE_FLAG_WRITE);
+		size_t more = align(remaining, PAGE_SIZE);
+		*newHeader += more;
+		heapSize += more;
+		memArea_t *newFooter = getFooterFromHeader(newHeader);
+		*newFooter = *newHeader;
+
 		//try again
 		retVal = heapAlloc(size, heapStart, heapSize);
+		if (!retVal) {
+			puts("[HEAP] Fail after allocating more pages!\n");
+		}
 	}
 	releaseSpinlock(&heapLock);
 	return retVal;

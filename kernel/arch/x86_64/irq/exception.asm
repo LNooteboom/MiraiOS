@@ -12,6 +12,7 @@ extern idtSetDPL
 extern excPF
 
 extern kthreadExit
+extern sysExit
 
 global initExceptions:function
 global undefinedInterrupt:function
@@ -91,7 +92,8 @@ __excBase: ;error code in rax
 		call kthreadExit
 		jmp .halt
 	.userThread:
-		call kthreadExit ;TODO replace this with exit syscall
+		mov edi, -1
+		call sysExit
     .halt:
 	cli
 	hlt
@@ -171,23 +173,23 @@ excGP:
 	jmp excBaseErrorCode
 
 excMF:
-	push 14
-	jmp excBase
-
-excAC:
-	push 15
-	jmp excBaseErrorCode
-
-excMC:
 	push 16
 	jmp excBase
 
-excXM:
+excAC:
 	push 17
+	jmp excBaseErrorCode
+
+excMC:
+	push 18
+	jmp excBase
+
+excXM:
+	push 19
 	jmp excBase
 
 excVE:
-	push 18
+	push 20
 	jmp excBase
 
 ALIGN 8

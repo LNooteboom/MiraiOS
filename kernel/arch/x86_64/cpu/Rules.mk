@@ -2,7 +2,7 @@ sp := $(sp).x
 dirstack_$(sp) := $(d)
 d := $(dir)
 
-obj-y += $(d)/lapic.o $(d)/pcpu.o $(d)/smpboot.o $(d)/tssgdt.o
+obj-y += $(d)/lapic.o $(d)/pcpu.o $(d)/smpboot.o $(d)/tssgdt.o $(d)/cregs.o
 
 $(d)/smpboot.o: $(d)/smpboot16.bin
 

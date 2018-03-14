@@ -10,7 +10,7 @@ Device file functions
 */
 struct DevFileOps {
 	ssize_t (*read)(struct File *file, void *buffer, size_t bufSize);
-	int (*write)(struct File *file, void *buffer, size_t bufSize);
+	int (*write)(struct File *file, const void *buffer, size_t bufSize);
 	int (*ioctl)(struct File *file, unsigned long request, va_list args);
 	int (*del)(struct Inode *inode);
 	void (*close)(struct File *file);

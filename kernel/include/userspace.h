@@ -1,5 +1,5 @@
-#ifndef USERSPACE_H
-#define USERSPACE_H
+#ifndef INCLUDE_USERSPACE_H
+#define INCLUDE_USERSPACE_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -9,7 +9,7 @@
 /*
 Validate whether a pointer points to userspace memory, doesn't check page mapping
 */
-static inline int validateUserPointer(void *ptr, size_t size) {
+static inline int validateUserPointer(const void *ptr, size_t size) {
 	uintptr_t uptr = (uintptr_t)ptr;
 	if (uptr & 0xFFFF8000UL << 32 || (0xFFFF8000UL << 32) - uptr < size) {
 		return -EINVAL;

@@ -8,64 +8,73 @@
 #include <sched/readyqueue.h>
 #include <userspace.h>
 #include <modules.h>
+#include <arch/map.h>
+#include <print.h>
 
 extern void initForkRetThread(thread_t newThread, thread_t parent);
 
 static uint64_t curPid = 2;
 
+
 static int copyMem(struct Process *proc, struct Process *newProc) {
 	int error = 0;
-	struct MemoryEntry *entries = proc->memEntries;
-	struct MemoryEntry *newEntries = kmalloc(sizeof(struct MemoryEntry) * proc->nrofMemEntries);
-	if (!newEntries) {
-		error = -ENOMEM;
-		goto ret;
-	}
-
-	unsigned int i;
-	for (i = 0; i < proc->nrofMemEntries; i++) {
-		newEntries[i].vaddr = entries[i].vaddr;
-		newEntries[i].size = entries[i].size;
-		newEntries[i].shared = entries[i].shared;
-
-		if (entries[i].flags & MEM_FLAG_SHARED) {
-			newEntries[i].flags = entries[i].flags;
-			entries[i].shared->refCount++;
-		} else {
-			entries[i].flags |= MEM_FLAG_SHARED;
-			newEntries[i].flags = entries[i].flags;
-
-			uintptr_t alignedDiff = (uintptr_t)(entries[i].vaddr) % PAGE_SIZE;
-			unsigned long nrofPages = (entries[i].size + alignedDiff) / PAGE_SIZE;
-			if ((entries[i].size + alignedDiff) % PAGE_SIZE) {
-				nrofPages++;
-			}
-			uintptr_t alignedAddr = (uintptr_t)(entries[i].vaddr) - ((uintptr_t)(entries[i].vaddr) % PAGE_SIZE);
-
-			struct SharedMemory *shared = kmalloc(sizeof(struct SharedMemory) + (nrofPages - 1) * sizeof(physPage_t));
-			memset(shared, 0, sizeof(struct SharedMemory));
-			if (!shared) {
-				error = -ENOMEM;
-				goto ret;
-			}
-
-			shared->nrofPhysPages = nrofPages;
-			shared->alignedVaddr = alignedAddr;
-			for (unsigned long i = 0; i < nrofPages; i++) {
-				shared->phys[i] = mmGetPageEntry(alignedAddr);
-				alignedAddr += PAGE_SIZE;
-			}
-
-			newEntries[i].shared = entries[i].shared = shared;
-			shared->refCount = 2;
-			shared->vaddr = entries[i].vaddr;
-			shared->size = entries[i].size;
-			shared->flags = entries[i].flags;
+	struct MemoryEntry *curEntry = proc->firstMemEntry;
+	struct MemoryEntry *prev = NULL;
+	while (curEntry) {
+		struct MemoryEntry *newEntry = kmalloc(sizeof(*newEntry));
+		if (!newEntry) {
+			error = -ENOMEM;
+			goto ret;
 		}
-	}
 
-	newProc->memEntries = newEntries;
-	newProc->nrofMemEntries = proc->nrofMemEntries;
+		memcpy(newEntry, curEntry, sizeof(*curEntry));
+		newEntry->prev = prev;
+		if (prev) {
+			prev->next = newEntry;
+		} else {
+			newProc->firstMemEntry = newEntry;
+		}
+
+		prev = newEntry;
+
+		if (curEntry->flags & MMAP_FLAG_SHARED) {
+			acquireSpinlock(&curEntry->shared->lock);
+			curEntry->shared->refCount++;
+			releaseSpinlock(&curEntry->shared->lock);
+			newEntry->shared = curEntry->shared;
+
+			curEntry = curEntry->next;
+			continue;
+		}
+
+		long nrofPages = sizeToPages(curEntry->size);
+		curEntry->sharedOffset = 0;
+		struct SharedMemory *shared = kmalloc(sizeof(*shared) + (nrofPages - 1) * sizeof(physPage_t));
+		if (!shared) {
+			error = -ENOMEM;
+			goto ret;
+		}
+		memset(shared, 0, sizeof(*shared));
+		shared->refCount = 2;
+		shared->nrofPages = nrofPages;
+
+		uintptr_t curAddr = (uintptr_t)curEntry->vaddr;
+		for (long i = 0; i < nrofPages; i++) {
+			//shared->phys[i] = mmGetPageEntry(curAddr);
+			pte_t *pte = mmGetEntry(curAddr, 0);
+			*pte |= PAGE_FLAG_COW | PAGE_FLAG_SHARED; //also set COW for parent process
+			*pte &= ~PAGE_FLAG_WRITE;
+			shared->phys[i] = *pte & PAGE_MASK;
+			curAddr += PAGE_SIZE;
+		}
+
+		curEntry->shared = shared;
+		curEntry->flags |= MMAP_FLAG_SHARED;
+		newEntry->shared = shared;
+		newEntry->flags |= MMAP_FLAG_SHARED;
+
+		curEntry = curEntry->next;
+	}
 
 	ret:
 	return error;
@@ -96,6 +105,9 @@ static int copyFD(struct ProcessFile *pf, struct ProcessFile *newPF) {
 
 static int copyFiles(struct Process *proc, struct Process *newProc) {
 	int error;
+	newProc->cwd = proc->cwd;
+	proc->cwd->refCount++;
+
 	for (int i = 0; i < NROF_INLINE_FDS; i++) {
 		error = copyFD(&proc->inlineFDs[i], &newProc->inlineFDs[i]);
 		if (error) return error;
@@ -103,6 +115,7 @@ static int copyFiles(struct Process *proc, struct Process *newProc) {
 	if (!proc->nrofFDs) {
 		return 0;
 	}
+
 	newProc->fds = kmalloc(proc->nrofFDs * sizeof(struct ProcessFile));
 	if (!newProc->fds) return -ENOMEM;
 	newProc->nrofFDs = proc->nrofFDs;
@@ -131,24 +144,24 @@ Return from fork (child process)
 int forkRet(void) {
 	thread_t curThread = getCurrentThread();
 	struct Process *proc = curThread->process;
-	struct MemoryEntry *entries = proc->memEntries;
-
-	for (unsigned int i = 0; i < proc->nrofMemEntries; i++) {
-		pageFlags_t flags = PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN | PAGE_FLAG_USER | PAGE_FLAG_SHARED;
-		if (entries[i].flags & MEM_FLAG_WRITE) {
+	struct MemoryEntry *entry = proc->firstMemEntry;
+	while (entry) {
+		pageFlags_t flags = PAGE_FLAG_CLEAN | PAGE_FLAG_USER | PAGE_FLAG_SHARED;
+		if (entry->flags & MMAP_FLAG_WRITE && entry->flags & MMAP_FLAG_COW) {
 			flags |= PAGE_FLAG_COW;
+		} else if (entry->flags & MMAP_FLAG_WRITE) {
+			flags |= PAGE_FLAG_WRITE;
 		}
-		//if (entries[i].flags & MEM_FLAG_EXEC) {
+		if (entry->flags & MMAP_FLAG_EXEC) {
 			flags |= PAGE_FLAG_EXEC;
-		//}
-		struct SharedMemory *shared = entries[i].shared;
-		for (unsigned int j = 0; j < shared->nrofPhysPages; j++) {
-			mmMapPage(shared->alignedVaddr + j * PAGE_SIZE, shared->phys[j], flags);
 		}
-	}
+		struct SharedMemory *shared = entry->shared;
+		for (unsigned int i = 0; i < shared->nrofPages; i++) {
+			mmMapPage((uintptr_t)entry->vaddr + i * PAGE_SIZE, shared->phys[i], flags);
+		}
 
-	//struct Inode *stdout = getInodeFromPath(rootDir, "/dev/tty1");
-	//fsOpen(stdout, &proc->inlineFDs[1]);
+		entry = entry->next;
+	}
 	return 0;
 }
 
@@ -176,10 +189,10 @@ int sysFork(void) {
 	acquireSpinlock(&curProc->fdLock);
 	error = copyFiles(curProc, newProc);
 	releaseSpinlock(&curProc->fdLock);
-	if (error) goto exitProc;
+	if (error) goto releaseProcLock;
 
 	error = copyMem(curProc, newProc);
-	if (error) goto exitProc;
+	if (error) goto releaseProcLock;
 
 	releaseSpinlock(&curProc->lock);
 
@@ -211,8 +224,11 @@ int sysFork(void) {
 
 	return newProc->pid;
 
+	releaseProcLock:
+	releaseSpinlock(&curProc->lock);
 	exitProc:
 	exitProcess(newProc, error);
 	ret:
+	printk("sysFork failed! error: %d\n", error);
 	return error;
 }

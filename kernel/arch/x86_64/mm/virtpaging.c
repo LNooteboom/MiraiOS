@@ -246,7 +246,7 @@ void deallocPages(void *addr, size_t size) {
 
 	pte_t *mem = mmGetEntry((uintptr_t)addr, 0);
 	for (unsigned int i = 0; i < nrofPages; i++) {
-		if ((mem[i] & PAGE_FLAG_PRESENT) && (mem[i] & PAGE_FLAG_INUSE) && (mem[i] & PAGE_MASK)) {
+		if ((mem[i] & PAGE_FLAG_PRESENT) && (mem[i] & PAGE_FLAG_INUSE) && (mem[i] & PAGE_MASK) && !(mem[i] & PAGE_FLAG_SHARED)) {
 			physPage_t page = mem[i] & PAGE_MASK;
 			deallocPhysPage(page);
 		}
