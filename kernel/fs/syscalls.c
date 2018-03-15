@@ -73,7 +73,7 @@ int sysWrite(int fd, const void *buffer, size_t size) {
 	}
 
 	struct File *f = getFileFromFD(getCurrentThread()->process, fd);
-	if (!f) {
+	if (!f || !(f->flags & SYSOPEN_FLAG_WRITE)) {
 		return -EBADF;
 	}
 	error = fsWrite(f, buffer, size);
@@ -87,7 +87,7 @@ int sysRead(int fd, void *buffer, size_t size) {
 	}
 
 	struct File *f = getFileFromFD(getCurrentThread()->process, fd);
-	if (!f) {
+	if (!f || !(f->flags & SYSOPEN_FLAG_READ)) {
 		return -EBADF;
 	}
 	error = fsRead(f, buffer, size);
@@ -121,6 +121,11 @@ int sysIoctl(int fd, unsigned long request, ...) {
 }
 
 int sysOpen(const char *fileName, unsigned int flags) {
+	//check flags
+	if (flags & SYSOPEN_FLAG_DIR && flags & SYSOPEN_FLAG_WRITE) {
+		return -EISDIR;
+	}
+
 	int error = validateUserString(fileName);
 	if (error) return error;
 
@@ -132,7 +137,9 @@ int sysOpen(const char *fileName, unsigned int flags) {
 		return fileno;
 	}
 
-	struct ProcessFile *file = (fileno < NROF_INLINE_FDS)? &proc->inlineFDs[fileno] : &proc->fds[fileno - NROF_INLINE_FDS];
+	struct ProcessFile *pf = (fileno < NROF_INLINE_FDS)? &proc->inlineFDs[fileno] : &proc->fds[fileno - NROF_INLINE_FDS];
+	pf->file.flags = flags & ~(SYSOPEN_FLAG_CREATE | SYSOPEN_FLAG_CLOEXEC | SYSOPEN_FLAG_EXCL);
+
 	struct Inode *inode = getInodeFromPath(proc->cwd, fileName);
 	if (!inode && flags & SYSOPEN_FLAG_CREATE) {
 		//create file
@@ -141,18 +148,22 @@ int sysOpen(const char *fileName, unsigned int flags) {
 		if (!dir) {
 			return -ENOENT; //dir does not exist
 		}
-		error = fsCreate(&file->file, dir, fileName, ITYPE_FILE);
+
+		uint32_t type = (flags & SYSOPEN_FLAG_DIR)? ITYPE_DIR : ITYPE_FILE;
+		error = fsCreate(&pf->file, dir, &fileName[fileNameIndex], type);
 		if (error) {
 			return error;
 		}
+	} else if (flags & SYSOPEN_FLAG_EXCL) {
+		return -EEXIST;
 	} else if (!inode) {
 		return -ENOENT;
 	}
-	error = fsOpen(inode, &file->file);
+	pf->file.inode = inode;
+	error = fsOpen(&pf->file);
 	if (error) {
 		return error;
 	}
-	file->flags = (flags | PROCFILE_FLAG_USED) & ((1 << NROF_SYSOPEN_FLAGS) - 1);
 
 	return fileno;
 }
@@ -163,12 +174,19 @@ int sysClose(int fd) {
 	if ( !(pf->flags & PROCFILE_FLAG_USED)) {
 		return -EBADF;
 	}
-	if (pf->flags & PROCFILE_FLAG_SHARED) {
-		//todo
-		return -ENOSYS;
-	}
+
 	acquireSpinlock(&proc->fdLock);
-	fsClose(&pf->file);
+	if (pf->flags & PROCFILE_FLAG_SHARED) {
+		acquireSpinlock(&pf->sharedFile->lock);
+		int refCount = --pf->sharedFile->refCount;
+		releaseSpinlock(&pf->sharedFile->lock);
+		if (!refCount) {
+			kfree(pf->sharedFile);
+		}
+	} else {
+		fsClose(&pf->file);
+	}
+	
 	pf->flags = 0;
 	if (fd >= NROF_INLINE_FDS) {
 		if ( !(--proc->nrofUsedFDs)) {

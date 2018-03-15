@@ -12,5 +12,5 @@ libc.a: $(OBJECTS)
 %.o: %.asm
 	nasm -f elf64 -g -F dwarf -o $@ $<
 
-syscalls.asm: gensyscalls.awk ../kernel/include/syscalls.h
+syscalls.asm: gensyscalls.awk ../kernel/include/uapi/syscalls.h
 	awk -f $+ > $@

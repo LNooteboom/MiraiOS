@@ -2,7 +2,11 @@ sp := $(sp).x
 dirstack_$(sp) := $(d)
 d := $(dir)
 
-obj-y += $(d)/font8x16.o $(d)/framebuffer.o $(d)/main.o
+obj-y += $(d)/font8x16.o $(d)/framebuffer.o $(d)/main.o $(d)/input.o $(d)/keymap.o
+
+$(d)/keymap.c: $(d)/genkeymap.awk $(KERNEL_ROOT)/include/uapi/eventcodes.h
+	@echo "(AWK)	$@"
+	@awk -f $+ > $@
 
 d		:= $(dirstack_$(sp))
 sp		:= $(basename $(sp))

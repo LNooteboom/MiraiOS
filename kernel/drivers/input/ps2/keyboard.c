@@ -1,18 +1,15 @@
 #include "ps2.h"
 #include <modules.h>
-#include <drivers/input/eventcodes.h>
+#include <uapi/eventcodes.h>
 #include <stdbool.h>
 #include <print.h>
 #include <mm/heap.h>
+#include <drivers/tty.h>
 
 #include <io.h>
 
 #define SCANCODE_MODIFIER	0xE0
 #define SCANCODE_RELEASED	0xF0
-
-//temp
-extern void ttyScroll(int amount);
-extern void ttySwitch(unsigned int ttynr);
 
 struct KbDevice {
 	struct Ps2Device ps2Dev;
@@ -73,7 +70,7 @@ static uint16_t kbScanTable[] = {
 	/*E0*/ KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED,
 	/*E8*/ KEY_RESERVED,	KEY_END,		KEY_RESERVED,	KEY_LEFT,		KEY_HOME,		KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED,
 	/*F0*/ KEY_INSERT,		KEY_DELETE,		KEY_DOWN,		KEY_RESERVED,	KEY_RIGHT,		KEY_UP,			KEY_RESERVED,	KEY_RESERVED,
-	/*F8*/ KEY_RESERVED,	KEY_RESERVED,	KEY_PAGEDOWN,	KEY_RESERVED,	KEY_RESERVED,	KEY_PAGEUP,		KEY_RESERVED,	KEY_RESERVED,
+	/*F8*/ KEY_RESERVED,	KEY_RESERVED,	KEY_PAGEDOWN,	KEY_RESERVED,	KEY_SYSRQ,		KEY_PAGEUP,		KEY_RESERVED,	KEY_RESERVED,
 
 	//extra row for scancodes >= 0x80 without modifier
 	/*00*/ KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED,	KEY_F7,			KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED,	KEY_RESERVED
@@ -101,7 +98,7 @@ static void kbInterrupt(struct Ps2Device *dev) {
 			keycode = (data < (sizeof(kbScanTable) / sizeof(kbScanTable[0]) )) ? kbScanTable[data] : KEY_RESERVED;
 			if (!kbDev->keyReleased) {
 				//printk("key: %d\n", keycode);
-				if (keycode == KEY_GRAVE) {
+				if (keycode == KEY_SYSRQ) {
 					//reset
 					uint8_t good = 0x02;
 					while (good & 0x02)
@@ -116,10 +113,14 @@ static void kbInterrupt(struct Ps2Device *dev) {
 					ttySwitch(0);
 				} else if (keycode == KEY_F2) {
 					ttySwitch(1);
+				} else {
+					ttyHandleKeyEvent(keycode, false);
 				}
+			} else {
+				kbDev->keyReleased = false;
+				ttyHandleKeyEvent(keycode, true);
 			}
 
-			kbDev->keyReleased = false;
 			break;
 	}
 }

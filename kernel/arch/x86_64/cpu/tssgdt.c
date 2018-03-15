@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <arch/idt.h>
+#include <mm/paging.h>
 
 void tssGdtInit(struct CpuInfo *info) {
 	//gdt descriptors need to be layed out in a specfic way to work with syscall/sysret
@@ -29,7 +30,9 @@ void tssGdtInit(struct CpuInfo *info) {
 	info->gdtr.base = (uint64_t)(&(info->gdt));
 
 	//setup ist entry
-	info->tss.ist[0] = (uintptr_t)info->excStackTop;
+	//Top of exception stack is used for interrupts while no thread is running
+	//Bottom of exception stack is for actual exceptions
+	info->tss.ist[0] = (uintptr_t)info->excStackTop - PAGE_SIZE;
 	//set IST for page fault, NMI and MCE
 	idtSetIST(14, 1);
 	idtSetIST(2, 1);

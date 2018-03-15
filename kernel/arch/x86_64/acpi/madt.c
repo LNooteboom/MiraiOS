@@ -139,8 +139,10 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		cpuInfos[i].currentThread = NULL;
 		cpuInfos[i].apicID = apicIDs[i];
 		cpuInfos[i].cpuInfosIndex = i;
+
 		cpuInfos[i].excStackTop = (void*)((uintptr_t)allocKPages(PAGE_SIZE * 2, PAGE_FLAG_WRITE) + PAGE_SIZE * 2);
-		*((uint32_t*)(cpuInfos[i].excStackTop) - 4) = 0; //prealloc exception stack
+		*((char*)(cpuInfos[i].excStackTop) - PAGE_SIZE) = 0; //prealloc exception stack
+		*((char*)(cpuInfos[i].excStackTop) - PAGE_SIZE*2) = 0;
 
 		for (int j = 0; j < NROF_QUEUE_PRIORITIES; j++) {
 			cpuInfos[i].readyList[j].first = NULL;

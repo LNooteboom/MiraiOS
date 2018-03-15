@@ -5,15 +5,29 @@
 #include <mm/memset.h>
 #include <print.h>
 
-int fsOpen(struct Inode *inode, struct File *output) {
-	acquireSpinlock(&inode->lock);
+int fsOpen(struct File *f) {
+	int error = 0;
+	f->lock = 0;
+	f->refCount = 1;
 
-	inode->refCount++;
-	memset(output, 0, sizeof(struct File));
-	output->inode = inode;
+	acquireSpinlock(&f->inode->lock);
+	
+	if (f->flags & SYSOPEN_FLAG_DIR && !isDir(f->inode)) {
+		error = -ENOTDIR;
+		goto release;
+	}
 
-	releaseSpinlock(&inode->lock);
-	return 0;
+	if (f->flags & SYSOPEN_FLAG_APPEND) {
+		f->flags &= ~SYSOPEN_FLAG_APPEND;
+		f->offset = f->inode->fileSize;
+	} else {
+		f->offset = 0;
+	}
+	f->inode->refCount++;
+
+	release:
+	releaseSpinlock(&f->inode->lock);
+	return error;
 }
 
 void fsClose(struct File *file) {
@@ -34,7 +48,7 @@ void fsClose(struct File *file) {
 	releaseSpinlock(&file->lock);
 }
 
-int fsCreate(struct File *output, struct Inode *dir, const char *name, uint32_t type) {
+int fsCreate(struct File *f, struct Inode *dir, const char *name, uint32_t type) {
 	struct DirEntry entry;
 
 	entry.nameLen = strlen(name);
@@ -81,9 +95,6 @@ int fsCreate(struct File *output, struct Inode *dir, const char *name, uint32_t 
 
 	entry.inode = newInode;
 
-	if (!newInode->ramfs) {
-		//fsAddInode(newInode);
-	}
 	struct DirEntry *newEntry = &entry;
 	int error = dirCacheAdd(&newEntry, dir);
 
@@ -96,9 +107,9 @@ int fsCreate(struct File *output, struct Inode *dir, const char *name, uint32_t 
 		}
 		return error;
 	}
-	if (output) {
-		memset(output, 0, sizeof(struct File));
-		output->inode = newInode;
+	if (f) {
+		f->inode = newInode;
+		fsOpen(f);
 	}
 	return 0;
 }

@@ -44,8 +44,7 @@ fi
 mkdir -p $SYSROOT/include
 mkdir -p $SYSROOT/lib
 mkdir -p $SYSROOT/bin
-cp $KERNELDIR/include/errno.h $SYSROOT/include
-cp $KERNELDIR/include/syscalls.h $SYSROOT/include
+cp -r $KERNELDIR/include/uapi $SYSROOT/include
 
 make -C phlibc
 cp phlibc/libc.a $SYSROOT/lib/

@@ -2,31 +2,24 @@
 #define INCLUDE_SCHED_PROCESS_H
 
 /*
-Userspace process information
+Userspace processes
 */
 
 #include <sched/thread.h>
 #include <fs/fs.h>
 #include <sched/spinlock.h>
 #include <mm/paging.h>
+#include <uapi/mmap.h>
 
 #define NROF_INLINE_FDS	8
 
 #define INIT_PID	1
 
-#define MMAP_FLAG_EXEC		(1 << 0)
-#define MMAP_FLAG_WRITE		(1 << 1)
-#define MMAP_FLAG_SHARED	(1 << 2) /*Indicates that .shared is valid, has nothing to do with POSIX MAP_SHARED*/
-#define MMAP_FLAG_FIXED		(1 << 3)
-#define MMAP_FLAG_ANON		(1 << 4)
 #define MMAP_FLAG_COW		(1 << 5) /*This flag specifies whether the actual memory mapping is shared or not*/
 
-#define PROCFILE_FLAG_USED		SYSOPEN_FLAG_CREATE
-#define PROCFILE_FLAG_READ		SYSOPEN_FLAG_READ
-#define PROCFILE_FLAG_WRITE		SYSOPEN_FLAG_WRITE
-#define PROCFILE_FLAG_CLOEXEC	SYSOPEN_FLAG_CLOEXEC
-#define PROCFILE_FLAG_APPEND	SYSOPEN_FLAG_APPEND
-#define PROCFILE_FLAG_SHARED	(1 << NROF_SYSOPEN_FLAGS)
+#define PROCFILE_FLAG_USED		1
+#define PROCFILE_FLAG_CLOEXEC	2
+#define PROCFILE_FLAG_SHARED	4
 
 struct SharedMemory {
 	unsigned int refCount;

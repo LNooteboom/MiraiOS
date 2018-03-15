@@ -143,7 +143,7 @@ excPF:
 
 	mov rdi, stStart
 	call puts
-	mov r13d, 8
+	mov r13d, 16
 	.start:
 		mov rdi, stLoop
 		mov rsi, rbx

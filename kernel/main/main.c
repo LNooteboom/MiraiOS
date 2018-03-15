@@ -66,7 +66,10 @@ void kmain(void) {
 
 	puts("[MAIN] Initialization complete\n");
 
-	execInit("/init");
+	int error = execInit("/init");
+	if (error) {
+		panic("Failed to execute init: %d\n", error);
+	}
 
 	kthreadExit(NULL);
 }

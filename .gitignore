@@ -12,6 +12,8 @@ sysroot
 *.bxrc
 *.bin
 
+#Generated source files
+kernel/drivers/tty/keymap.c
 kernel/main/syscalltbl.c
 phlibc/syscalls.asm
 

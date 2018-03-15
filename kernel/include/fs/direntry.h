@@ -4,6 +4,7 @@
 #include <sched/spinlock.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <uapi/getDent.h>
 
 struct DirEntry {
 	struct Inode *inode;
@@ -19,12 +20,6 @@ struct DirEntry {
 
 struct CachedDir {
 	struct DirEntry entries[2]; //can be more than 2, must be last
-};
-
-struct GetDent {
-	uint32_t inodeID;
-	unsigned int type;
-	char name[256];
 };
 
 int dirCacheAdd(struct DirEntry **newEntry, struct Inode *dir);

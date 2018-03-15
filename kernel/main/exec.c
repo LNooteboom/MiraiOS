@@ -70,13 +70,17 @@ static int elfLoad(struct File *f, struct ElfPHEntry *entry) {
 static int execCommon(thread_t mainThread, const char *fileName, void **startAddr, void **sp) {
 	int error;
 	//Open the executable
-	struct File f;
 	struct Inode *inode = getInodeFromPath(rootDir, fileName);
 	if (!inode) {
 		error = -ENOENT;
 		goto ret;
 	}
-	error = fsOpen(inode, &f);
+
+	struct File f = {
+		.inode = inode,
+		.flags = SYSOPEN_FLAG_READ
+	};
+	error = fsOpen(&f);
 	if (error) goto ret;
 
 	//Get the ELF header

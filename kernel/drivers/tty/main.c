@@ -18,7 +18,8 @@ struct Vtty *currentTty = &ttys[0];
 
 static int ttyWrite(struct File *file, const void *buffer, size_t bufSize);
 static struct DevFileOps ttyOps = {
-	.write = ttyWrite
+	.write = ttyWrite,
+	.read = ttyRead
 };
 
 static int kernelPuts(const char *text) {
@@ -32,6 +33,8 @@ static int ttyWrite(struct File *file, const void *buffer, size_t bufSize) {
 }
 
 int fbInitDevFiles(void) {
+	ttyInitInput();
+
 	printk("[TTY] Creating device files...\n");
 	struct Inode *devDir = getInodeFromPath(rootDir, "dev");
 	for (unsigned int i = 0; i < NROF_VTTYS; i++) {
@@ -60,8 +63,6 @@ int fbInit(void) {
 		return -ENOMEM;
 	}
 
-	vmem[2] = 0xFF;
-
 	bootFB->vmem = vmem;
 	bootFB->pitch = bootInfo.fbPitch;
 	bootFB->xResolution = bootInfo.fbXRes;
@@ -80,6 +81,11 @@ int fbInit(void) {
 			PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE);
 	}
 	kernelTty->focus = true;
+
+	for (int i = 0; i < kernelTty->charWidth * SCROLLBACK_LINES; i++) {
+		kernelTty->buf[i].c = 0;
+	}
+
 	setKernelStdout(kernelPuts);
 	
 	return 0;

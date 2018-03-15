@@ -1,6 +1,6 @@
 BEGIN {
 	table = 0;
-	print "#include <syscalls.h>\n"
+	print "#include <uapi/syscalls.h>\n"
 	print "int (*syscallTable[256])() = {"
 }
 /\/\/END/ {

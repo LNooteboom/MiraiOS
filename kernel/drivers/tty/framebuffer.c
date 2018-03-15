@@ -87,6 +87,17 @@ static int fbUpdate(struct Vtty *tty) {
 		lineAddr += fb->pitch * FONT_HEIGHT;
 	}
 	tty->globalDirty = false;
+
+	//draw cursor
+	vc = tty->buf + tty->cursorX + tty->cursorY * tty->charWidth;
+	addr = fb->vmem + fb->pitch * FONT_HEIGHT * (tty->cursorY - tty->scrollbackY) + tty->cursorX * FONT_WIDTH * BPP;
+	struct VttyChar curVc = {
+		.c = vc->c,
+		.bgCol = 7,
+		.fgCol = 0
+	};
+	drawChar(addr, newline, &curVc);
+
 	return 0;
 }
 
@@ -99,16 +110,16 @@ static void newline(struct Vtty *tty) {
 	}
 
 	//clear line
-	struct VttyChar *vc = &tty->buf[tty->cursorY * tty->charWidth];
+	/*struct VttyChar *vc = &tty->buf[tty->cursorY * tty->charWidth];
 	for (int x = 0; x < tty->charWidth; x++) {
 		vc->c = 0;
 		vc->bgCol = 0;
 		vc->dirty = 1;
 		vc++;
-	}
+	}*/
 
 	//adjust scrollback pos
-	int y = tty->cursorY - tty->charHeight;
+	int y = tty->cursorY - tty->charHeight + 1;
 	if (y < 0) {
 		if (tty->full) {
 			y = SCROLLBACK_LINES + y;
@@ -165,6 +176,15 @@ static int parseEscape(struct Vtty *tty, const char *text) {
 	}
 
 	switch (text[final]) {
+		case 'D': //Cursor back
+			if (tty->cursorX) {
+				tty->cursorX--;
+			} else {
+				tty->cursorY = (tty->cursorY - 1) % SCROLLBACK_LINES;
+				tty->cursorX = tty->charWidth - 1;
+			}
+			tty->buf[tty->cursorX + tty->cursorY * tty->charWidth].dirty = 1;
+			break;
 		case 'm': //Set graphic rendition
 			for (i = 0; i < nrofArgs; i++) {
 				if (!args[i]) { //reset
@@ -192,6 +212,7 @@ int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 	int linePos = tty->cursorY * tty->charWidth;
 	struct VttyChar *vc;
 	for (unsigned int i = 0; i < textLen; i++) {
+		tty->buf[linePos + tty->cursorX].dirty = 1;
 		switch (text[i]) {
 			case '\r':
 				tty->cursorX = 0;
@@ -208,7 +229,7 @@ int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 				vc->c = text[i];
 				vc->fgCol = tty->curFGCol;
 				vc->bgCol = tty->curBGCol;
-				vc->dirty = 1;
+				//vc->dirty = 1;
 
 				tty->cursorX++;
 				if (tty->cursorX >= tty->charWidth) {
@@ -240,8 +261,8 @@ void ttyScroll(int amount) {
 	} else if (y >= SCROLLBACK_LINES) {
 		y = y % SCROLLBACK_LINES;
 	}
-	if (y == (currentTty->cursorY - currentTty->charHeight + 1) % SCROLLBACK_LINES) {
-		y = (currentTty->cursorY - currentTty->charHeight) % SCROLLBACK_LINES;
+	if (y == (currentTty->cursorY - currentTty->charHeight + 2) % SCROLLBACK_LINES) {
+		y = (currentTty->cursorY - currentTty->charHeight + 1) % SCROLLBACK_LINES;
 	}
 	currentTty->scrollbackY = y;
 	currentTty->globalDirty = true;

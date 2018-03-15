@@ -7,21 +7,15 @@
 #include <lib/rbtree.h>
 #include <sched/spinlock.h>
 #include <fs/direntry.h>
+#include <uapi/fcntl.h>
+
+#define NAME_MAX	256
 
 #define ITYPE_MASK	7
 #define ITYPE_DIR	1
 #define ITYPE_FILE	2
 #define ITYPE_CHAR	3
 
-#define SEEK_SET	0
-#define SEEK_CUR	1
-#define SEEK_END	2
-
-#define SYSOPEN_FLAG_CREATE		(1 << 0)
-#define SYSOPEN_FLAG_READ		(1 << 1)
-#define SYSOPEN_FLAG_WRITE		(1 << 2)
-#define SYSOPEN_FLAG_CLOEXEC	(1 << 3)
-#define SYSOPEN_FLAG_APPEND		(1 << 4)
 #define NROF_SYSOPEN_FLAGS		5
 
 #define RAMFS_PRESENT	1 //always set if inode belongs to ramfs
@@ -37,6 +31,8 @@ struct DevFileOps;
 struct File {
 	spinlock_t lock;
 	unsigned int refCount;
+	int flags;
+
 	struct Inode *inode;
 	uint64_t offset;
 };
@@ -105,7 +101,7 @@ struct Inode *getBaseDirFromPath(struct Inode *cwd, int *fileNameIndex, const ch
 /*
 Opens a file
 */
-int fsOpen(struct Inode *inode, struct File *output);
+int fsOpen(struct File *f);
 
 /*
 Closes a file
