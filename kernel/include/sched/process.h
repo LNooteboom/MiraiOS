@@ -5,6 +5,7 @@
 Userspace processes
 */
 
+#include <stdatomic.h>
 #include <sched/thread.h>
 #include <fs/fs.h>
 #include <sched/spinlock.h>
@@ -12,18 +13,21 @@ Userspace processes
 #include <uapi/mmap.h>
 
 #define NROF_INLINE_FDS	8
+#define MAX_FDS			64
 
 #define INIT_PID	1
 
 #define MMAP_FLAG_COW		(1 << 5) /*This flag specifies whether the actual memory mapping is shared or not*/
 
-#define PROCFILE_FLAG_USED		1
-#define PROCFILE_FLAG_CLOEXEC	2
-#define PROCFILE_FLAG_SHARED	4
+#define PROCFILE_FLAG_USED			0x01
+#define PROCFILE_FLAG_CLOEXEC		0x02
+#define PROCFILE_FLAG_SHARED		0x04
+#define PROCFILE_FLAG_PIPE			0x08
+#define PROCFILE_FLAG_PIPE_WRITE	0x10 //Write end of the pipe if set, read end if clear
 
 struct SharedMemory {
-	unsigned int refCount;
-	spinlock_t lock;
+	atomic_uint refCount;
+	//spinlock_t lock;
 	long nrofPages;
 	physPage_t phys[1];
 };
@@ -45,6 +49,7 @@ struct ProcessFile {
 	union {
 		struct File file;
 		struct File *sharedFile;
+		struct Pipe *pipe;
 	};
 };
 

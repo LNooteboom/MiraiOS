@@ -10,6 +10,7 @@
 #include <modules.h>
 #include <arch/map.h>
 #include <print.h>
+#include <fs/pipe.h>
 
 extern void initForkRetThread(thread_t newThread, thread_t parent);
 
@@ -38,9 +39,7 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 		prev = newEntry;
 
 		if (curEntry->flags & MMAP_FLAG_SHARED) {
-			acquireSpinlock(&curEntry->shared->lock);
 			curEntry->shared->refCount++;
-			releaseSpinlock(&curEntry->shared->lock);
 			newEntry->shared = curEntry->shared;
 
 			curEntry = curEntry->next;
@@ -80,37 +79,20 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 	return error;
 }
 
-static int copyFD(struct ProcessFile *pf, struct ProcessFile *newPF) {
-	if ( !(pf->flags & PROCFILE_FLAG_USED)) {
-		return 0;
-	}
-	if ( !(pf->flags & PROCFILE_FLAG_SHARED)) {
-		//Make it shared
-		//TODO add RW lock to prevent race condition with read or write syscall
-		struct File *shared = kmalloc(sizeof(struct File));
-		if (!shared) return -ENOMEM;
-		memset(shared, 0, sizeof(struct File));
-		shared->inode = pf->file.inode;
-		shared->refCount = 1;
-		pf->flags |= PROCFILE_FLAG_SHARED;
-		pf->sharedFile = shared;
-	}
-	newPF->flags = pf->flags;
-	newPF->sharedFile = pf->sharedFile;
-	acquireSpinlock(&pf->sharedFile->lock);
-	pf->sharedFile->refCount++;
-	releaseSpinlock(&pf->sharedFile->lock);
-	return 0;
-}
-
 static int copyFiles(struct Process *proc, struct Process *newProc) {
-	int error;
 	newProc->cwd = proc->cwd;
 	proc->cwd->refCount++;
 
+	struct File *shared;
 	for (int i = 0; i < NROF_INLINE_FDS; i++) {
-		error = copyFD(&proc->inlineFDs[i], &newProc->inlineFDs[i]);
-		if (error) return error;
+		if (proc->inlineFDs[i].flags & PROCFILE_FLAG_SHARED) {
+			shared = kmalloc(sizeof(*shared));
+			if (!shared) return -ENOMEM;
+		} else {
+			shared = NULL;
+		}
+
+		copyFD(&proc->inlineFDs[i], &newProc->inlineFDs[i], shared);
 	}
 	if (!proc->nrofFDs) {
 		return 0;
@@ -120,9 +102,16 @@ static int copyFiles(struct Process *proc, struct Process *newProc) {
 	if (!newProc->fds) return -ENOMEM;
 	newProc->nrofFDs = proc->nrofFDs;
 	newProc->nrofUsedFDs = proc->nrofUsedFDs;
+
 	for (int i = 0; i < newProc->nrofFDs; i++) {
-		error = copyFD(&proc->fds[i], &newProc->fds[i]);
-		if (error) return error;
+		if (proc->fds[i].flags & PROCFILE_FLAG_SHARED) {
+			shared = kmalloc(sizeof(*shared));
+			if (!shared) return -ENOMEM;
+		} else {
+			shared = NULL;
+		}
+
+		copyFD(&proc->fds[i], &newProc->fds[i], shared);
 	}
 	return 0;
 }

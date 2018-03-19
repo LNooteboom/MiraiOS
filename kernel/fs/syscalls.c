@@ -1,4 +1,6 @@
 #include <fs/fs.h>
+#include <fs/fd.h>
+#include <fs/pipe.h>
 #include <fs/devfile.h>
 #include <sched/process.h>
 #include <mm/heap.h>
@@ -7,7 +9,7 @@
 #include <modules.h>
 #include <stdarg.h>
 
-static struct File *getFileFromFD(struct Process *proc, int fd) {
+int getFileFromFD(struct Process *proc, int fd, union FilePipe *fp) {
 	struct ProcessFile *pf;
 	struct File *f;
 	if (fd < NROF_INLINE_FDS) {
@@ -15,17 +17,26 @@ static struct File *getFileFromFD(struct Process *proc, int fd) {
 	} else if (fd - NROF_INLINE_FDS < proc->nrofFDs && proc->fds[fd].flags & PROCFILE_FLAG_USED) {
 		pf = &proc->fds[fd - NROF_INLINE_FDS];
 	} else {
-		return NULL; //EBADF
-	}
-	f = (pf->flags & PROCFILE_FLAG_SHARED)? pf->sharedFile : &pf->file;
-	if (!f->inode) {
-		return NULL; //EBADF
+		return -EBADF;
 	}
 
-	return f;
+	int ret;
+	if (pf->flags & PROCFILE_FLAG_PIPE) {
+		fp->pipe = pf->pipe;
+		ret = (pf->flags & PROCFILE_FLAG_PIPE_WRITE)? 3 : 1;
+	} else {
+		f = (pf->flags & PROCFILE_FLAG_SHARED)? pf->sharedFile : &pf->file;
+		if (!f->inode) {
+			return -EBADF;
+		}
+		fp->file = f;
+		ret = 0;
+	}
+
+	return ret;
 }
 
-static int allocateFD(struct Process *proc) {
+int allocateFD(struct Process *proc, struct ProcessFile **pf) {
 	int fileno = 0;
 	struct ProcessFile *file = NULL;
 
@@ -63,6 +74,9 @@ static int allocateFD(struct Process *proc) {
 		}
 	}
 	file->flags = PROCFILE_FLAG_USED;
+	if (pf) {
+		*pf = file;
+	}
 	return fileno;
 }
 
@@ -72,11 +86,17 @@ int sysWrite(int fd, const void *buffer, size_t size) {
 		return error;
 	}
 
-	struct File *f = getFileFromFD(getCurrentThread()->process, fd);
-	if (!f || !(f->flags & SYSOPEN_FLAG_WRITE)) {
-		return -EBADF;
+	union FilePipe fp;
+	error = getFileFromFD(getCurrentThread()->process, fd, &fp);
+	if (error < 0) {
+		return error;
+	} else if (error & 1) {
+		if (!(error & 2)) {
+			return -EBADF;
+		}
+		return pipeWrite(fp.pipe, buffer, size);
 	}
-	error = fsWrite(f, buffer, size);
+	error = fsWrite(fp.file, buffer, size);
 	return error;
 }
 
@@ -86,22 +106,29 @@ int sysRead(int fd, void *buffer, size_t size) {
 		return error;
 	}
 
-	struct File *f = getFileFromFD(getCurrentThread()->process, fd);
-	if (!f || !(f->flags & SYSOPEN_FLAG_READ)) {
-		return -EBADF;
+	union FilePipe fp;
+	error = getFileFromFD(getCurrentThread()->process, fd, &fp);
+	if (error < 0) {
+		return error;
+	} else if (error & 1) {
+		if (error & 2) {
+			return -EBADF;
+		}
+		return pipeRead(fp.pipe, buffer, size);
 	}
-	error = fsRead(f, buffer, size);
-	return error;
+	return fsRead(fp.file, buffer, size);
 }
 
 int sysIoctl(int fd, unsigned long request, ...) {
 	va_list args;
 	va_start(args, request);
 
-	struct File *f = getFileFromFD(getCurrentThread()->process, fd);
-	if (!f) {
+	union FilePipe fp;
+	int error = getFileFromFD(getCurrentThread()->process, fd, &fp);
+	if (error) {
 		return -EBADF;
 	}
+	struct File *f = fp.file;
 
 	acquireSpinlock(&f->lock);
 	acquireSpinlock(&f->inode->lock);
@@ -131,13 +158,13 @@ int sysOpen(const char *fileName, unsigned int flags) {
 
 	struct Process *proc = getCurrentThread()->process;
 	acquireSpinlock(&proc->fdLock);
-	int fileno = allocateFD(proc);
+	struct ProcessFile *pf;
+	int fileno = allocateFD(proc, &pf);
 	releaseSpinlock(&proc->fdLock);
 	if (fileno < 0) {
 		return fileno;
 	}
 
-	struct ProcessFile *pf = (fileno < NROF_INLINE_FDS)? &proc->inlineFDs[fileno] : &proc->fds[fileno - NROF_INLINE_FDS];
 	pf->file.flags = flags & ~(SYSOPEN_FLAG_CREATE | SYSOPEN_FLAG_CLOEXEC | SYSOPEN_FLAG_EXCL);
 
 	struct Inode *inode = getInodeFromPath(proc->cwd, fileName);
@@ -177,9 +204,7 @@ int sysClose(int fd) {
 
 	acquireSpinlock(&proc->fdLock);
 	if (pf->flags & PROCFILE_FLAG_SHARED) {
-		acquireSpinlock(&pf->sharedFile->lock);
 		int refCount = --pf->sharedFile->refCount;
-		releaseSpinlock(&pf->sharedFile->lock);
 		if (!refCount) {
 			kfree(pf->sharedFile);
 		}
@@ -201,13 +226,15 @@ int sysGetDent(int fd, struct GetDent *buf) {
 	int ret = validateUserPointer(buf, sizeof(struct GetDent));
 	if (ret) return ret;
 
-	struct File *f = getFileFromFD(getCurrentThread()->process, fd);
-	if (!f) return -EBADF;
-	acquireSpinlock(&f->lock);
-	ret = fsGetDent(f->inode, buf, f->offset);
+	union FilePipe fp;
+	ret = getFileFromFD(getCurrentThread()->process, fd, &fp);
+	if (ret) return -EBADF;
+
+	acquireSpinlock(&fp.file->lock);
+	ret = fsGetDent(fp.file->inode, buf, fp.file->offset);
 	if (ret) {
-		f->offset += 1;
+		fp.file->offset += 1;
 	}
-	releaseSpinlock(&f->lock);
+	releaseSpinlock(&fp.file->lock);
 	return ret;
 }

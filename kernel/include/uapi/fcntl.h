@@ -1,6 +1,8 @@
 #ifndef __PHLIBC_UAPI_FCNTL_H
 #define __PHLIBC_UAPI_FCNTL_H
 
+#define PIPE_BUF	4096
+
 #define SYSOPEN_FLAG_CREATE		(1 << 0)
 #define SYSOPEN_FLAG_READ		(1 << 1)
 #define SYSOPEN_FLAG_WRITE		(1 << 2)

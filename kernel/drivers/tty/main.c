@@ -77,6 +77,9 @@ int fbInit(void) {
 
 		ttys[i].curFGCol = 7;
 
+		semInit(&ttys[i].updateSem, 0);
+		semInit(&ttys[i].inputAvail, 0);
+
 		ttys[i].buf = allocKPages(SCROLLBACK_LINES * ttys[i].charWidth * sizeof(struct VttyChar),
 			PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE);
 	}

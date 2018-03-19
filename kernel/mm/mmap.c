@@ -60,9 +60,7 @@ static void getVaddr(struct MemoryEntry *lower, struct MemoryEntry *higher, stru
 
 static struct MemoryEntry *deleteEntry(struct MemoryEntry *entry) {
 	if (entry->flags & MMAP_FLAG_SHARED) {
-		acquireSpinlock(&entry->shared->lock);
 		int refs = --(entry->shared->refCount);
-		releaseSpinlock(&entry->shared->lock);
 		if (!refs) {
 			if (entry->flags & MMAP_FLAG_ANON) {
 				for (int i = 0; i < entry->shared->nrofPages; i++) {
@@ -134,9 +132,7 @@ int mmapCreateEntry(void **out, struct Process *proc, struct MemoryEntry *newEnt
 				lh->sharedOffset = lower->sharedOffset + (newEnd - lowStart);
 				lh->shared = lower->shared;
 				if (lh->shared) {
-					acquireSpinlock(&lh->shared->lock);
 					lh->shared->refCount++;
-					releaseSpinlock(&lh->shared->lock);
 				}
 
 				lh->flags = lower->flags;
@@ -307,9 +303,7 @@ int sysMunmap(void *vaddr, size_t size) {
 			h->size = (size_t)hSize;
 			h->shared = cur->shared;
 			if (h->shared) {
-				acquireSpinlock(&h->shared->lock);
 				h->shared->refCount++;
-				releaseSpinlock(&h->shared->lock);
 			}
 			h->sharedOffset = cur->sharedOffset + end - curStart;
 			h->next = cur->next;

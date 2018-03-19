@@ -1,6 +1,7 @@
 #ifndef INCLUDE_FS_INODE_H
 #define INCLUDE_FS_INODE_H
 
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <time.h>
@@ -22,6 +23,8 @@
 #define RAMFS_INITRD	2 //set if file comes from initrd
 #define RAMFS_DEVFILE	3
 
+#define FILE_FLAG_PIPE	1 //same bit as SYSOPEN_FLAG_CREATE
+
 typedef int64_t ssize_t;
 
 struct Inode;
@@ -30,7 +33,7 @@ struct DevFileOps;
 
 struct File {
 	spinlock_t lock;
-	unsigned int refCount;
+	atomic_uint refCount;
 	int flags;
 
 	struct Inode *inode;

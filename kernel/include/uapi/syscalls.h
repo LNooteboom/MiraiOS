@@ -22,6 +22,8 @@ struct GetDent;
 /*0B*/ int sysArchPrctl(int which, void *addr);
 /*0C*/ void* sysMmap(void *addr, size_t size, int flags, int fd, uint64_t offset);
 /*0D*/ int sysMunmap(void *vaddr, size_t size);
+/*0E*/ int sysPipe(int fd[2], int flags);
+/*0F*/ int sysDup(int oldFD, int newFD, int flags);
 //END
 
 #endif

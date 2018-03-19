@@ -89,7 +89,7 @@ void mmMapPage(uintptr_t vaddr, physPage_t paddr, pageFlags_t flags) {
 		flags &= ~PAGE_FLAG_EXEC;
 	}
 	allocTables(vaddr, flags);
-	pte_t entry = paddr | flags | PAGE_FLAG_PRESENT | PAGE_FLAG_INUSE;
+	pte_t entry = paddr | flags | PAGE_FLAG_PRESENT;
 	mmSetPageEntry(vaddr, 0, entry);
 	return;
 }
@@ -124,9 +124,9 @@ static void mmUnmapUserspaceHelper(uintptr_t base, int lv) {
 		if (lv && *pte & PAGE_FLAG_PRESENT) {
 			mmUnmapUserspaceHelper(pageBase, lv - 1);
 			*pte = 0;
-		} else if (!lv && *pte & PAGE_FLAG_PRESENT && *pte & PAGE_MASK) {
-			if (*pte & PAGE_FLAG_SHARED) {
-				//printk("[MM] Shared pages are not implemented yet\n");
+		} else if (!lv && *pte & PAGE_FLAG_PRESENT && *pte & PAGE_FLAG_INUSE) {
+			if (*pte & PAGE_FLAG_SHARED || !(*pte & PAGE_MASK)) {
+				printk("Weird unmap at: %X\n", pte);
 			} else {
 				//dealloc mapped page
 				deallocPhysPage(*pte & PAGE_MASK);

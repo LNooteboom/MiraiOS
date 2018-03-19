@@ -33,6 +33,7 @@ int fsOpen(struct File *f) {
 void fsClose(struct File *file) {
 	acquireSpinlock(&file->lock);
 	if (!file->inode) {
+		releaseSpinlock(&file->lock);
 		return; //BADF
 	}
 	acquireSpinlock(&file->inode->lock);
