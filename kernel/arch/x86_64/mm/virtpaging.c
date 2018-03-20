@@ -64,7 +64,7 @@ static pte_t *allocVMem(uint32_t nrofPages) {
 	
 	unsigned int curNrofPages;
 	pte_t *next;
-	while (true) {
+	while (curFree) {
 		unpackAddrAndSize(&next, &curNrofPages, *curFree);
 		if (curNrofPages >= nrofPages) {
 			curNrofPages -= nrofPages;

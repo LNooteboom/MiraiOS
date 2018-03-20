@@ -56,18 +56,26 @@ int sysArchPrctl(int which, void *addr) {
 void loadThread(thread_t new) {
 	if (new->process) {
 		//userspace thread
+		new->floatsUsed = false;
+
 		if (!new->fsBase) {
 			asm ("mov fs, ax" : : "a"(0x23));
 		} else {
 			wrmsr(0xC0000100, (uint64_t)new->fsBase); //MSR_FS_BASE
 		}
-		if (!new->gsBase) {
+		//if (!new->gsBase) {
 			//asm ("mov gs, ax" : : "a"(0x23));
-		} else {
+		//} else {
 			wrmsr(0xC0000102, (uint64_t)new->gsBase); //MSR_KERNEL_GS_BASE
-		}
+		//}
 
+		//set address space
 		asm ("mov cr3, %0" : : "r"(new->process->addressSpace));
+
+		//set TS flag in cr0
+		asm (	"mov rax, cr0\n"
+				"or rax, (1 << 3)\n"
+				"mov cr0, rax" : : : "rax");
 	}
 	
 }

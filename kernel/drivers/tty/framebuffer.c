@@ -229,7 +229,7 @@ int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 				vc->c = text[i];
 				vc->fgCol = tty->curFGCol;
 				vc->bgCol = tty->curBGCol;
-				//vc->dirty = 1;
+				vc->dirty = 1;
 
 				tty->cursorX++;
 				if (tty->cursorX >= tty->charWidth) {
@@ -243,7 +243,9 @@ int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 		releaseSpinlock(&tty->lock);
 	} else {
 		releaseSpinlock(&tty->lock);
-		semSignal(&tty->updateSem);
+		if (tty->updateSem.value <= 0) {
+			semSignal(&tty->updateSem);
+		}
 	}
 	return 0;
 }
@@ -301,7 +303,7 @@ void fbPanicUpdate(void) {
 int fbInitLate(void) {
 	ttyEarly = false;
 	thread_t updateThread;
-	int error = kthreadCreate(&updateThread, (void *(*)(void *))fbUpdateThread, NULL, THREAD_FLAG_DETACHED);
+	int error = kthreadCreate(&updateThread, (void *(*)(void *))fbUpdateThread, NULL, THREAD_FLAG_DETACHED | THREAD_FLAG_RT);
 	if (error) {
 		return error;
 	}

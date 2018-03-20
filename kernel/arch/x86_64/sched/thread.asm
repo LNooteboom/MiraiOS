@@ -143,6 +143,75 @@ kthreadExit:
 		;call setCurrentThread
 		jmp nextThread
 	
+reschedCommon:
+	;get current thread
+	mov rax, [gs:8]
+	push rax
+	push rdx
+	
+	lea rdi, [rax + 0x14]
+	call acquireSpinlock
+
+	;mov esi, 1
+	mov rdi, [gs:8]
+	pop rdx
+	call kthreadSwitch
+
+	pop rdx
+	cmp rax, rdx
+	je .noSwitch
+		pop rcx ;save ret addr in rcx
+		;task switch occured
+		;save optional registers
+		sub rsp, 0x30
+		mov [rsp + 0x28], rbx
+		mov [rsp + 0x20], rbp
+		mov [rsp + 0x18], r12
+		mov [rsp + 0x10], r13
+		mov [rsp + 0x08], r14
+		mov [rsp], r15
+		;save rsp
+		mov [rdx], rsp
+		;get new rsp
+		mov rsp, [rax]
+		;restore optional registers
+		mov rbx, [rsp + 0x28]
+		mov rbp, [rsp + 0x20]
+		mov r12, [rsp + 0x18]
+		mov r13, [rsp + 0x10]
+		mov r14, [rsp + 0x08]
+		mov r15, [rsp]
+		add rsp, 0x30
+		
+		push rcx ;save ret addr
+		push rdx
+		push rax
+
+		cmp [rdx + 0x28], dword 0
+		je .noFloat
+			fxsave [rdx + 0x30]
+		.noFloat:
+
+		mov rdi, rax
+		mov rsi, rdx
+		call loadThread
+
+		lea rdi, [rsp + 0x70 + 0x10 + 8]
+		call tssSetRSP0
+
+		pop rax
+
+		;release spinlock on new thread
+		lea rdi, [rax + 0x14]
+		call releaseSpinlock
+		pop rdx
+		
+	.noSwitch:
+	;release spinlock on old thread
+	lea rdi, [rdx + 0x14]
+	call releaseSpinlock
+	
+	ret
 
 jiffyIrq:
 	;save mandatory registers
@@ -165,75 +234,20 @@ jiffyIrq:
 		or [rsp + 0x68], dword 3 ;virtualbox clears dpl for some reason
 	.noswapgs:
 
-	call getCurrentThread
-	push rax
-	mov rdi, rax
+	mov rdi, [gs:8]
 	call sleepSkipTime
-	mov rdx, [rsp]
-	push rax
-	test rdx, rdx
-	jz .prereturn
-	cmp [rdx + 0x10], dword 1
-	je .noreturn
-		.prereturn:
-		add rsp, 16
-		jmp .return
-	.noreturn:
-	mov rdi, [rsp + 8]
-	lea rdi, [rdi + 0x14]
-	call acquireSpinlock
+	mov esi, eax
+	
+	mov rax, [gs:8]
+	test rax, rax
+	jz .return
+	cmp [rax + 0x10], dword 1
+	jne .return
 
-	pop rsi
-	mov rdi, [rsp]
 	mov edx, 1
-	call kthreadSwitch
-	pop rdx
+	call reschedCommon
 
-	cmp rax, rdx
-	je .noSwitch
-		;task switch occured
-		;save optional registers
-		sub rsp, 0x30
-		mov [rsp + 0x28], rbx
-		mov [rsp + 0x20], rbp
-		mov [rsp + 0x18], r12
-		mov [rsp + 0x10], r13
-		mov [rsp + 0x08], r14
-		mov [rsp], r15
-		;save rsp
-		mov [rdx], rsp
-		;get new rsp
-		mov rsp, [rax]
-		;restore optional registers
-		mov rbx, [rsp + 0x28]
-		mov rbp, [rsp + 0x20]
-		mov r12, [rsp + 0x18]
-		mov r13, [rsp + 0x10]
-		mov r14, [rsp + 0x08]
-		mov r15, [rsp]
-		add rsp, 0x30
-
-		push rdx
-		push rax
-
-		mov rdi, rax
-		call loadThread
-
-		lea rdi, [rsp + 0xA0 - 0x30 + 0x10] ;total registers - opt registers + temp registers (rax&rdx)
-		call tssSetRSP0 ;tssSetRSP0(stackPointer + 0xA0 - 0x30 + 0x10)
-
-		pop rax
-
-		;release spinlock on new thread
-		lea rdi, [rax + 0x14]
-		call releaseSpinlock
-		pop rdx
-	.noSwitch:
-	;release spinlock on old thread
-	lea rdi, [rdx + 0x14]
-	call releaseSpinlock
 	.return:
-
 	call ackIRQ
 
 	cmp [perCpuTimer], dword 0
@@ -284,71 +298,18 @@ reschedIPI:
 		or [rsp + 0x68], dword 3
 	.noswapgs:
 
-	;get current thread
 	mov rax, [gs:8]
 	test rax, rax
 	jz .return
 	cmp [rax + 0x10], dword 1
 	jne .return
 
-	push rax
-	
-	lea rdi, [rax + 0x14]
-	call acquireSpinlock
-
-	mov esi, 1
-	mov rdi, [gs:8]
 	xor edx, edx
-	call kthreadSwitch
+	;mov esi, 1
+	xor esi, esi
+	call reschedCommon
 
-	pop rdx
-	cmp rax, rdx
-	je .noSwitch
-		;task switch occured
-		;save optional registers
-		sub rsp, 0x30
-		mov [rsp + 0x28], rbx
-		mov [rsp + 0x20], rbp
-		mov [rsp + 0x18], r12
-		mov [rsp + 0x10], r13
-		mov [rsp + 0x08], r14
-		mov [rsp], r15
-		;save rsp
-		mov [rdx], rsp
-		;get new rsp
-		mov rsp, [rax]
-		;restore optional registers
-		mov rbx, [rsp + 0x28]
-		mov rbp, [rsp + 0x20]
-		mov r12, [rsp + 0x18]
-		mov r13, [rsp + 0x10]
-		mov r14, [rsp + 0x08]
-		mov r15, [rsp]
-		add rsp, 0x30
-
-		
-		push rdx
-		push rax
-
-		mov rdi, rax
-		call loadThread
-
-		lea rdi, [rsp + 0xA0 - 0x30 + 0x10]
-		call tssSetRSP0
-
-		pop rax
-
-		;release spinlock on new thread
-		lea rdi, [rax + 0x14]
-		call releaseSpinlock
-		pop rdx
-		
-	.noSwitch:
-	;release spinlock on old thread
-	lea rdi, [rdx + 0x14]
-	call releaseSpinlock
 	.return:
-
 	call ackIRQ
 
 	mov rax, 0xffffffff80000000
@@ -426,6 +387,10 @@ kthreadStop:
 	mov [rax], rsp ;save rsp
 	mov r15, rax
 
+	cmp [r15 + 0x28], dword 0
+	je .noFloat
+		fxsave [r15 + 0x30]
+	.noFloat:
 
 	;switch to exception stack
 	mov rsp, [gs:0x10]

@@ -5,6 +5,7 @@
 #include <mm/pagemap.h>
 #include <mm/memset.h>
 #include <mm/physpaging.h>
+#include <arch/tlb.h>
 #include <sched/readyqueue.h>
 #include <userspace.h>
 #include <modules.h>
@@ -29,6 +30,7 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 		}
 
 		memcpy(newEntry, curEntry, sizeof(*curEntry));
+		newEntry->next = NULL;
 		newEntry->prev = prev;
 		if (prev) {
 			prev->next = newEntry;
@@ -62,10 +64,11 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 			//shared->phys[i] = mmGetPageEntry(curAddr);
 			pte_t *pte = mmGetEntry(curAddr, 0);
 			*pte |= PAGE_FLAG_COW | PAGE_FLAG_SHARED; //also set COW for parent process
-			*pte &= ~PAGE_FLAG_WRITE;
+			*pte &= ~(PAGE_FLAG_WRITE | PAGE_FLAG_INUSE);
 			shared->phys[i] = *pte & PAGE_MASK;
 			curAddr += PAGE_SIZE;
 		}
+		tlbInvalidateLocal(curEntry->vaddr, nrofPages);
 
 		curEntry->shared = shared;
 		curEntry->flags |= MMAP_FLAG_SHARED;
@@ -74,6 +77,7 @@ static int copyMem(struct Process *proc, struct Process *newProc) {
 
 		curEntry = curEntry->next;
 	}
+	newProc->lastMemEntry = prev;
 
 	ret:
 	return error;
@@ -85,7 +89,7 @@ static int copyFiles(struct Process *proc, struct Process *newProc) {
 
 	struct File *shared;
 	for (int i = 0; i < NROF_INLINE_FDS; i++) {
-		if (proc->inlineFDs[i].flags & PROCFILE_FLAG_SHARED) {
+		if (!(proc->inlineFDs[i].flags & PROCFILE_FLAG_SHARED)) {
 			shared = kmalloc(sizeof(*shared));
 			if (!shared) return -ENOMEM;
 		} else {
@@ -104,7 +108,7 @@ static int copyFiles(struct Process *proc, struct Process *newProc) {
 	newProc->nrofUsedFDs = proc->nrofUsedFDs;
 
 	for (int i = 0; i < newProc->nrofFDs; i++) {
-		if (proc->fds[i].flags & PROCFILE_FLAG_SHARED) {
+		if (!(proc->fds[i].flags & PROCFILE_FLAG_SHARED)) {
 			shared = kmalloc(sizeof(*shared));
 			if (!shared) return -ENOMEM;
 		} else {

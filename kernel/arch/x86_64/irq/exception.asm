@@ -145,8 +145,21 @@ excUD:
 	jmp excBase
 
 excNM:
-	push 7
-	jmp excBase
+	;push 7
+	;jmp excBase
+	;Enable SSE for this thread
+	or [rsp + 0x20], dword 3
+	push rax
+	swapgs
+
+	mov rax, [gs:8]
+	mov [rax + 0x28], dword 1
+	clts
+	fxrstor [rax + 0x30]
+
+	swapgs
+	pop rax
+	iretq
 
 excDF:
 	push 8

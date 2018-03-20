@@ -10,11 +10,12 @@ setupCRegs:
 	xor ecx, ecx
 	mov eax, 7
 	cpuid
+
+	mov eax, (1 << 3) | (1 << 4) | (1 << 5) | (1 << 7) | (1 << 9) | (1 << 10)
 	test ebx, 7
 	jz .noSMEP
-		mov eax, (1 << 3) | (1 << 4) | (1 << 5) | (1 << 7) | (1 << 20)
+		or eax, (1 << 20)
 	.noSMEP:
-		mov eax, (1 << 3) | (1 << 4) | (1 << 5) | (1 << 7)
 	.cont:
 	mov cr4, rax
 	ret

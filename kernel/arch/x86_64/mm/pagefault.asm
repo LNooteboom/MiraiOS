@@ -157,8 +157,7 @@ excPF:
 
 	.end:
 	mov rdi, PFmsg2
-	;mov rsi, cr2
-	mov rsi, [r12]
+	mov rsi, cr2
 	mov rdx, [rsp + 8]
 	mov rcx, [rsp]
 

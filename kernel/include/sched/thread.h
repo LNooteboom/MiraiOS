@@ -40,6 +40,9 @@ struct ThreadInfo {
 	bool detached;				//0x18
 	uint32_t cpuAffinity;		//0x1C
 	struct Process *process;	//0x20
+	bool floatsUsed;			//0x28
+	//0x2C-0x2F unused
+	char fxsaveArea[512] __attribute__((aligned(16))); //0x30
 	//end of asm accessible part
 	void *fsBase;
 	void *gsBase;
