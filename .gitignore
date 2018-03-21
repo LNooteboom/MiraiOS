@@ -4,16 +4,20 @@ initrd/
 sysroot
 .*/
 
+.*
+
+#Output files
 *.o
 *.a
 *.img
 *.iso
-*.ini
-*.bxrc
 *.bin
 
+#Misc config files
+*.ini
+*.bxrc
+
 #Generated source files
-kernel/drivers/tty/keymap.c
 kernel/main/syscalltbl.c
 phlibc/syscalls.asm
 

@@ -229,7 +229,7 @@ int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 				vc->c = text[i];
 				vc->fgCol = tty->curFGCol;
 				vc->bgCol = tty->curBGCol;
-				vc->dirty = 1;
+				//vc->dirty = 1;
 
 				tty->cursorX++;
 				if (tty->cursorX >= tty->charWidth) {

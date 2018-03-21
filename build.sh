@@ -1,5 +1,17 @@
 #!/bin/bash
 
+buildUserspace () {
+	if [ -f "$1/.buildtime" ] && [ $SYSROOT/phlibc/libc.a -nt $1/.buildtime ]; then
+		make -C $1 clean
+	fi
+	make -C $1
+	OUT=$?
+	touch $1/.buildtime
+	if [ ! $OUT -eq 0 ]; then
+		exit $OUT
+	fi
+}
+
 #config options
 export TARGET_KERNEL=x86_64-elf
 export TARGET_USER=x86_64-miraios
@@ -17,7 +29,7 @@ EFI=false;
 mkdir -p $BUILDDIR
 mkdir -p $INITRDDIR
 
-#make kernel
+#build kernel
 make -j 4 -C $KERNELDIR
 OUT=$?
 if [ ! $OUT -eq 0 ]; then
@@ -46,17 +58,22 @@ mkdir -p $SYSROOT/lib
 mkdir -p $SYSROOT/bin
 cp -r $KERNELDIR/include/uapi $SYSROOT/include
 
+#build libc
 make -C phlibc
+OUT=$?
+if [ ! $OUT -eq 0 ]; then
+	exit $OUT
+fi
 cp phlibc/libc.a $SYSROOT/lib/
 cp phlibc/crt0.o $SYSROOT/lib/
 cp -r phlibc/userinclude/* $SYSROOT/include/
 
-make -C init
+#build programs
+buildUserspace init
 cp init/init $SYSROOT
 
 #create initrd
 cd $INITRDDIR
-#printf "init\ntest\n" | cpio --create --format=newc > ../$BUILDDIR/initrd
 find * -type f | cpio --create --format=newc > ../$BUILDDIR/initrd
 
 cd ..

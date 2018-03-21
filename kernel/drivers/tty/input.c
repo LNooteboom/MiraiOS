@@ -6,6 +6,7 @@
 #include <fs/devfile.h>
 
 extern char keymap[];
+extern char shiftKeymap[];
 
 static bool shiftPressed = false;
 
@@ -72,7 +73,7 @@ int ttyHandleKeyEvent(int eventCode, bool released) {
 		shiftPressed = true;
 		return 0;
 	}
-	char c = keymap[eventCode];
+	char c = (shiftPressed)? shiftKeymap[eventCode] : keymap[eventCode];
 	if (!c) {
 		return -EINVAL;
 	}
@@ -83,9 +84,7 @@ int ttyHandleKeyEvent(int eventCode, bool released) {
 
 	int wi = tty->inputWriteIndex;
 	int echo = tty->inputMode & INPUT_MODE_ECHO;
-	if (!shiftPressed && c >= 'A' && c <= 'Z') {
-		c += 0x20; //to lowercase
-	} else if (c == '\n' && tty->inputMode & INPUT_MODE_LINEBUF) {
+	if (c == '\n' && tty->inputMode & INPUT_MODE_LINEBUF) {
 		tty->inputLineIndex = wi;
 		ttySignalInputSem(tty);
 	} else if (c == 127 && tty->inputMode & INPUT_MODE_LINEBUF) {

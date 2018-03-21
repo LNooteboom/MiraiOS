@@ -238,3 +238,23 @@ int sysGetDent(int fd, struct GetDent *buf) {
 	releaseSpinlock(&fp.file->lock);
 	return ret;
 }
+
+int sysChDir(const char *path) {
+	int error = validateUserString(path);
+	if (error) return error;
+
+	struct Process *proc = getCurrentThread()->process;
+	struct Inode *inode = getInodeFromPath(proc->cwd, path);
+	if (!inode) {
+		return -ENOENT;
+	}
+	if (!isDir(inode)) {
+		return -ENOTDIR;
+	}
+
+	inode->refCount++;
+	proc->cwd->refCount--;
+	proc->cwd = inode;
+
+	return 0;
+}

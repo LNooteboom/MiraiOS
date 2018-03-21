@@ -67,6 +67,78 @@ static int elfLoad(struct File *f, struct ElfPHEntry *entry) {
 	return error;
 }
 
+static int createStack(void **sp, uintptr_t stack, char *const argv[], char *const envp[]) {
+	//copy envp strings
+	int error = 0;
+	int nrofEnvs = 0;
+	int envLen = 0;
+	long nrofArgs = 0;
+	int argLen = 0;
+	bool sel = false; //false = envp, true = argv
+
+	char *const *strList = envp;
+	for (int i = 0; ; i++) {
+		error = validateUserPointer(strList + i, sizeof(char *));
+		if (error) goto ret;
+
+		if (!strList[i]) {
+			if (!sel) {
+				strList = argv;
+				i = -1;
+				sel = true;
+				continue;
+			} else {
+				break;
+			}
+		}
+
+		error = validateUserStringL(strList[i]);
+		if (error < 0) goto ret;
+		//error = string len
+		error++; //include null terminator
+		if (!sel) {
+			envLen += error;
+			nrofEnvs++;
+		} else {
+			argLen += error;
+			nrofArgs++;
+		}
+	}
+	uintptr_t uTop = stack + PAGE_SIZE - argLen - envLen;
+	error = 0;
+	//Add one for NULL-ptr termination
+	nrofArgs++;
+	nrofEnvs++;
+
+	char **newArgv = (char **)(alignLow(uTop, 16) - nrofArgs * sizeof(char *) - nrofEnvs * sizeof(char *));
+	//copy args
+	for (int i = 0; i < nrofArgs; i++) {
+		if (!argv[i]) {
+			newArgv[i] = NULL;
+			break;
+		}
+		int len = strlen(argv[i]) + 1;
+		memcpy((void *)uTop, argv[i], len);
+		newArgv[i] = (char *)uTop - stack;
+		uTop += len;
+	}
+	for (int i = 0; i < nrofEnvs; i++) {
+		if (!envp[i]) {
+			newArgv[i + nrofArgs] = NULL;
+			break;
+		}
+		int len = strlen(envp[i]) + 1;
+		memcpy((void *)uTop, envp[i], len);
+		newArgv[i + nrofArgs] = (char *)uTop - stack;
+		uTop += len;
+	}
+	newArgv[-1] = (char *)(nrofArgs - 1); //argc
+	*sp = &newArgv[-1];
+
+	ret:
+	return error;
+}
+
 static int execCommon(thread_t mainThread, const char *fileName, void **startAddr, void **sp) {
 	int error;
 	//Open the executable
@@ -185,9 +257,14 @@ int execInit(const char *fileName) {
 	initProcess.addressSpace = cr3;
 
 	void *start;
-	void *sp;
-	error = execCommon(mainThread, fileName, &start, &sp);
+	long *sp;
+	error = execCommon(mainThread, fileName, &start, (void**)&sp);
 	if (error) goto deallocMainThread;
+
+	//create empty argv
+	*(--sp) = 0; //envp
+	*(--sp) = 0; //argv
+	*(--sp) = 0; //argc
 
 	uthreadInit(mainThread, start, 0, 0, sp);
 
@@ -201,33 +278,66 @@ int execInit(const char *fileName) {
 	return error;
 }
 
-int sysExec(const char *fileName, char *const argv[] __attribute__ ((unused)), char *const envp[] __attribute__ ((unused))) {
+int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
+	if (!fileName || !argv || !envp) {
+		return -EINVAL;
+	}
 	int error;
-	int fnLen = strlen(fileName) + 1;
+	int fnLen = validateUserStringL(fileName) + 1;
+	if (fnLen <= 0) {
+		return fnLen - 1;
+	}
 	if (fnLen > PAGE_SIZE) return -EINVAL;
 	char namebuf[fnLen];
-
-	error = validateUserString(fileName);
-	if (error) goto ret;
 
 	memcpy(namebuf, fileName, fnLen);
 
 	error = fsCloseOnExec();
 	if (error) goto ret;
 
+	uintptr_t stack = (uintptr_t)allocKPages(PAGE_SIZE, PAGE_FLAG_WRITE);
+	if (!stack) {
+		error = -ENOMEM;
+		goto ret;
+	}
+	void *sp;
+	error = createStack(&sp, stack, argv, envp);
+	if (error) goto deallocStack;
+	uintptr_t spDiff = PAGE_SIZE - ((uintptr_t)sp - stack);
+
 	thread_t curThread = getCurrentThread();
 	mmapDestroy(curThread->process);
 	
 	void *start;
-	void *sp;
-	error = execCommon(curThread, namebuf, &start, &sp);
-	if (error) goto exitProc;
+	void *userSP;
+	error = execCommon(curThread, namebuf, &start, &userSP);
+	if (error) goto deallocStack;
 
-	initExecRetThread(curThread, start, 0, 0, sp);
+	userSP = (void *)((uintptr_t)userSP - spDiff);
+	memcpy(userSP,sp, spDiff);
+
+	char **list = (char **)userSP + 1;
+	bool sel = false;
+	for (int i = 0; ; i++) {
+		if (!list[i]) {
+			if (!sel) {
+				sel = true;
+				continue;
+			} else {
+				break;
+			}
+		}
+		list[i] += alignLow((uintptr_t)userSP, PAGE_SIZE);
+	}
+
+	deallocPages((void *)stack, PAGE_SIZE);
+
+	initExecRetThread(curThread, start, 0, 0, userSP);
 	
 	return 0;
 
-	exitProc:
+	deallocStack:
+	deallocPages((void *)stack, PAGE_SIZE);
 	sysExit(error);
 	ret:
 	return error;

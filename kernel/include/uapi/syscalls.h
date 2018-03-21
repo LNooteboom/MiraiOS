@@ -24,6 +24,7 @@ struct GetDent;
 /*0D*/ int sysMunmap(void *vaddr, size_t size);
 /*0E*/ int sysPipe(int fd[2], int flags);
 /*0F*/ int sysDup(int oldFD, int newFD, int flags);
+/*10*/ int sysChDir(const char *path);
 //END
 
 #endif

@@ -3,6 +3,8 @@
 
 typedef long pid_t;
 
+extern char **environ;
+
 pid_t fork(void);
 
 int execv(const char *path, char *const argv[]);

@@ -60,7 +60,7 @@ struct Inode {
 	uint32_t inodeID;
 
 	unsigned int type;
-	unsigned int refCount;
+	atomic_int refCount;
 	unsigned int nrofLinks;
 	
 	unsigned int ramfs;

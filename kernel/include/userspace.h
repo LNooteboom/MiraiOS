@@ -32,4 +32,18 @@ static inline int validateUserString(const char *str) {
 	}
 }
 
+static inline int validateUserStringL(const char *str) {
+	int len = 0;
+	while (true) {
+		if ((uintptr_t)str & 0xFFFF8000UL << 32) {
+			return -EINVAL;
+		}
+		if (!*str) {
+			return len;
+		}
+		str++;
+		len++;
+	}
+}
+
 #endif
