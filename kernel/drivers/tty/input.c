@@ -72,6 +72,15 @@ int ttyHandleKeyEvent(int eventCode, bool released) {
 	if (eventCode == KEY_LEFTSHIFT) {
 		shiftPressed = true;
 		return 0;
+	} else if (eventCode >= KEY_F1 && eventCode <= KEY_F8) {
+		ttySwitch(eventCode - KEY_F1);
+		return 0;
+	} else if (eventCode == KEY_PAGEUP) {
+		ttyScroll(-1);
+		return 0;
+	} else if (eventCode == KEY_PAGEDOWN) {
+		ttyScroll(1);
+		return 0;
 	}
 	char c = (shiftPressed)? shiftKeymap[eventCode] : keymap[eventCode];
 	if (!c) {

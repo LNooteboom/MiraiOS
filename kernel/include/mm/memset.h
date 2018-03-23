@@ -23,7 +23,7 @@ static inline void memcpy(volatile void *dst, const void *src, size_t n) {
 Compares n bytes of data.
 Returns 0 if equal.
 */
-static inline bool memcmp(const void *a, const void *b, size_t n) {
+static inline int memcmp(const void *a, const void *b, size_t n) {
 	for (uintptr_t i = 0; i < n; i++) {
 		if (((char*)a)[i] != ((char*)b)[i]) {
 			return -1;

@@ -19,8 +19,9 @@ sysroot
 
 #Generated source files
 kernel/main/syscalltbl.c
-phlibc/syscalls.asm
+phlibc/src/syscalls.asm
 
+#Output files
 miraiBoot
 miraiBoot.efi
 efibuild

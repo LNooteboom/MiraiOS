@@ -105,14 +105,6 @@ static void kbInterrupt(struct Ps2Device *dev) {
 						good = in8(0x64);
 					out8(0x64, 0xFE);
 					asm ("hlt");
-				} else if (keycode == KEY_PAGEUP) {
-					ttyScroll(-1);
-				} else if (keycode == KEY_PAGEDOWN) {
-					ttyScroll(1);
-				} else if (keycode == KEY_F1) {
-					ttySwitch(0);
-				} else if (keycode == KEY_F2) {
-					ttySwitch(1);
 				} else {
 					ttyHandleKeyEvent(keycode, false);
 				}

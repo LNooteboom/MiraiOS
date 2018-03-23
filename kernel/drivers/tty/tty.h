@@ -84,6 +84,10 @@ extern struct Vtty *currentTty;
 
 int ttyPuts(struct Vtty *tty, const char *text, size_t textLen);
 
+void ttySwitch(unsigned int ttynr);
+
+void ttyScroll(int amount);
+
 ssize_t ttyRead(struct File *file, void *buffer, size_t bufSize);
 
 int ttyInitInput(void);

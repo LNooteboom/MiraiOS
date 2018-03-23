@@ -1,12 +1,12 @@
 #!/bin/bash
 
 buildUserspace () {
-	if [ -f "$1/.buildtime" ] && [ $SYSROOT/phlibc/libc.a -nt $1/.buildtime ]; then
+	if [ -f "$1/.buildtime" ] && [ ! "$SYSROOT/phlibc/libc.a" -ot "$1/.buildtime" ]; then
 		make -C $1 clean
+		touch $1/.buildtime
 	fi
 	make -C $1
 	OUT=$?
-	touch $1/.buildtime
 	if [ ! $OUT -eq 0 ]; then
 		exit $OUT
 	fi
@@ -66,7 +66,7 @@ if [ ! $OUT -eq 0 ]; then
 fi
 cp phlibc/libc.a $SYSROOT/lib/
 cp phlibc/crt0.o $SYSROOT/lib/
-cp -r phlibc/userinclude/* $SYSROOT/include/
+cp -r phlibc/include/* $SYSROOT/include/
 
 #build programs
 buildUserspace init

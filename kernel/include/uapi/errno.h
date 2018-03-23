@@ -1,7 +1,6 @@
 #ifndef __PHLIBC_UAPI_ERRORCODES_H
 #define __PHLIBC_UAPI_ERRORCODES_H
 
-#define ENOMEM		1
 #define EINVAL		2
 #define EBUSY		3
 #define EIO			4
@@ -14,5 +13,6 @@
 #define ECHILD		11
 #define EEXIST		12
 #define ENOTDIR		13
+#define ENOMEM		14
 
 #endif

@@ -8,6 +8,7 @@ global _start:function
 global exit:function
 
 global environ:data
+global errno:data
 
 SECTION .text
 
@@ -46,3 +47,5 @@ SECTION .bss
 
 environ: resq 1
 _PHAtExitFunc: resq 1
+
+errno: resd 1

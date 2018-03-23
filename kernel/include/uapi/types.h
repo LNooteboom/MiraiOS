@@ -1,6 +1,6 @@
-#ifndef __PHLIBC_UAPI_TYPES__
-#define __PHLIBC_UAPI_TYPES__
+#ifndef __PHLIBC_UAPI_TYPES_H
+#define __PHLIBC_UAPI_TYPES_H
 
-typedef long pid_t;
+typedef int pid_t;
 
 #endif
