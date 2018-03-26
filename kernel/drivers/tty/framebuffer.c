@@ -35,6 +35,7 @@ static uint32_t colors[NROF_COLORS] = {
 	0x55FFFF,
 	0xFF5555,
 	0xFF55FF,
+	0xFFFFFF,
 	0xFFFFFF
 };
 

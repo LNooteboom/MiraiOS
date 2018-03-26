@@ -48,6 +48,8 @@ static inline int execvp(const char *file, char *const argv[]) {
 	return execvpe(file, argv, environ);
 }
 
+int execlp(const char *file, const char *arg, ...);
+
 #if defined(__cplusplus)
 } /* extern "C" */
 #endif

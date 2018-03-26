@@ -215,6 +215,8 @@ void mmapDestroy(struct Process *proc) {
 	while (entry) {
 		entry = deleteEntry(entry);
 	}
+	proc->firstMemEntry = NULL;
+	proc->lastMemEntry = NULL;
 
 	mmUnmapUserspace();
 	tlbReloadCR3Local();

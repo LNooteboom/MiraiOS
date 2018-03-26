@@ -14,8 +14,7 @@ SECTION .text
 
 _start:
 	;handle args
-	xchg bx, bx
-	mov rdi, [rsp] ;argc2
+	mov rdi, [rsp] ;argc
 	lea rsi, [rsp + 8] ;argv
 
 	lea rax, [rsi + rdi*8 + 8] ;environ = &argv[argc+1]

@@ -52,7 +52,7 @@ char *strcpy(char *dest, const char *src) {
 	return oldDest;
 }
 
-char *strchr(const char *s, int c) {
+const char *strchr(const char *s, int c) {
 	while (*s) {
 		if (*s == c) {
 			return s;
@@ -60,4 +60,14 @@ char *strchr(const char *s, int c) {
 		s++;
 	}
 	return NULL;
+}
+
+const char *strchrnul(const char *s, int c) {
+	while (*s) {
+		if (*s == c) {
+			return s;
+		}
+		s++;
+	}
+	return s;
 }

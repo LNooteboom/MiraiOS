@@ -6,23 +6,26 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-char str[] = "\e[47;31mHello From C!!!\n\e[0m";
-
 char *env[] = {
 	"PATH=/bin",
-	"USELESS=useless",
+	"PS1=\e[31mMirai\e[37mOS\e[0m> ",
 	NULL
 };
 
 int main(void) {
-	sysOpen("/dev/tty0", SYSOPEN_FLAG_READ); //stdin
-	sysOpen("/dev/tty0", SYSOPEN_FLAG_WRITE); //stdout
-	sysOpen("/dev/tty0", SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE); //stderr
-	//sysWrite(0, str, sizeof(str) - 1);
-	puts(str);
+	sysOpen("/dev/tty1", SYSOPEN_FLAG_READ); //stdin
+	sysOpen("/dev/tty1", SYSOPEN_FLAG_WRITE); //stdout
+	sysOpen("/dev/tty1", SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE); //stderr
+
+	puts("\e[47;31mHello From C!!!\n\e[0m");
 
 	environ = env;
-	printf("env: %s\n", getenv("USELESS"));
+	pid_t sh = sysFork();
+	if (!sh) {
+		//execvpe("sh", environ, environ);
+		execlp("sh", "sh", "test", NULL);
+	}
+	sysWaitPid(sh, NULL, 0);
 
 	while (1) {
 		//if (sysWaitPid(0, NULL, 0)) {

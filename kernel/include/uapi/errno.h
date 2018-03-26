@@ -14,5 +14,6 @@
 #define EEXIST		12
 #define ENOTDIR		13
 #define ENOMEM		14
+#define E2BIG		15
 
 #endif

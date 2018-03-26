@@ -258,3 +258,16 @@ int sysChDir(const char *path) {
 
 	return 0;
 }
+
+int sysAccess(const char *path, int mode) {
+	int error = validateUserString(path);
+	if (error) return error;
+
+	struct Process *proc = getCurrentThread()->process;
+	struct Inode *inode = getInodeFromPath(proc->cwd, path);
+	if (!inode) {
+		return -ENOENT;
+	}
+	//TODO check for permissions
+	return 0;
+}

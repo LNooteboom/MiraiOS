@@ -26,7 +26,9 @@ size_t strlen(const char *str);
 
 char *strcpy(char *dest, const char *src);
 
-char *strchr(const char *s, int c);
+const char *strchr(const char *s, int c);
+
+const char *strchrnul(const char *s, int c);
 
 #if defined(__cplusplus)
 } /* extern "C" */

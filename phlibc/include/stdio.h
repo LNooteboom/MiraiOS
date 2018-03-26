@@ -29,15 +29,17 @@ extern FILE *stderr;
 
 int fputs(const char *restrict s, FILE *restrict stream);
 
-static inline int puts(const char *s) {
-	return fputs(s, stdout);
-}
-
 static inline int fputc(int c, FILE *stream) {
 	char buf[2];
 	buf[0] = c;
 	buf[1] = 0;
 	return fputs(buf, stream);
+}
+
+static inline int puts(const char *s) {
+	int error = fputs(s, stdout);
+	if (error) return error;
+	fputc('\n', stdout);
 }
 
 static inline int putc(int c, FILE *stream) {

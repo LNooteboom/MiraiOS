@@ -16,6 +16,10 @@ buildUserspace () {
 export TARGET_KERNEL=x86_64-elf
 export TARGET_USER=x86_64-miraios
 
+export DEPDIR=.d
+export FLAG_DEP="-MT \$@ -MMD -MP -MF $DEPDIR/\$*.Td"
+export CFLAG_USER="-Wall -Wextra -O2 -std=gnu99"
+
 BUILDDIR=build;
 
 export INITRDDIR=$PWD/initrd;
@@ -71,6 +75,8 @@ cp -r phlibc/include/* $SYSROOT/include/
 #build programs
 buildUserspace init
 cp init/init $SYSROOT
+
+buildUserspace sh
 
 #create initrd
 cd $INITRDDIR

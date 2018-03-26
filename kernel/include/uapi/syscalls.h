@@ -25,6 +25,7 @@ struct GetDent;
 /*0E*/ int sysPipe(int fd[2], int flags);
 /*0F*/ int sysDup(int oldFD, int newFD, int flags);
 /*10*/ int sysChDir(const char *path);
+/*11*/ int sysAccess(const char *path, int mode);
 //END
 
 #endif
