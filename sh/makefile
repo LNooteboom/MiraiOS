@@ -7,4 +7,5 @@ clean:
 	rm -f $(PROGRAMS)
 
 $(d)/%: %.c
-	$(TARGET_USER)-gcc $(CFLAG_USER) -o $@ $+
+	@echo "(USER-CC)	$@"
+	@$(TARGET_USER)-gcc $(CFLAG_USER) -o $@ $+

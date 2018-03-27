@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <print.h>
 #include <mm/heap.h>
+#include <mm/memset.h>
 #include <drivers/tty.h>
 
 #include <io.h>
@@ -118,11 +119,10 @@ static void kbInterrupt(struct Ps2Device *dev) {
 }
 
 static struct Ps2Device *kbNewDevice(struct Ps2Controller *controller) {
-	struct KbDevice *ret = kmalloc(sizeof(struct KbDevice));
-	ret->ledState = 0;
+	struct KbDevice *ret = kmalloc(sizeof(*ret));
+	memset(ret, 0, sizeof(*ret));
 	ret->ps2Dev.drv = &kbDriver;
 	ret->ps2Dev.controller = controller;
-	ret->ps2Dev.interruptCount = 0;
 
 	//enable scanning
 	controller->sendCommand(0xF4);

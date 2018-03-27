@@ -51,8 +51,9 @@ static int printDec(char *buf, int bufLen, unsigned long in, bool sign,
 
 	char temp[100];
 	int nLen = 0;
-	if (in == 0) {
+	if (!in) {
 		temp[0] = '0';
+		nLen++;
 	} else while (in != 0) {
 		char c = (in % 10) + '0';
 		in /= 10;

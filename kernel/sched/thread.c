@@ -150,7 +150,6 @@ void kthreadFreeJoined(thread_t thread) {
 		acquireSpinlock(&curFreeThread->lock);
 
 		thread_t nextFreeThread = curFreeThread->nextThread;
-		curFreeThread->state = THREADSTATE_SCHEDWAIT;
 		readyQueuePush(curFreeThread);
 
 		releaseSpinlock(&curFreeThread->lock);

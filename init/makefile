@@ -1,13 +1,8 @@
-DEPDIR := .d
 $(shell mkdir -p $(DEPDIR) > /dev/null)
 
 CC = $(TARGET_USER)-gcc
+CFLAG = $(CFLAG_USER) $(FLAG_DEP) -c
 
-FLAG_WARN = -Wall -Wextra
-FLAG_DEP = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
-CFLAG = $(FLAG_WARN) $(FLAG_DEP) -c
-
-LIBS = 
 LD = $(CC)
 
 OUTPUT = init
@@ -21,7 +16,7 @@ clean:
 	rm -f $(OUTPUT) $(OBJECTS)
 
 $(OUTPUT): $(OBJECTS)
-	@echo "(LD) $@"
+	@echo "(LD)	$@"
 	@$(LD) -o $@ $+ $(LIBS)
 
 %.o: %.c

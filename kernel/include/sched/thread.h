@@ -51,6 +51,7 @@ struct ThreadInfo {
 	struct ThreadInfo *prevThread;
 
 	pid_t waitPid;
+	struct Process *waitProc;
 
 	int priority;//48
 	bool fixedPriority;

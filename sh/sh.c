@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <uapi/syscalls.h>
+#include <sys/wait.h>
 
 #define COMMAND_BUF_LEN	512
 
@@ -12,10 +12,12 @@ char commandBuf[COMMAND_BUF_LEN];
 char *newArgv[32];
 
 int main(void) {
-	puts("MiraiOS Shell v0.1\n\n");
+	puts("MiraiOS Shell v0.1");
 
 	while (1) {
-		fputs(getenv("PS1"), stdout);
+		printf("%s", getenv("PS1"));
+		//fputs(getenv("PS1"), stdout);
+		//fputs("> ", stdout);
 
 		fgets(commandBuf, COMMAND_BUF_LEN, stdin);
 
@@ -39,17 +41,17 @@ int main(void) {
 
 		if (!memcmp(commandBuf, "cd", 3)) {
 			if (newArgc == 1) {
-				sysChDir("/");
+				chdir("/");
 				continue;
 			}
-			sysChDir(newArgv[1]);
+			chdir(newArgv[1]);
 			continue;
 		} else if (!memcmp(commandBuf, "exit", 5)) {
 			puts("Exit");
 			exit(0);
 		}
 
-		pid_t child = sysFork();
+		pid_t child = fork();
 		if (!child) {
 			execvp(commandBuf, newArgv);
 			if (errno == -ENOENT) {
@@ -57,7 +59,9 @@ int main(void) {
 			}
 			exit(-1);
 		}
-		sysWaitPid(child, NULL, 0);
+		int status = 10;
+		waitpid(0, &status, 0);
+		printf("Returned %d\n", status);
 	}
 
 	return 0;

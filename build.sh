@@ -1,15 +1,17 @@
 #!/bin/bash
 
 buildUserspace () {
-	if [ -f "$1/.buildtime" ] && [ ! "$SYSROOT/phlibc/libc.a" -ot "$1/.buildtime" ]; then
+	if [ -f "$1/.buildtime" ] && [ "$SYSROOT/lib/libc.a" -nt "$1/.buildtime" ]; then
 		make -C $1 clean
-		touch $1/.buildtime
+		echo clean
 	fi
 	make -C $1
 	OUT=$?
 	if [ ! $OUT -eq 0 ]; then
 		exit $OUT
 	fi
+
+	touch $1/.buildtime
 }
 
 #config options
@@ -68,8 +70,6 @@ OUT=$?
 if [ ! $OUT -eq 0 ]; then
 	exit $OUT
 fi
-cp phlibc/libc.a $SYSROOT/lib/
-cp phlibc/crt0.o $SYSROOT/lib/
 cp -r phlibc/include/* $SYSROOT/include/
 
 #build programs

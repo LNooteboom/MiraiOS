@@ -32,7 +32,6 @@ void semSignal(semaphore_t *semaphore) {
 	releaseSpinlock(&semaphore->lock);
 	if (freedThread) {
 		acquireSpinlock(&freedThread->lock);
-		freedThread->state = THREADSTATE_SCHEDWAIT;
 		readyQueuePush(freedThread);
 		releaseSpinlock(&freedThread->lock);
 	}

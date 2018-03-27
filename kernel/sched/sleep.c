@@ -43,7 +43,6 @@ bool sleepSkipTime(thread_t curThread) {
 			}
 
 			//add it to the readyqueue
-			thrd->state = THREADSTATE_SCHEDWAIT;
 			readyQueuePush(thrd);
 
 			if (!curThread || thrd->priority < curThread->priority) {

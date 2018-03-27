@@ -5,24 +5,30 @@ assert.o basicio.o printf.o string.o exec.o stdlib.o
 
 SRC = src
 
+LIBDIR = $(SYSROOT)/lib
+
 $(shell mkdir -p $(DEPDIR) > /dev/null)
 
 FLAG_INCLUDES = -Iinclude/
 CFLAG = $(CFLAG_USER) $(FLAG_DEP) $(FLAG_INCLUDES) -c
 CC := $(TARGET_USER)-gcc
 
-all: libc.a crt0.o
+all: $(LIBDIR)/libc.a $(LIBDIR)/crt0.o
 
 clean:
-	rm -f $(OUTPUT) $(OBJECTS)
+	rm -f $(OUTPUT) $(OBJECTS) $(SRC)/syscalls.asm
 
-libc.a: $(OBJECTS)
-	$(TARGET_USER)-ar rcs $@ $+
+$(LIBDIR)/libc.a: $(OBJECTS)
+	@echo "(AR)		$@"
+	@$(TARGET_USER)-ar rcs $@ $+
+
+$(LIBDIR)/crt0.o: crt0.o
+	cp $< $@
 
 %.o: %.c
 %.o: $(SRC)/%.c $(DEPDIR)/%.d
 	@echo "(USER-CC)	$@"
-	${CC} ${CFLAG} -o $@ $<
+	@${CC} ${CFLAG} -o $@ $<
 	@mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
 
 %.o: $(SRC)/%.asm
@@ -32,7 +38,7 @@ libc.a: $(OBJECTS)
 $(SRC)/syscalls.asm: $(SRC)/gensyscalls.awk ../kernel/include/uapi/syscalls.h
 	awk -f $+ > $@
 
-%.d: ;
+$(DEPDIR)/%.d: ;
 
 .PRECIOUS: $(DEPDIR)/%.d
 

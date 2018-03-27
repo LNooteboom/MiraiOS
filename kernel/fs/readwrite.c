@@ -93,12 +93,12 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 int fsWrite(struct File *file, const void *buffer, size_t bufSize) {
 	acquireSpinlock(&file->lock);
 	struct Inode *inode = file->inode;
-	acquireSpinlock(&inode->lock);
+	
 
 	int error = 0;
 	if (isDir(inode)) {
 		error = -EISDIR;
-		goto ret;
+		goto releaseFileLock;
 	}
 
 	if ((inode->type & ITYPE_MASK) == ITYPE_CHAR) {
@@ -107,14 +107,15 @@ int fsWrite(struct File *file, const void *buffer, size_t bufSize) {
 		if (ops && ops->write) {
 			error = ops->write(file, buffer, bufSize);
 		}
-		goto ret;
+		goto releaseFileLock;
 	}
 
 	if (inode->ramfs & RAMFS_INITRD) {
 		error = -EROFS;
-		goto ret;
+		goto releaseFileLock;
 	}
 
+	acquireSpinlock(&inode->lock);
 	struct CachedFile *cf = inode->cachedData;
 	
 	while (bufSize) {
@@ -207,6 +208,7 @@ int fsWrite(struct File *file, const void *buffer, size_t bufSize) {
 
 	ret:
 	releaseSpinlock(&inode->lock);
+	releaseFileLock:
 	releaseSpinlock(&file->lock);
 	return error;
 }

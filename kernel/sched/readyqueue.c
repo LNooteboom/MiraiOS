@@ -87,6 +87,7 @@ thread_t readyQueuePop(void) {
 }
 
 void readyQueuePush(thread_t thread) {
+	thread->state = THREADSTATE_SCHEDWAIT;
 	calcNewPriority(thread);
 	int priority = thread->priority;
 	uint32_t cpuIndex = thread->cpuAffinity;

@@ -74,6 +74,7 @@ void exitProcess(struct Process *proc, int exitValue) { //can also be called on 
 	thread_t parentThread = parent->mainThread;
 	acquireSpinlock(&parentThread->lock);
 	if (parentThread->state == THREADSTATE_PIDWAIT && checkFilter(parentThread->waitPid, proc)) {
+		parentThread->waitProc = proc;
 		readyQueuePush(parentThread);
 	}
 	releaseSpinlock(&parentThread->lock);
@@ -126,9 +127,11 @@ pid_t sysWaitPid(pid_t filter, int *waitStatus, int options) {
 			*waitStatus = child->exitValue; //TODO expand this when signals get added
 		}
 		removeProcess(child);
+		releaseSpinlock(&curThread->lock);
 		return ret;
 	}
 	if (!exist) {
+		releaseSpinlock(&curThread->lock);
 		return -ECHILD; //child does not exist
 	}
 	
@@ -138,6 +141,11 @@ pid_t sysWaitPid(pid_t filter, int *waitStatus, int options) {
 	curThread->state = THREADSTATE_PIDWAIT;
 	curThread->waitPid = filter;
 	kthreadStop();
+
+	if (waitStatus) {
+		*waitStatus = curThread->waitProc->exitValue;
+	}
+	removeProcess(curThread->waitProc);
 
 	return curThread->waitPid;
 }

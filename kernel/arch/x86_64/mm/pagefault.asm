@@ -134,28 +134,6 @@ excPF:
     .error:
 	add rsp, 0x58
 
-	;print stack trace
-	mov rbx, [rsp + 32]
-	mov rdi, rbx
-	call mmGetPageEntry
-	test rax, rax
-	jz .end
-
-	mov rdi, stStart
-	call puts
-	mov r13d, 16
-	.start:
-		mov rdi, stLoop
-		mov rsi, rbx
-		mov rdx, [rbx]
-		call printk
-		add rbx, 8
-		test rbx, 0xFFF
-		jz .end
-		dec r13d
-		jnz .start
-
-	.end:
 	mov rdi, PFmsg2
 	mov rsi, cr2
 	mov rdx, [rsp + 8]
@@ -172,9 +150,6 @@ excPF:
 	jmp $
 
 SECTION .rodata
-stStart: db 'Stack trace:', 10, 0
-stLoop: db '%X: %X', 10, 0
-
 PFmsg2: db 'Page fault cr2:%X rip:%X error:%x', 10, 0
 
 invAllocMsg:    db 'Invalid page alloc', endl

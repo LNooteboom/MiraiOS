@@ -17,8 +17,6 @@ int main(void) {
 	sysOpen("/dev/tty1", SYSOPEN_FLAG_WRITE); //stdout
 	sysOpen("/dev/tty1", SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE); //stderr
 
-	puts("\e[47;31mHello From C!!!\n\e[0m");
-
 	environ = env;
 	pid_t sh = sysFork();
 	if (!sh) {

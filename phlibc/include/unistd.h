@@ -28,6 +28,8 @@ extern "C" {
 
 extern char **environ;
 
+int chdir(const char *path);
+
 ssize_t write(int fd, const void *buf, size_t size);
 
 
