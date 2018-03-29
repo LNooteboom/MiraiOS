@@ -3,6 +3,7 @@ BITS 64
 extern main
 extern _init
 extern _fini
+extern __PHMallocInit
 
 global _start:function
 global exit:function
@@ -19,6 +20,8 @@ _start:
 
 	lea rax, [rsi + rdi*8 + 8] ;environ = &argv[argc+1]
 	mov [environ], rax
+
+	call __PHMallocInit
 
 	call _init
 

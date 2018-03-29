@@ -20,6 +20,7 @@ extern setCurrentThread
 extern readyQueuePop
 extern perCpuTimer
 extern lapicEnableTimer
+extern setupCRegs
 
 extern syscallInit
 extern nextThread
@@ -82,6 +83,8 @@ smpbootStart:
 	mov r15, rax
 	mov rdi, rax
 	call tssGdtInit
+
+	call setupCRegs
 
 	mov rdx, r15
 	mov eax, r15d

@@ -54,3 +54,20 @@ char *fgets(char *s, size_t size, FILE *stream) {
 	s[read] = 0;
 	return s;
 }
+
+int fputc(int c, FILE *stream) {
+	char buf[2];
+	buf[0] = c;
+	buf[1] = 0;
+	return fputs(buf, stream);
+}
+
+int puts(const char *s) {
+	int error = fputs(s, stdout);
+	if (error) return error;
+	return fputc('\n', stdout);
+}
+
+int putc(int c, FILE *stream) {
+	return fputc(c, stream);
+}

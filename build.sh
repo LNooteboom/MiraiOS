@@ -20,7 +20,7 @@ export TARGET_USER=x86_64-miraios
 
 export DEPDIR=.d
 export FLAG_DEP="-MT \$@ -MMD -MP -MF $DEPDIR/\$*.Td"
-export CFLAG_USER="-Wall -Wextra -O2 -std=gnu99"
+export CFLAG_USER="-Wall -Wextra -g -O2 -std=gnu99"
 
 BUILDDIR=build;
 

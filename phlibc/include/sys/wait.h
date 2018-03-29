@@ -1,7 +1,7 @@
 #ifndef __PHLIBC_SYS_WAIT_H
 #define __PHLIBC_SYS_WAIT_H
 
-#include <intsizes.h>
+#include <phlibc/intsizes.h>
 
 #ifndef __PHLIBC_DEF_PID_T
 #define __PHLIBC_DEF_PID_T

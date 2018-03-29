@@ -76,6 +76,8 @@ void loadThread(thread_t new) {
 		asm (	"mov rax, cr0\n"
 				"or rax, (1 << 3)\n"
 				"mov cr0, rax" : : : "rax");
+	} else {
+		asm ("mov cr3, %0" : : "r"(initProcess.addressSpace));
 	}
 	
 }

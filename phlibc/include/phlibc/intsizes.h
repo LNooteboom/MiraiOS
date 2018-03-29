@@ -5,5 +5,6 @@
 #define __PHLIBC_TYPE_SIZE_T	unsigned long
 
 #define __PHLIBC_TYPE_PID_T		int
+#define __PHLIBC_TYPE_OFF_T		long
 
 #endif

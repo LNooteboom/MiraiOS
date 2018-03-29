@@ -10,6 +10,7 @@
 #include <sched/smpcall.h>
 #include <drivers/timer/i8253.h>
 #include <arch/idt.h>
+#include <sched/process.h>
 
 #include <arch/msr.h>
 
@@ -39,6 +40,10 @@ void earlyArchInit(void) {
 	smpCallInit();
 
 	syscallInit();
+
+	uint64_t cr3;
+	asm ("mov rax, cr3" : "=a"(cr3));
+	initProcess.addressSpace = cr3;
 }
 
 void archInit(void) {

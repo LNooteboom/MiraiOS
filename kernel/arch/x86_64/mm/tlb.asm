@@ -36,7 +36,7 @@ tlbInvalidateGlobal: ;(void *base, uint64_t numPages) returns void
 	cli
 	lock bts dword [tlbInvalLock], 0
 	jnc .noSpin
-		sti
+		;sti
 		.spin:
 		pause
 		test [tlbInvalLock], dword 1
@@ -56,6 +56,7 @@ tlbInvalidateGlobal: ;(void *base, uint64_t numPages) returns void
 
 	;wait until all CPUs finished
 	mov eax, [nrofActiveCPUs]
+	popfq
 	.wait:
 		pause
 		cmp [tlbInvalCPUCount], eax
@@ -63,7 +64,6 @@ tlbInvalidateGlobal: ;(void *base, uint64_t numPages) returns void
 
 	mov [tlbInvalLock], dword 0
 
-	popfq
 	pop r12
 	pop rbx
 	ret
@@ -107,6 +107,9 @@ tlbReloadCR3:
 	sti
 	ret
 
+msg: db 'inval', 0
+msg2: db 'e',10,0
+
 tlbInvalIrq:
 	sub rsp, 0x48
 	mov [rsp + 0x40], rax
@@ -126,6 +129,9 @@ tlbInvalIrq:
 		or [rsp + 0x68], dword 3
 	.noswapgs:
 
+	;mov rdi, msg
+	;call printk
+
 	cmp [tlbDoReloadCR3], dword 0
 	jne .reloadCR3
 
@@ -134,6 +140,8 @@ tlbInvalIrq:
 	call tlbInvalidateLocal
 
 	.exit:
+	;;mov rdi, msg2
+	;call printk
 	lock inc dword [tlbInvalCPUCount]
 	call ackIRQ
 

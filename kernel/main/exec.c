@@ -251,11 +251,6 @@ int execInit(const char *fileName) {
 	initProcess.cwd = getInodeFromPath(NULL, "/"); //Root directory must exist
 	initProcess.cwd->refCount++;
 
-	//TODO make this arch independent
-	uint64_t cr3;
-	asm ("mov rax, cr3" : "=a"(cr3));
-	initProcess.addressSpace = cr3;
-
 	void *start;
 	long *sp;
 	error = execCommon(mainThread, fileName, &start, (void**)&sp);

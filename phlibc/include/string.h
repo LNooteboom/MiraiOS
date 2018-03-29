@@ -1,7 +1,7 @@
 #ifndef __PHLIBC_STRING_H
 #define __PHLIBC_STRING_H
 
-#include "intsizes.h"
+#include <phlibc/intsizes.h>
 
 #ifndef __PHLIBC_DEF_SIZE_T
 #define __PHLIBC__DEF_SIZE_T

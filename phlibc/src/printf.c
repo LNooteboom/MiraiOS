@@ -23,9 +23,7 @@ static bool flagPresent(const char *flags, int nFlags, char flag) {
 	return false;
 }
 
-static int printDec(char *buf, int bufLen, unsigned long in, bool sign,
-		const char *flags, int nFlags, int width, int precision, char varLength) {
-	int ret = 0;
+static unsigned long truncateInt(unsigned long in, bool sign, char varLength) {
 	switch (varLength) {
 		case 0:
 			in &= 0xFFFFFFFFUL;
@@ -40,6 +38,14 @@ static int printDec(char *buf, int bufLen, unsigned long in, bool sign,
 			}
 			break;
 	}
+	return in;
+}
+
+static int printDec(char *buf, int bufLen, unsigned long in, bool sign,
+		const char *flags, int nFlags, int width, int precision, char varLength) {
+	int ret = 0;
+	in = truncateInt(in, sign, varLength);
+
 	if (sign && in & (1UL << 63)) {
 		ADD_TO_BUF(buf, bufLen, ret, '-');
 		in = (unsigned long)(-(long)in);
@@ -81,6 +87,49 @@ static int printDec(char *buf, int bufLen, unsigned long in, bool sign,
 		}
 	}
 	return ret;
+}
+
+static int printHex(char *buf, int bufLen, unsigned long in, bool caps,
+		const char *flags, int nFlags, int width, int precision, char varLength) {
+	int ret = 0;
+	in = truncateInt(in, false, varLength);
+
+	if (flagPresent(flags, nFlags, '+')) {
+		ADD_TO_BUF(buf, bufLen, ret, '+');
+	} else if (flagPresent(flags, nFlags, ' ')) {
+		ADD_TO_BUF(buf, bufLen, ret, ' ');
+	}
+
+	char temp[100];
+	int nLen = 0;
+	if (!in && precision == -1) {
+		temp[0] = 0;
+		nLen = 1;
+	} else while (precision != 0) {
+		char c = in % 16;
+		in /= 16;
+		if (c < 10) {
+			c += '0';
+		} else if (caps) {
+			c += 'A' - 10;
+		} else {
+			c += 'a' - 10;
+		}
+		ADD_TO_BUF(temp, 100, nLen, c);
+		if (precision == -1) {
+			if (!in) {
+				break;
+			}
+		} else {
+			precision--;
+		}
+	}
+	
+	//TODO add width handling
+	for (int i = nLen - 1; i >= 0; i--) {
+		ADD_TO_BUF(buf, bufLen, ret, temp[i]);
+	}
+	return nLen;
 }
 
 int vfprintf(FILE *stream, const char *format, va_list arg) {
@@ -175,12 +224,57 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 				}
 				len += error;
 				break;
+
+			case 'x':
+				in = va_arg(arg, unsigned long);
+				error = printHex(buf + len, 512 - len, in, false, flags, nFlags, width, precision, varLength);
+				if (error < 0) {
+					errno = error;
+					return -1;
+				}
+				len += error;
+				break;
+			case 'p':
+				varLength = 'l';
+				//Fall through
+			case 'X':
+				in = va_arg(arg, unsigned long);
+				error = printHex(buf + len, 512 - len, in, true, flags, nFlags, width, precision, varLength);
+				if (error < 0) {
+					errno = error;
+					return -1;
+				}
+				len += error;
+				break;
 			default:
 				errno = -EINVAL;
 				return -1;
 		}
 	}
 	buf[len] = 0;
-	return fputs(buf, stream);
+	error = fputs(buf, stream);
+	if (!error) {
+		error = len;
+	}
+	return error;
 }
 
+int fprintf(FILE *stream, const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+
+	int error = vfprintf(stream, format, args);
+
+	va_end(args);
+	return error;
+}
+
+int printf(const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+
+	int error = vfprintf(stdout, format, args);
+
+	va_end(args);
+	return error;
+}

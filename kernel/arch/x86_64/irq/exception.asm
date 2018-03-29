@@ -80,18 +80,24 @@ __excBase: ;error code in rax
 	mov rsi, [excMsgList + r10 * 8]
 	mov rdx, rax
 	mov rcx, [rsp + 0x50]
-	call printk
+	;call printk
 
 	cmp [rsp + 0x48], dword 3
 	je .return
 
 	;sti
+	xchg bx, bx
 	mov rax, [gs:8]
+	test rax, rax
+	jz .kThread
 	cmp [rax + 0x20], dword 0
 	jne .userThread
-		call kthreadExit
+		.kThread:
+		;call kthreadExit
+		call panic
 		jmp .halt
 	.userThread:
+		call printk
 		mov edi, -1
 		call sysExit
     .halt:
@@ -162,8 +168,11 @@ excNM:
 	iretq
 
 excDF:
-	push 8
-	jmp excBaseErrorCode
+	;push 8
+	;jmp excBaseErrorCode
+	xchg bx, bx
+	mov rdi, DFmsg
+	call panic
 
 excCSO:
 	push 9

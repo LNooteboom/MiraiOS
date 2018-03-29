@@ -61,7 +61,6 @@ int main(void) {
 		}
 		int status = 10;
 		waitpid(0, &status, 0);
-		printf("Returned %d\n", status);
 	}
 
 	return 0;
