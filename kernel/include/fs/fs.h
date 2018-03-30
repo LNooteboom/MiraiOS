@@ -126,6 +126,8 @@ Removes a directory entry (and the inode if nrofLinks == 0)
 */
 int fsUnlink(struct Inode *dir, const char *name);
 
+int fsTruncate(struct File *file, uint64_t newSize);
+
 /*
 Reads from a file, returns nrof bytes read
 */

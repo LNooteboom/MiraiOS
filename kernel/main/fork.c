@@ -206,6 +206,7 @@ int sysFork(void) {
 	mainThread->cpuAffinity = 0;
 	mainThread->process = newProc;
 	mainThread->state = THREADSTATE_SCHEDWAIT;
+	mainThread->detached = true;
 
 	newProc->mainThread = mainThread;
 

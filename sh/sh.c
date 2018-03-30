@@ -16,8 +16,6 @@ int main(void) {
 
 	while (1) {
 		printf("%s", getenv("PS1"));
-		//fputs(getenv("PS1"), stdout);
-		//fputs("> ", stdout);
 
 		fgets(commandBuf, COMMAND_BUF_LEN, stdin);
 
@@ -52,6 +50,7 @@ int main(void) {
 		}
 
 		pid_t child = fork();
+		fflush(stdout);
 		if (!child) {
 			execvp(commandBuf, newArgv);
 			if (errno == -ENOENT) {

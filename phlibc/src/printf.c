@@ -252,7 +252,8 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 		}
 	}
 	buf[len] = 0;
-	error = fputs(buf, stream);
+	//error = fputs(buf, stream);
+	fwrite(buf, 1, len, stdout);
 	if (!error) {
 		error = len;
 	}

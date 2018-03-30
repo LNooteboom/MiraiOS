@@ -26,23 +26,13 @@ tlbInit:
 tlbInvalidateGlobal: ;(void *base, uint64_t numPages) returns void
 	push rbx
 	push r12
-	pushfq
 	mov rbx, rdi
 	mov r12, rsi
 
 	call tlbInvalidateLocal
 
-	.lock:
-	cli
-	lock bts dword [tlbInvalLock], 0
-	jnc .noSpin
-		;sti
-		.spin:
-		pause
-		test [tlbInvalLock], dword 1
-		jz .lock
-		jmp .spin
-	.noSpin:
+	mov rdi, tlbInvalLock
+	call acquireSpinlock
 
 	mov [tlbInvalCPUCount], dword 1
 
@@ -55,14 +45,17 @@ tlbInvalidateGlobal: ;(void *base, uint64_t numPages) returns void
 	call lapicSendIPIToAll
 
 	;wait until all CPUs finished
+	%if 0
 	mov eax, [nrofActiveCPUs]
 	popfq
 	.wait:
 		pause
 		cmp [tlbInvalCPUCount], eax
 		jne .wait
-
-	mov [tlbInvalLock], dword 0
+	
+	%endif
+	mov rdi, tlbInvalLock
+	call releaseSpinlock
 
 	pop r12
 	pop rbx
@@ -77,17 +70,8 @@ tlbReloadCR3:
 	mov rax, cr3
 	mov cr3, rax
 
-	.lock:
-	cli
-	lock bts dword [tlbInvalLock], 0
-	jnc .noSpin
-		sti
-		.spin:
-		pause
-		test [tlbInvalLock], dword 1
-		jz .lock
-		jmp .spin
-	.noSpin:
+	mov rdi, tlbInvalLock
+	call acquireSpinlock
 
 	mov [tlbDoReloadCR3], dword 1
 
@@ -97,13 +81,15 @@ tlbReloadCR3:
 	call lapicSendIPIToAll
 
 	;wait until all CPUs finished
+	%if 0
 	mov eax, [nrofActiveCPUs]
 	.wait:
 		pause
 		cmp [tlbInvalCPUCount], eax
 		jne .wait
-
-	mov [tlbInvalLock], dword 0
+	%endif
+	mov rdi, tlbInvalLock
+	call releaseSpinlock
 	sti
 	ret
 

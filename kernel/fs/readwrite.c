@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <sched/thread.h> //for jiffyCounter
 #include <print.h>
+#include <panic.h>
 
 struct CfEntry { //describes 1 page of file data
 	void *addr;
@@ -19,6 +20,58 @@ struct CachedFile {
 	unsigned int nrofEntries;
 	struct CfEntry entries[1];
 };
+
+int fsTruncate(struct File *file, uint64_t newSize) {
+	int error = 0;
+	acquireSpinlock(&file->lock);
+	struct Inode *inode = file->inode;
+	acquireSpinlock(&inode->lock);
+
+	if (newSize > inode->fileSize) {
+		error = -ENOSYS;
+		goto ret;
+	}
+	struct CachedFile *cf = inode->cachedData;
+	int nrofEntries = cf->nrofEntries;
+	for (unsigned int i = 0; i < cf->nrofEntries; i++) {
+		if (cf->entries[i].fileOffset < newSize) {
+			continue;
+		}
+		nrofEntries--;
+		deallocPages(cf->entries[i].addr, PAGE_SIZE);
+		cf->entries[i].addr = NULL;
+	}
+	if (nrofEntries) {
+		struct CachedFile *newCF = kmalloc(sizeof(*newCF) + (nrofEntries - 1));
+		newCF->nrofEntries = nrofEntries;
+		unsigned int oldIndex = 0;
+		for (int i = 0; i < nrofEntries; i++) {
+			struct CfEntry *oldEntry = NULL;
+			for (; oldIndex < cf->nrofEntries; oldIndex++) {
+				if (cf->entries[i].addr) {
+					oldEntry = &cf->entries[i];
+					oldIndex++;
+					break;
+				}
+			}
+			if (!oldEntry) {
+				panic("fsTruncate: unexpected nrof cf entries\n");
+			}
+			memcpy(&newCF->entries[i], oldEntry, sizeof(struct CfEntry));
+		}
+		inode->cachedData = newCF;
+		
+	} else {
+		inode->cachedData = NULL;
+	}
+	kfree(cf);
+
+	//releaseInode:
+	releaseSpinlock(&inode->lock);
+	ret:
+	releaseSpinlock(&file->lock);
+	return error;
+}
 
 ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 	acquireSpinlock(&file->lock);

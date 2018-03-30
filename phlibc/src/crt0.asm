@@ -4,6 +4,10 @@ extern main
 extern _init
 extern _fini
 extern __PHMallocInit
+extern stdin
+extern stdout
+extern stderr
+extern _PHCloseAll
 
 global _start:function
 global exit:function
@@ -40,6 +44,8 @@ exit:
 	.noAtExit:
 
 	call _fini
+
+	call _PHCloseAll
 
 	pop rdi
 	mov eax, 8

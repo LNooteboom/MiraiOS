@@ -10,6 +10,7 @@
 #define SYSOPEN_FLAG_APPEND		(1 << 4)
 #define SYSOPEN_FLAG_DIR		(1 << 5)
 #define SYSOPEN_FLAG_EXCL		(1 << 6)
+#define SYSOPEN_FLAG_TRUNC		(1 << 7)
 
 #define SEEK_SET	0
 #define SEEK_CUR	1

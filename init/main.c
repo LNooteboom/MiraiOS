@@ -13,9 +13,9 @@ char *env[] = {
 };
 
 int main(void) {
-	sysOpen("/dev/tty1", SYSOPEN_FLAG_READ); //stdin
-	sysOpen("/dev/tty1", SYSOPEN_FLAG_WRITE); //stdout
-	sysOpen("/dev/tty1", SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE); //stderr
+	sysOpen("/dev/tty0", SYSOPEN_FLAG_READ); //stdin
+	sysOpen("/dev/tty0", SYSOPEN_FLAG_WRITE); //stdout
+	sysOpen("/dev/tty0", SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE); //stderr
 
 	environ = env;
 	pid_t sh = sysFork();

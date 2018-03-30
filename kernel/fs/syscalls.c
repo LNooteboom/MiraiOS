@@ -86,6 +86,8 @@ int sysWrite(int fd, const void *buffer, size_t size) {
 		return error;
 	}
 
+	//printk("write: %d %x %x", fd, buffer, size);
+
 	union FilePipe fp;
 	error = getFileFromFD(getCurrentThread()->process, fd, &fp);
 	if (error < 0) {
@@ -105,6 +107,8 @@ int sysRead(int fd, void *buffer, size_t size) {
 	if (error) {
 		return error;
 	}
+
+	//printk("read: %d %x %x", fd, buffer, size);
 
 	union FilePipe fp;
 	error = getFileFromFD(getCurrentThread()->process, fd, &fp);
@@ -187,6 +191,11 @@ int sysOpen(const char *fileName, unsigned int flags) {
 		return -ENOENT;
 	}
 	pf->file.inode = inode;
+
+	if (flags & SYSOPEN_FLAG_TRUNC) {
+		error = fsTruncate(&pf->file, 0);
+		if (error) return error;
+	}
 	error = fsOpen(&pf->file);
 	if (error) {
 		return error;

@@ -333,6 +333,7 @@ int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 
 	deallocStack:
 	deallocPages((void *)stack, PAGE_SIZE);
+	printk("err: %d", error);
 	sysExit(error);
 	ret:
 	return error;

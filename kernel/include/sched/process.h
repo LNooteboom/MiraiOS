@@ -56,21 +56,20 @@ struct ProcessFile {
 enum ProcessState {
 	PROCSTATE_RUNNING = 0,
 	PROCSTATE_WAIT, //Waiting for sleep or waitpid
-	PROCSTATE_FINISHED, //zombie process
-	PROCSTATE_REMOVE //zombie process after waitpid has been called
+	PROCSTATE_FINISHED //zombie process
 };
 
 struct Process {
 	pid_t pid;
 	pid_t ppid;
 	physPage_t addressSpace;
+	enum ProcessState state;
+	unsigned int nameLen;
+
 	union {
 		char inlineName[32];
 		char *name;
 	};
-	unsigned int nameLen;
-
-	enum ProcessState state;
 
 	struct Process *parent;
 	struct Process *children;

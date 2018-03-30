@@ -1,7 +1,7 @@
 OUTPUT = libc.a
 
 OBJECTS = crt0.o syscalls.o \
-assert.o basicio.o printf.o string.o exec.o stdlib.o mem.o
+assert.o basicio.o printf.o string.o exec.o stdlib.o mem.o bufio.o
 
 SRC = src
 

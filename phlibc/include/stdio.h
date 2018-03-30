@@ -4,7 +4,15 @@
 #include <stdarg.h>
 #include <phlibc/intsizes.h>
 
-#define SEEK_SET 0
+#define BUFSIZ		512
+
+#define SEEK_SET	0
+#define SEEK_CUR	1
+#define SEEK_END	2
+
+#define _IOFBF		0
+#define _IOLBF		1
+#define _IONBF		2
 
 #ifndef EOF
 #define EOF -1
@@ -19,8 +27,19 @@ typedef __PHLIBC_TYPE_SIZE_T size_t;
 extern "C" {
 #endif
 
-typedef struct {
+typedef struct _PHFILE{
 	int fd;
+	int flags;
+
+	char *buf;
+	char *bufEnd;
+
+	char *writeEnd;
+	char *readStart;
+	char *readEnd;
+
+	struct _PHFILE *next;
+	struct _PHFILE *prev;
 } FILE;
 
 extern FILE *stdin;

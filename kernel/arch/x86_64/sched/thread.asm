@@ -15,6 +15,7 @@ extern loadThread
 extern lapicBase
 extern busSpeed
 extern perCpuTimer
+extern initProcess
 
 extern jiffyVec
 extern lapicSendIPIToAll
@@ -411,6 +412,16 @@ nextThread: ;r15 = old thread
 	;Halt if no task is available
 	test rax, rax
 	jnz .load
+		test r15, r15
+		jz .load2
+		mov rcx, [r15 + 0x20]
+		test rcx, rcx
+		jz .load2
+		;cmp [rcx + 0x1C], dword 2 ;Process->state == PROCSTATE_FINISHED
+		;jne .load2
+			mov rdx, [initProcess + 0x10]
+			mov cr3, rdx ;Do cr3 switch if old proc is exiting
+		.load2:
 		sti
 		hlt
 		cli
