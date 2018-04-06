@@ -9,6 +9,8 @@ Returns NULL on fail.
 */
 void *kmalloc(size_t size);
 
+void *kzalloc(size_t size);
+
 /*
 Frees memory allocated by kmalloc or krealloc.
 */

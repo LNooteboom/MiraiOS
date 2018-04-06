@@ -160,6 +160,15 @@ void *kmalloc(size_t size) {
 	return retVal;
 }
 
+void *kzalloc(size_t size) {
+	void *ret = kmalloc(size);
+	if (!ret) {
+		return NULL;
+	}
+	memset(ret, 0, size);
+	return ret;
+}
+
 void kfree(void *addr) {
 	if (addr == NULL) {
 		return;

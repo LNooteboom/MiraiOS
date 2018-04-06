@@ -9,6 +9,7 @@
 #include <modules.h>
 #include <sched/readyqueue.h>
 #include <panic.h>
+#include <sched/pgrp.h>
 
 static void unlinkChild(struct Process *proc) {
 	struct Process *parent = proc->parent;
@@ -38,8 +39,9 @@ void removeProcess(struct Process *proc) { //remove zombie
 
 	//delete main thread
 	//deallocThread(proc->mainThread); already done on kthreadExit
-
+	leaveGroup(proc);
 	unlinkChild(proc);
+	procHTDel(proc);
 	kfree(proc);
 }
 

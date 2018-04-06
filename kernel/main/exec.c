@@ -12,6 +12,7 @@
 #include <mm/mmap.h>
 #include <sched/elf.h>
 #include <modules.h>
+#include <sched/pgrp.h>
 
 struct Process initProcess;
 
@@ -250,6 +251,9 @@ int execInit(const char *fileName) {
 	initProcess.pid = 1;
 	initProcess.cwd = getInodeFromPath(NULL, "/"); //Root directory must exist
 	initProcess.cwd->refCount++;
+
+	procHTAdd(&initProcess);
+	setpgid(&initProcess, 0);
 
 	void *start;
 	long *sp;

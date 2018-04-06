@@ -15,7 +15,7 @@
 
 #define THREAD_STACK_SIZE	0x2000
 
-typedef int64_t pid_t;
+typedef int pid_t;
 
 struct Process;
 

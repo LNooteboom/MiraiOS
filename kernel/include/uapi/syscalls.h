@@ -15,7 +15,7 @@ struct GetDent;
 /*04*/ int sysClose(int fd);
 /*05*/ int sysGetDent(int fd, struct GetDent *buf);
 /*06*/ int sysExec(const char *fileName, char *const argv[], char *const envp[]);
-/*07*/ int sysFork(void);
+/*07*/ pid_t sysFork(void);
 /*08*/ void sysExit(int exitValue);
 /*09*/ pid_t sysWaitPid(pid_t filter, int *waitStatus, int options);
 /*0A*/ int sysSleep(uint64_t seconds, uint32_t nanoSeconds);
@@ -26,6 +26,8 @@ struct GetDent;
 /*0F*/ int sysDup(int oldFD, int newFD, int flags);
 /*10*/ int sysChDir(const char *path);
 /*11*/ int sysAccess(const char *path, int mode);
+/*12*/ pid_t sysSetsid(void);
+/*13*/ int sysSetpgid(pid_t pid, pid_t pgid);
 //END
 
 #endif

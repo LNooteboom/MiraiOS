@@ -12,11 +12,68 @@
 #include <arch/map.h>
 #include <print.h>
 #include <fs/pipe.h>
+#include <sched/pgrp.h>
 
 extern void initForkRetThread(thread_t newThread, thread_t parent);
 
 static uint64_t curPid = 2;
 
+struct ProcList {
+	struct Process *first;
+	struct Process *last;
+};
+static struct ProcList procHT[PROC_HT_SIZE];
+static spinlock_t htLock;
+
+static struct ProcList *procHash(pid_t pid) {
+	return &procHT[pid % PROC_HT_SIZE];
+}
+struct Process *getProcFromPid(pid_t pid) {
+	struct ProcList *pl = procHash(pid);
+
+	acquireSpinlock(&htLock);
+	struct Process *proc;
+	for (proc = pl->first; proc; proc = proc->htNext) {
+		if (proc->pid == pid) {
+			break;
+		}
+	}
+	releaseSpinlock(&htLock);
+	return proc;
+}
+
+void procHTAdd(struct Process *proc) {
+	proc->htNext = NULL;
+	struct ProcList *pl = procHash(proc->pid);
+
+	acquireSpinlock(&htLock);
+	if (pl->last) {
+		pl->last->htNext = proc;
+		proc->htPrev = pl->last;
+	} else {
+		pl->first = proc;
+		proc->htPrev = NULL;
+	}
+	pl->last = proc;
+	releaseSpinlock(&htLock);
+}
+
+void procHTDel(struct Process *proc) {
+	struct ProcList *pl = procHash(proc->pid);
+
+	acquireSpinlock(&htLock);
+	if (proc->htPrev) {
+		proc->htPrev->htNext = proc->htNext;
+	} else {
+		pl->first = proc->htNext;
+	}
+	if (proc->htNext) {
+		proc->htNext->htPrev = proc->htPrev;
+	} else {
+		pl->last = proc->htPrev;
+	}
+	releaseSpinlock(&htLock);
+}
 
 static int copyMem(struct Process *proc, struct Process *newProc) {
 	int error = 0;
@@ -213,6 +270,9 @@ int sysFork(void) {
 	acquireSpinlock(&curThread->lock);
 	initForkRetThread(mainThread, curThread);
 	releaseSpinlock(&curThread->lock);
+
+	procHTAdd(newProc);
+	setpgid(newProc, 0);
 	
 	readyQueuePush(mainThread);
 

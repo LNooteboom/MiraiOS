@@ -12,6 +12,8 @@ Userspace processes
 #include <mm/paging.h>
 #include <uapi/mmap.h>
 
+#define PROC_HT_SIZE	64
+
 #define NROF_INLINE_FDS	8
 #define MAX_FDS			64
 
@@ -59,6 +61,9 @@ enum ProcessState {
 	PROCSTATE_FINISHED //zombie process
 };
 
+struct Session;
+struct PGroup;
+
 struct Process {
 	pid_t pid;
 	pid_t ppid;
@@ -71,6 +76,9 @@ struct Process {
 		char *name;
 	};
 
+	struct Process *htNext;
+	struct Process *htPrev;
+
 	struct Process *parent;
 	struct Process *children;
 	//Owned by parent lock
@@ -82,10 +90,13 @@ struct Process {
 	//struct MemoryEntry *brkEntry;
 	spinlock_t memLock;
 
-	struct Inode *cwd;
+	pid_t pgid;
+	pid_t sid;
+	struct PGroup *group;
+	struct Process *grpNext;
+	struct Process *grpPrev;
 
-	unsigned long id;
-	void *rootPT;
+	struct Inode *cwd;
 
 	spinlock_t lock;
 
@@ -109,5 +120,10 @@ void removeProcess(struct Process *proc);
 void exitProcess(struct Process *proc, int exitValue);
 
 void sysExit(int exitValue);
+
+void procHTAdd(struct Process *proc);
+void procHTDel(struct Process *proc);
+
+struct Process *getProcFromPid(pid_t pid);
 
 #endif

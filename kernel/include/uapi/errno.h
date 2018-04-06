@@ -15,5 +15,8 @@
 #define ENOTDIR		13
 #define ENOMEM		14
 #define E2BIG		15
+#define EACCES		16
+#define EPERM		17
+#define ESRCH		18
 
 #endif
