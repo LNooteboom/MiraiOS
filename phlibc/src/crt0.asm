@@ -15,6 +15,8 @@ global exit:function
 global environ:data
 global errno:data
 
+global _PHSigTramp:function
+
 SECTION .text
 
 _start:
@@ -35,6 +37,12 @@ _start:
 
 	mov rdi, rax
 	jmp exit
+
+_PHSigTramp:
+	xchg bx, bx
+	call rax
+	mov eax, 0x15
+	syscall
 
 exit:
 	push rdi

@@ -3,6 +3,9 @@
 #include <mm/heap.h>
 #include <mm/memset.h>
 #include <uapi/errno.h>
+#include <uapi/syscalls.h>
+
+#include <print.h>
 
 static struct RbNode *pgRoot;
 
@@ -67,6 +70,11 @@ void leaveGroup(struct Process *proc) { //also called on process cleanup
 }
 
 int setpgid(struct Process *proc, pid_t pgid) {
+	//temp
+	if (pgid < 0) {
+		return -EINVAL;
+	}
+
 	int error = 0;
 	if (!pgid) {
 		pgid = proc->pid;
@@ -85,7 +93,7 @@ int setpgid(struct Process *proc, pid_t pgid) {
 		rbInsert(&pgRoot, (struct RbNode *)proc);
 		goto releaseSessionLock;
 	}
-	if (proc->group) {
+	if (proc->pid != 1) {
 		s =  proc->group->s;
 	} else {
 		//create new session, should only happen on execInit()
@@ -93,6 +101,27 @@ int setpgid(struct Process *proc, pid_t pgid) {
 		s->sid = pgid;
 		firstSession = s;
 		lastSession = s;
+	}
+
+	if (proc->pid != pgid) {
+		newGroup = (struct PGroup *)rbSearch(pgRoot, pgid);
+		if (newGroup) {
+			//Add to group
+			if (newGroup->last) {
+				newGroup->last->grpNext = proc;
+				proc->grpPrev = newGroup->last;
+			} else {
+				proc->grpPrev = NULL;
+				newGroup->first = proc;
+			}
+			newGroup->last = proc;
+			proc->grpNext = NULL;
+
+			proc->pgid = pgid;
+			proc->sid = newGroup->s->sid;
+			proc->group = newGroup;
+			goto releaseSessionLock;
+		}
 	}
 
 	newGroup = kzalloc(sizeof(*newGroup));
@@ -109,6 +138,8 @@ int setpgid(struct Process *proc, pid_t pgid) {
 	newGroup->s = s;
 	proc->pgid = newGroup->pgid;
 	proc->group = newGroup;
+	proc->grpNext = NULL;
+	proc->grpPrev = NULL;
 
 	rbInsert(&pgRoot, (struct RbNode *)newGroup);
 
@@ -123,7 +154,7 @@ int setpgid(struct Process *proc, pid_t pgid) {
 
 	releaseSessionLock:
 	releaseSpinlock(&sessionLock);
-	release:
+	//release:
 	releaseSpinlock(&proc->lock);
 	return error;
 }
@@ -188,6 +219,9 @@ pid_t sysSetsid(void) {
 
 	proc->sid = proc->pid;
 	proc->pgid = proc->pid;
+	proc->group = newGroup;
+	proc->grpNext = NULL;
+	proc->grpPrev = NULL;
 
 	ret = proc->sid;
 	goto release;
@@ -199,3 +233,25 @@ pid_t sysSetsid(void) {
 	return ret;
 }
 
+pid_t sysGetId(int which) {
+	pid_t ret = 0;
+	thread_t curThread = getCurrentThread();
+	switch (which) {
+		case SYSGETID_PID:
+			ret = curThread->process->pid;
+			break;
+		case SYSGETID_PPID:
+			ret = curThread->process->ppid;
+			break;
+		case SYSGETID_PGID:
+			ret = curThread->process->pgid;
+			break;
+		case SYSGETID_SID:
+			ret = curThread->process->sid;
+			break;
+		default:
+			ret = -EINVAL;
+			break;
+	}
+	return ret;
+}

@@ -6,6 +6,7 @@ global syscallInit:function
 ;global registerSyscall:function
 global initExecRetThread:function
 global initForkRetThread:function
+global sysSigRet:function ;should never be called from syscalltbl
 
 extern syscallTable
 
@@ -15,6 +16,14 @@ extern handleIRQ
 extern ackIRQ
 
 extern forkRet
+
+extern sigRet
+extern acquireSpinlock
+extern releaseSpinlock
+extern setCurrentThread
+extern kfree
+extern nextThread
+extern sysExit
 
 extern printk
 
@@ -59,6 +68,7 @@ syscallInit:
 	ret
 
 initExecRetThread: ;(thread_t thread, void *start, uint64_t arg1, uint64_t arg2)
+	mov rdi, [rdi]
 	mov [rdi - 0x08], r8  ;rsp on sysret stack
 	mov [rdi - 0x18], rsi ;rcx on sysret stack
 	mov [rdi - 0x28], rcx ;rsi on sysret stack
@@ -96,9 +106,12 @@ initForkRetThread: ;(thread_t newThread, thread_t parent) returns void
 	ret
 
 syscallEntry64:
+	cmp eax, 0x15
+	je sysSigRet
 	swapgs
 	mov [gs:0x28], rsp
 	mov rsp, [gs:8]
+	mov rsp, [rsp]
 
 	push qword [gs:0x28]
 
@@ -150,6 +163,9 @@ forkSysret64:
 		pop rbp
 
 sysret64:
+	mov rdx, [gs:8]
+	lea rcx, [rsp + 0x58]
+	mov [rdx], rcx
 	;rax need not be restored
 	mov rcx, [rsp + 0x40]
 	mov rdx, [rsp + 0x38]
@@ -168,9 +184,111 @@ sysret64:
 	db 0x48 ;no sysretq in NASM
 	sysret
 
-registerSyscall:
-	mov [syscallTable + rdi * 8], rsi
-	ret
+sysSigRet:
+	;interrupts are disabled
+	swapgs
+	;don't bother saving regs
+	mov rsp, [gs:0x10] ;switch to exception stack
+
+	push rbx
+	mov rbx, [gs:8]
+	lea rdi, [rbx + 0x14]
+	call acquireSpinlock
+
+	cmp [rbx + 0x230], dword 0 ;sigDepth
+	jne .valid
+		;invalid signal return, exit
+		mov edi, -1
+		call sysExit
+	.valid:
+	sub [rbx + 0x230], dword 1
+
+	push rax
+	mov rdi, rsp
+	call sigRet
+	pop rsi ;struct SigRegs
+
+	mov r8, rbx
+	pop rbx
+
+	mov rsp, [r8]
+
+	mov rdx, [rsi + 0x78] ;rip
+	mov rax, 0xffffffff80000000
+	cmp [rsi + 0x78], rax
+	jae .kernel
+		push 0x23 ;ss
+		push qword [rsi + 0x80] ;rsp
+		push qword [rsi + 0x88] ;rflags
+		push 0x2B ;cs
+	.kernel:
+		push 0x10
+		push qword [rsi + 0x80]
+		push qword [rsi + 0x88]
+		push 0x08
+	.end:
+	push rdx ;rip
+	mov r9, rsi
+
+	;copy regs to stack
+	cld
+	sub rsp, 15*8
+	mov ecx, 15
+	mov rdi, rsp
+	rep movsq
+
+	cmp [r9 + 0x98], dword 2 ;state was either SCHEDWAIT or RUNNING
+	jbe .return
+	cmp [r8 + 0x234], dword 0 ;sigrun
+	jne .return
+		mov [r8 + 0x234], dword 0 ;set sigrun to 0
+		mov rax, [r9 + 0x98] ;thread state
+		mov [r8 + 0x10], rax
+
+		mov qword [gs:8], 0 ;set current thread to NULL
+		mov [r8], rsp
+
+		;use exception stack
+		mov rsp, [gs:0x10]
+
+		push r9
+		lea rdi, [r8 + 0x14]
+		call releaseSpinlock
+		pop rdi
+		call kfree
+
+		xor r15d, r15d
+		jmp nextThread
+	.return:
+
+	push r9
+	lea rdi, [r8 + 0x14]
+	call releaseSpinlock
+	pop rdi
+	call kfree
+
+	cli
+	mov rax, 0xffffffff80000000
+	cmp [rsp + 0x78], rax
+	jae .noswapgs
+		swapgs
+	.noswapgs:
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop rbp
+	pop rbx
+	pop r11
+	pop r10
+	pop r9
+	pop r8
+	pop rdi
+	pop rsi
+	pop rdx
+	pop rcx
+	pop rax
+	iretq
 
 ALIGN 8
 irqStubsList:
@@ -188,8 +306,8 @@ irqCommon:
 	mov [rsp + 0x40], rax
 	mov [rsp + 0x38], rcx
 	mov [rsp + 0x30], rdx
-	mov [rsp + 0x28], rdi
-	mov [rsp + 0x20], rsi
+	mov [rsp + 0x28], rsi
+	mov [rsp + 0x20], rdi
 	mov [rsp + 0x18], r8
 	mov [rsp + 0x10], r9
 	mov [rsp + 0x08], r10
@@ -217,8 +335,8 @@ irqCommon:
 	mov rax, [rsp + 0x40]
 	mov rcx, [rsp + 0x38]
 	mov rdx, [rsp + 0x30]
-	mov rdi, [rsp + 0x28]
-	mov rsi, [rsp + 0x20]
+	mov rsi, [rsp + 0x28]
+	mov rdi, [rsp + 0x20]
 	mov r8,  [rsp + 0x18]
 	mov r9,  [rsp + 0x10]
 	mov r10, [rsp + 0x08]

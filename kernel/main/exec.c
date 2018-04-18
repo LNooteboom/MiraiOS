@@ -13,6 +13,7 @@
 #include <sched/elf.h>
 #include <modules.h>
 #include <sched/pgrp.h>
+#include <uapi/syscalls.h>
 
 struct Process initProcess;
 
@@ -140,10 +141,10 @@ static int createStack(void **sp, uintptr_t stack, char *const argv[], char *con
 	return error;
 }
 
-static int execCommon(thread_t mainThread, const char *fileName, void **startAddr, void **sp) {
+static int execCommon(thread_t mainThread, const char *fileName, void **startAddr, void **sp, struct Inode *cwd) {
 	int error;
 	//Open the executable
-	struct Inode *inode = getInodeFromPath(rootDir, fileName);
+	struct Inode *inode = getInodeFromPath(cwd, fileName);
 	if (!inode) {
 		error = -ENOENT;
 		goto ret;
@@ -257,7 +258,7 @@ int execInit(const char *fileName) {
 
 	void *start;
 	long *sp;
-	error = execCommon(mainThread, fileName, &start, (void**)&sp);
+	error = execCommon(mainThread, fileName, &start, (void**)&sp, initProcess.cwd);
 	if (error) goto deallocMainThread;
 
 	//create empty argv
@@ -289,6 +290,9 @@ int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	if (fnLen > PAGE_SIZE) return -EINVAL;
 	char namebuf[fnLen];
 
+	error = sysAccess(fileName, SYSACCESS_X);
+	if (error) return error;
+
 	memcpy(namebuf, fileName, fnLen);
 
 	error = fsCloseOnExec();
@@ -309,7 +313,7 @@ int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	
 	void *start;
 	void *userSP;
-	error = execCommon(curThread, namebuf, &start, &userSP);
+	error = execCommon(curThread, namebuf, &start, &userSP, getCurrentThread()->process->cwd);
 	if (error) goto deallocStack;
 
 	userSP = (void *)((uintptr_t)userSP - spDiff);

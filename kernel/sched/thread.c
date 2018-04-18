@@ -9,6 +9,7 @@
 #include <mm/pagemap.h>
 #include <arch/cpu.h>
 #include <mm/memset.h>
+#include <sched/signal.h>
 
 extern void migrateMainStack(thread_t mainThread);
 
@@ -95,11 +96,12 @@ int kthreadCreateFromMain(thread_t *thread) {
 	return 0;
 }
 
-thread_t kthreadSwitch(thread_t oldThread, bool higherThreadReleased, bool frontEn) {
+thread_t kthreadSwitch(thread_t oldThread, bool higherThreadReleased, bool frontEn, unsigned long *irqStack) {
 	bool front = false;
 	oldThread->jiffiesRemaining -= 1;
 	if (oldThread->jiffiesRemaining > 0) {
 		if (!higherThreadReleased) {
+			handleSignal(oldThread, irqStack);
 			return oldThread;
 		}
 		front = frontEn;
@@ -110,8 +112,10 @@ thread_t kthreadSwitch(thread_t oldThread, bool higherThreadReleased, bool front
 	if (newThread != oldThread) {
 		acquireSpinlock(&newThread->lock);
 	}
-	newThread->state = THREADSTATE_RUNNING;
+	
 	setCurrentThread(newThread);
+	handleSignal(newThread, irqStack);
+	newThread->state = THREADSTATE_RUNNING;
 	return newThread;
 }
 
@@ -120,16 +124,7 @@ void kthreadJoin(thread_t thread, void **returnValue) {
 	acquireSpinlock(&curThread->lock);
 	acquireSpinlock(&thread->lock);
 	if (thread->state != THREADSTATE_FINISHED) {
-		curThread->nextThread = NULL;
-		if (thread->joinLast) {
-			curThread->prevThread = thread->joinLast;
-			thread->joinLast->nextThread = curThread;
-			thread->joinLast = curThread;
-		} else {
-			curThread->prevThread = NULL;
-			thread->joinFirst = curThread;
-			thread->joinLast = curThread;
-		}
+		threadQueuePush((struct ThreadInfoQueue *)&thread->joinFirst, curThread);
 		releaseSpinlock(&thread->lock);
 		kthreadStop(); //will release curthread spinlock
 		acquireSpinlock(&curThread->lock);
@@ -149,6 +144,7 @@ void kthreadFreeJoined(thread_t thread) {
 	while (curFreeThread) {
 		acquireSpinlock(&curFreeThread->lock);
 
+		curFreeThread->queue = NULL;
 		thread_t nextFreeThread = curFreeThread->nextThread;
 		readyQueuePush(curFreeThread);
 

@@ -80,7 +80,7 @@ __excBase: ;error code in rax
 	mov rsi, [excMsgList + r10 * 8]
 	mov rdx, rax
 	mov rcx, [rsp + 0x50]
-	;call printk
+	call printk
 
 	cmp [rsp + 0x48], dword 3
 	je .return

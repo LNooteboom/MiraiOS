@@ -25,4 +25,9 @@ Pushes a thread to the front of a queue
 */
 void threadQueuePushFront(struct ThreadInfoQueue *queue, struct ThreadInfo *thread);
 
+/*
+Removes a thread from a queue
+*/
+void threadQueueRemove(struct ThreadInfo *thread);
+
 #endif

@@ -18,6 +18,8 @@
 typedef int pid_t;
 
 struct Process;
+struct ThreadInfoQueue;
+struct SigRegs;
 
 enum threadState {
 	THREADSTATE_FINISHED,
@@ -43,17 +45,22 @@ struct ThreadInfo {
 	bool floatsUsed;			//0x28
 	//0x2C-0x2F unused
 	char fxsaveArea[512] __attribute__((aligned(16))); //0x30
+	int sigDepth;				//0x230
+	bool sigCont;				//0x234
 	//end of asm accessible part
 	void *fsBase;
 	void *gsBase;
 
 	struct ThreadInfo *nextThread;
 	struct ThreadInfo *prevThread;
+	struct ThreadInfoQueue *queue;
+
+	struct SigRegs *sigRegs;
 
 	pid_t waitPid;
 	struct Process *waitProc;
 
-	int priority;//48
+	int priority;
 	bool fixedPriority;
 	int jiffiesRemaining;
 

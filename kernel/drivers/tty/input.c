@@ -4,11 +4,13 @@
 #include <mm/paging.h>
 #include <uapi/eventcodes.h>
 #include <fs/devfile.h>
+#include <sched/signal.h>
 
 extern char keymap[];
 extern char shiftKeymap[];
 
 static bool shiftPressed = false;
+static bool ctrlPressed = false;
 
 static void ttySignalInputSem(struct Vtty *tty) {
 	if (tty->inputAvail.value <= 0) {
@@ -24,6 +26,8 @@ ssize_t ttyRead(struct File *file, void *buffer, size_t bufSize) {
 
 	char *cbuf = (char *)buffer;
 	
+	releaseSpinlock(&file->inode->lock);
+	releaseSpinlock(&file->lock);
 	semWait(&tty->inputAvail);
 	acquireSpinlock(&tty->inputLock);
 
@@ -42,6 +46,8 @@ ssize_t ttyRead(struct File *file, void *buffer, size_t bufSize) {
 
 	tty->inputReadIndex = ri;
 	releaseSpinlock(&tty->inputLock);
+	acquireSpinlock(&file->lock);
+	acquireSpinlock(&file->inode->lock);
 	return ret;
 }
 
@@ -66,6 +72,8 @@ int ttyHandleKeyEvent(int eventCode, bool released) {
 	if (released) {
 		if (eventCode == KEY_LEFTSHIFT) {
 			shiftPressed = false;
+		} else if (eventCode == KEY_LEFTCTRL) {
+			ctrlPressed = false;
 		}
 		return 0;
 	}
@@ -81,6 +89,18 @@ int ttyHandleKeyEvent(int eventCode, bool released) {
 	} else if (eventCode == KEY_PAGEDOWN) {
 		ttyScroll(1);
 		return 0;
+	} else if (eventCode == KEY_LEFTCTRL) {
+		ctrlPressed = true;
+		return 0;
+	}
+
+	struct Vtty *tty = currentTty;
+	if (ctrlPressed) {
+		if (eventCode == KEY_C) {
+			ttyPuts(tty, "^C", 2);
+			sendSignalToPid(tty->foreground, SIGINT);
+		}
+		return 0;
 	}
 	char c = (shiftPressed)? shiftKeymap[eventCode] : keymap[eventCode];
 	if (!c) {
@@ -88,7 +108,6 @@ int ttyHandleKeyEvent(int eventCode, bool released) {
 	}
 	
 	//push c to inputbuf
-	struct Vtty *tty = currentTty;
 	acquireSpinlock(&tty->inputLock);
 
 	int wi = tty->inputWriteIndex;

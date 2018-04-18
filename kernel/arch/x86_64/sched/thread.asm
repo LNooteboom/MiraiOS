@@ -1,4 +1,3 @@
-extern PAGE_SIZE
 extern ackIRQ
 extern initStackEnd
 extern acquireSpinlock
@@ -12,15 +11,11 @@ extern sleepSkipTime
 extern deallocThread
 extern loadThread
 
-extern lapicBase
-extern busSpeed
 extern perCpuTimer
 extern initProcess
-
-extern jiffyVec
 extern lapicSendIPIToAll
-
 extern tssSetRSP0
+extern handleSignal
 
 global kthreadExit:function
 global kthreadInit:function
@@ -145,6 +140,16 @@ kthreadExit:
 		jmp nextThread
 	
 reschedCommon:
+	pop rcx
+
+	push rbx
+	push rbp
+	push r12
+	push r13
+	push r14
+	push r15
+
+	push rcx ;ret addr
 	;get current thread
 	mov rax, [gs:8]
 	push rax
@@ -156,21 +161,14 @@ reschedCommon:
 	;mov esi, 1
 	mov rdi, [gs:8]
 	pop rdx
+	lea rcx, [rsp + 0x10] ;irqStack
 	call kthreadSwitch
 
 	pop rdx
 	cmp rax, rdx
 	je .noSwitch
-		pop rcx ;save ret addr in rcx
 		;task switch occured
-		;save optional registers
-		sub rsp, 0x30
-		mov [rsp + 0x28], rbx
-		mov [rsp + 0x20], rbp
-		mov [rsp + 0x18], r12
-		mov [rsp + 0x10], r13
-		mov [rsp + 0x08], r14
-		mov [rsp], r15
+		pop rcx ;save ret addr in rcx
 		;save rsp
 		mov [rdx], rsp
 		;get new rsp
@@ -197,7 +195,9 @@ reschedCommon:
 		mov rsi, rdx
 		call loadThread
 
-		lea rdi, [rsp + 0x70 + 0x10 + 8]
+		lea rdi, [rsp + 0x70 + 0x18]
+		mov rax, [rsp]
+		mov [rax], rdi
 		call tssSetRSP0
 
 		pop rax
@@ -205,9 +205,14 @@ reschedCommon:
 		;release spinlock on new thread
 		lea rdi, [rax + 0x14]
 		call releaseSpinlock
+
 		pop rdx
-		
+		jmp .end2
 	.noSwitch:
+		pop rax ;ret addr
+		add rsp, 0x30
+		push rax
+	.end2:
 	;release spinlock on old thread
 	lea rdi, [rdx + 0x14]
 	call releaseSpinlock
@@ -220,8 +225,8 @@ jiffyIrq:
 	mov [rsp + 0x40], rax
 	mov [rsp + 0x38], rcx
 	mov [rsp + 0x30], rdx
-	mov [rsp + 0x28], rdi
-	mov [rsp + 0x20], rsi
+	mov [rsp + 0x28], rsi
+	mov [rsp + 0x20], rdi
 	mov [rsp + 0x18], r8
 	mov [rsp + 0x10], r9
 	mov [rsp + 0x08], r10
@@ -270,8 +275,8 @@ jiffyIrq:
 	mov rax, [rsp + 0x40]
 	mov rcx, [rsp + 0x38]
 	mov rdx, [rsp + 0x30]
-	mov rdi, [rsp + 0x28]
-	mov rsi, [rsp + 0x20]
+	mov rsi, [rsp + 0x28]
+	mov rdi, [rsp + 0x20]
 	mov r8,  [rsp + 0x18]
 	mov r9,  [rsp + 0x10]
 	mov r10, [rsp + 0x08]
@@ -285,8 +290,8 @@ reschedIPI:
 	mov [rsp + 0x40], rax
 	mov [rsp + 0x38], rcx
 	mov [rsp + 0x30], rdx
-	mov [rsp + 0x28], rdi
-	mov [rsp + 0x20], rsi
+	mov [rsp + 0x28], rsi
+	mov [rsp + 0x20], rdi
 	mov [rsp + 0x18], r8
 	mov [rsp + 0x10], r9
 	mov [rsp + 0x08], r10
@@ -323,8 +328,8 @@ reschedIPI:
 	mov rax, [rsp + 0x40]
 	mov rcx, [rsp + 0x38]
 	mov rdx, [rsp + 0x30]
-	mov rdi, [rsp + 0x28]
-	mov rsi, [rsp + 0x20]
+	mov rsi, [rsp + 0x28]
+	mov rdi, [rsp + 0x20]
 	mov r8,  [rsp + 0x18]
 	mov r9,  [rsp + 0x10]
 	mov r10, [rsp + 0x08]
@@ -395,15 +400,16 @@ kthreadStop:
 
 	;switch to exception stack
 	mov rsp, [gs:0x10]
-	mov rbp, [gs:0x10]
+	;mov rbp, [gs:0x10]
+
+	xor edi, edi
+	call setCurrentThread
 
 	and [r15 + 0x14], dword ~2
 	lea rdi, [r15 + 0x14]
 	call releaseSpinlock
 
 	xor r15d, r15d
-	xor edi, edi
-	call setCurrentThread
 
 nextThread: ;r15 = old thread
 	call readyQueuePop
@@ -417,10 +423,8 @@ nextThread: ;r15 = old thread
 		mov rcx, [r15 + 0x20]
 		test rcx, rcx
 		jz .load2
-		;cmp [rcx + 0x1C], dword 2 ;Process->state == PROCSTATE_FINISHED
-		;jne .load2
 			mov rdx, [initProcess + 0x10]
-			mov cr3, rdx ;Do cr3 switch if old proc is exiting
+			mov cr3, rdx ;Do cr3 switch if old thread was userspace
 		.load2:
 		sti
 		hlt
@@ -430,20 +434,27 @@ nextThread: ;r15 = old thread
 
 	cmp r14, r15
 	je .sameThread
+		;should always happen
 		lea rdi, [r14 + 0x14]
 		call acquireSpinlock
 	.sameThread:
+
+	mov rdi, r14
+	mov rsi, [r14]
+	mov r13, rsi
+	call handleSignal
 
 	mov [r14 + 0x10], dword 1 ;set threadstate to RUNNING
 
 	cmp r14, r15
 	je .sameThread2
-		mov rsp, [r14] ;switch to new stack
+		mov rsp, r13 ;switch to new stack
 
 		mov rdi, r14
 		call loadThread
 
 		lea rdi, [rsp + 0xA0]
+		mov [r14], rdi
 		call tssSetRSP0
 
 		mov rdi, r14
@@ -481,8 +492,8 @@ nextThread: ;r15 = old thread
 	mov rax, [rsp + 0x70]
 	mov rcx, [rsp + 0x68]
 	mov rdx, [rsp + 0x60]
-	mov rdi, [rsp + 0x58]
-	mov rsi, [rsp + 0x50]
+	mov rsi, [rsp + 0x58]
+	mov rdi, [rsp + 0x50]
 	mov r8,  [rsp + 0x48]
 	mov r9,  [rsp + 0x40]
 	mov r10, [rsp + 0x38]

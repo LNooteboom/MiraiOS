@@ -11,6 +11,7 @@ Userspace processes
 #include <sched/spinlock.h>
 #include <mm/paging.h>
 #include <uapi/mmap.h>
+#include <sched/signal.h>
 
 #define PROC_HT_SIZE	64
 
@@ -67,7 +68,7 @@ struct PGroup;
 struct Process {
 	pid_t pid;
 	pid_t ppid;
-	physPage_t addressSpace;
+	physPage_t addressSpace; //address of root page table
 	enum ProcessState state;
 	unsigned int nameLen;
 
@@ -76,6 +77,7 @@ struct Process {
 		char *name;
 	};
 
+	//Hash table list next & prev
 	struct Process *htNext;
 	struct Process *htPrev;
 
@@ -85,16 +87,33 @@ struct Process {
 	struct Process *prevChild;
 	struct Process *nextChild;
 
+	//mmap entries
 	struct MemoryEntry *firstMemEntry;
 	struct MemoryEntry *lastMemEntry;
 	//struct MemoryEntry *brkEntry;
 	spinlock_t memLock;
 
+	//group info
 	pid_t pgid;
 	pid_t sid;
 	struct PGroup *group;
 	struct Process *grpNext;
 	struct Process *grpPrev;
+
+	//signal info & handling
+	bool sigResched;
+	int sigNrPending;
+	sigset_t sigMask;
+	sigset_t sigPending;
+	struct PendingSignal *sigFirst;
+	struct PendingSignal *sigLast;
+	struct SigRegs *sigRegStack;
+	
+	struct sigaction sigAct[NROF_SIGNALS];
+
+	void *sigAltStack;
+	size_t sigAltStackSize;
+
 
 	struct Inode *cwd;
 
@@ -104,6 +123,7 @@ struct Process {
 
 	thread_t mainThread;
 
+	//file info
 	struct ProcessFile inlineFDs[NROF_INLINE_FDS];
 	struct ProcessFile *fds;
 	int nrofFDs; //excluding inlined FDs

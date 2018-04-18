@@ -10,6 +10,8 @@
 
 extern void fbPanicUpdate(void);
 
+uintptr_t panicStack;
+
 static __attribute__((noreturn)) void die(void *arg) {
 	(void)(arg);
 	localInterruptDisable();
@@ -19,13 +21,14 @@ static __attribute__((noreturn)) void die(void *arg) {
 }
 
 static void stackTrace(uintptr_t rsp) {
+	printk("Stack trace: %X\n", rsp);
 	if (!mmGetPageEntry(rsp)) {
 		return;
 	}
-	printk("Stack trace:\n");
-	for (int i = 0; i < 32; i++) {
+	
+	for (int i = 0; i < 16; i++) {
 		if (rsp % PAGE_SIZE == 0) {
-			break;
+			//break;
 		}
 		printk("%X: %X\n", rsp, *((uint64_t *)rsp));
 		rsp += 8;
@@ -39,7 +42,11 @@ void __attribute__((noreturn)) panic(const char *fmt, ...) {
 	smpCallFunction(die, NULL, false);
 
 	uintptr_t rsp;
-	asm("mov rax, rsp" : "=a"(rsp));
+	if (panicStack) {
+		rsp = panicStack;
+	} else {
+		asm("mov rax, rsp" : "=a"(rsp));
+	}
 	stackTrace(rsp);
 
 

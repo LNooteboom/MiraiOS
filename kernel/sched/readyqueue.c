@@ -74,6 +74,7 @@ thread_t readyQueuePop(void) {
 		ret = getThreadFromCPU(busiestCPU);
 		if (ret) {
 			acquireSpinlock(&ret->lock);
+			ret->cpuAffinity = thisCPU->cpuInfosIndex;
 			busiestCPU->threadLoad -= NROF_QUEUE_PRIORITIES - ret->priority;
 			acquireSpinlock(&thisCPU->readyListLock);
 			thisCPU->threadLoad += NROF_QUEUE_PRIORITIES - ret->priority;
@@ -87,6 +88,10 @@ thread_t readyQueuePop(void) {
 }
 
 void readyQueuePush(thread_t thread) {
+	if (thread->sigDepth) {
+		thread->sigCont = true;
+		return;
+	}
 	thread->state = THREADSTATE_SCHEDWAIT;
 	calcNewPriority(thread);
 	int priority = thread->priority;

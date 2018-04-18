@@ -7,6 +7,8 @@
 #include <modules.h>
 #include <mm/memset.h>
 #include <mm/heap.h>
+#include <stdarg.h>
+#include <uapi/termios.h>
 
 #include <arch/map.h>
 
@@ -17,9 +19,11 @@ struct Vtty *kernelTty = &ttys[0];
 struct Vtty *currentTty = &ttys[0];
 
 static int ttyWrite(struct File *file, const void *buffer, size_t bufSize);
+static int ttyIoctl(struct File *file, unsigned long req, va_list args);
 static struct DevFileOps ttyOps = {
 	.write = ttyWrite,
-	.read = ttyRead
+	.read = ttyRead,
+	.ioctl = ttyIoctl
 };
 
 static int kernelPuts(const char *text) {
@@ -30,6 +34,24 @@ static int kernelPuts(const char *text) {
 
 static int ttyWrite(struct File *file, const void *buffer, size_t bufSize) {
 	return ttyPuts(file->inode->cachedData, buffer, bufSize);
+}
+
+static int ttyIoctl(struct File *file, unsigned long req, va_list args) {
+	struct Vtty *tty = file->inode->cachedData;
+	pid_t *arg = va_arg(args, pid_t *);
+	int error = 0;
+	switch(req) {
+		case TIOCGPGRP:
+			*arg = tty->foreground;
+			break;
+		case TIOCSPGRP:
+			tty->foreground = *arg;
+			break;
+		default:
+			error = -ENOSYS;
+	}
+
+	return error;
 }
 
 int fbInitDevFiles(void) {

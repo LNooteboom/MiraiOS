@@ -6,9 +6,14 @@
 #include <modules.h>
 #include <userspace.h>
 #include <errno.h>
+#include <sched/signal.h>
 
 #define PRCTL_FS	1
 #define PRCTL_GS	2
+
+//Get/Set user stack pointer, used for signal handling
+void *getUserSP(void);
+void setUserSP(void *sp);
 
 thread_t getCurrentThread(void) {
 	return (thread_t)pcpuRead64(currentThread);

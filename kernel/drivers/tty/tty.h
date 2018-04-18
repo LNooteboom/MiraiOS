@@ -76,6 +76,9 @@ struct Vtty {
 	int inputLineIndex;
 	int inputMode;
 	semaphore_t inputAvail;
+
+	pid_t foreground;
+	pid_t session;
 };
 
 extern struct Vtty ttys[NROF_VTTYS];

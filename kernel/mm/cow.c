@@ -7,8 +7,13 @@
 #include <arch/tlb.h>
 #include <arch/map.h>
 #include <errno.h>
+#include <userspace.h>
 
 int mmDoCOW(uintptr_t addr) {
+	int error = validateUserPointer((void *)addr, 1);
+	if (error) {
+		return error;
+	}
 	addr = alignLow(addr, PAGE_SIZE);
 	if (!mmGetPageEntry(addr)) {
 		return -EINVAL;
@@ -17,7 +22,7 @@ int mmDoCOW(uintptr_t addr) {
 	if (!(*pte & PAGE_FLAG_COW)) {
 		return -EINVAL;
 	}
-	int error = 0;
+	
 
 	struct Process *proc = getCurrentThread()->process;
 	acquireSpinlock(&proc->memLock);

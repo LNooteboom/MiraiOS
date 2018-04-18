@@ -11,6 +11,8 @@
 #include <panic.h>
 #include <sched/pgrp.h>
 
+#include <sched/queue.h>
+
 static void unlinkChild(struct Process *proc) {
 	struct Process *parent = proc->parent;
 	acquireSpinlock(&parent->lock);
@@ -54,8 +56,8 @@ void exitProcess(struct Process *proc, int exitValue) { //can also be called on 
 	struct Process *child = proc->children;
 	while (child) {
 		acquireSpinlock(&child->lock);
-		linkChild(&initProcess, child);
 		struct Process *nextChild = child->nextChild;
+		linkChild(&initProcess, child);
 		releaseSpinlock(&child->lock);
 		child = nextChild;
 	}
@@ -90,7 +92,8 @@ void sysExit(int exitValue) {
 	}
 	//kill all other threads
 	//set current thread as mainThread
-
+	
+	threadQueueRemove(curThread);
 	exitProcess(curThread->process, exitValue);
 
 	//exit thread

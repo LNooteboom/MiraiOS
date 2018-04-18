@@ -5,7 +5,13 @@
 #include <stddef.h>
 #include "types.h"
 
+#define SYSGETID_PID	0
+#define SYSGETID_PPID	1
+#define SYSGETID_PGID	2
+#define SYSGETID_SID	3
+
 struct GetDent;
+struct sigaction;
 
 //SYSCALLS
 /*00*/ int sysRead(int fd, void *buffer, size_t size);
@@ -28,6 +34,9 @@ struct GetDent;
 /*11*/ int sysAccess(const char *path, int mode);
 /*12*/ pid_t sysSetsid(void);
 /*13*/ int sysSetpgid(pid_t pid, pid_t pgid);
+/*14*/ pid_t sysGetId(int which);
+/*15*/ void sysSigRet(void);
+/*16*/ int sysSigHandler(int sigNum, struct sigaction *action, struct sigaction *oldAction);
 //END
 
 #endif

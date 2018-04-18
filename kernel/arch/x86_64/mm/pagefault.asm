@@ -18,6 +18,8 @@ extern allocLargeCleanPhysPage
 extern mmDoCOW
 extern mmGetPageEntry
 
+extern panicStack
+
 %define endl 10, 0
 %define NROF_PAGE_LEVELS 4
 
@@ -145,7 +147,9 @@ excPF:
 		call printk
 		mov rdi, -1
 		call sysExit
-	.panic:
+	.panic
+	mov rax, [rsp + 0x20]
+	mov [panicStack], rax
 	call panic
 	jmp $
 

@@ -244,6 +244,9 @@ int sysFork(void) {
 	error = copyMem(curProc, newProc);
 	if (error) goto releaseProcLock;
 
+	pid_t grp = curProc->pgid;
+	newProc->group = curProc->group;
+
 	releaseSpinlock(&curProc->lock);
 
 	newProc->addressSpace = mmCreateAddressSpace();
@@ -272,7 +275,7 @@ int sysFork(void) {
 	releaseSpinlock(&curThread->lock);
 
 	procHTAdd(newProc);
-	setpgid(newProc, 0);
+	setpgid(newProc, grp);
 	
 	readyQueuePush(mainThread);
 
