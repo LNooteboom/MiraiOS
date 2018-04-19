@@ -58,7 +58,7 @@ FILE *_PHLastFile = &_PHStderr;
 FILE *fopen(const char *filename, const char *mode) {
 	FILE *f = NULL;
 	if (!mode || !*mode) {
-		errno = -EINVAL;
+		errno = EINVAL;
 		goto ret;
 	}
 	unsigned int flags = 0;
@@ -69,7 +69,7 @@ FILE *fopen(const char *filename, const char *mode) {
 				if (mode[1] == '+') {
 					flags |= SYSOPEN_FLAG_WRITE;
 				} else {
-					errno = -EINVAL;
+					errno = EINVAL;
 					goto ret;
 				}
 			}
@@ -80,7 +80,7 @@ FILE *fopen(const char *filename, const char *mode) {
 				if (mode[1] == '+') {
 					flags |= SYSOPEN_FLAG_READ;
 				} else {
-					errno = -EINVAL;
+					errno = EINVAL;
 					goto ret;
 				}
 			}
@@ -91,13 +91,13 @@ FILE *fopen(const char *filename, const char *mode) {
 				if (mode[1] == '+') {
 					flags |= SYSOPEN_FLAG_READ;
 				} else {
-					errno = -EINVAL;
+					errno = EINVAL;
 					goto ret;
 				}
 			}
 			break;
 		default:
-			errno = -EINVAL;
+			errno = EINVAL;
 			goto ret;
 	}
 
@@ -120,7 +120,7 @@ FILE *fopen(const char *filename, const char *mode) {
 
 	int error = sysOpen(AT_FDCWD, filename, flags);
 	if (error) {
-		errno = error;
+		errno = -error;
 		goto freeBuf;
 	}
 	f->fd = error;
@@ -144,7 +144,7 @@ int fflush(FILE *stream) {
 	stream->writeEnd = stream->buf;
 	stream->readEnd = stream->buf;
 	if (error < 0) {
-		errno = error;
+		errno = -error;
 		return -1;
 	}
 	return 0;
@@ -174,7 +174,7 @@ int fclose(FILE *stream) {
 	}
 
 	if (error < 0) {
-		errno = error;
+		errno = -error;
 		return -1;
 	}
 	return 0;

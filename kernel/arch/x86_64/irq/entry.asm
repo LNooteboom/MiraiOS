@@ -192,8 +192,8 @@ sysSigRet:
 
 	push rbx
 	mov rbx, [gs:8]
-	lea rdi, [rbx + 0x14]
-	call acquireSpinlock
+	;lea rdi, [rbx + 0x14]
+	;call acquireSpinlock
 
 	cmp [rbx + 0x230], dword 0 ;sigDepth
 	jne .valid

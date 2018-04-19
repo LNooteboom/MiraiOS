@@ -12,7 +12,7 @@
 int execve(const char *filename, char *const argv[], char *const envp[]) {
 	int error = sysExec(filename, argv, envp);
 	//This should only be executed on error
-	errno = error;
+	errno = -error;
 	return -1;
 }
 
@@ -23,7 +23,7 @@ int execvpe(const char *file, char *const argv[], char *const envp[]) {
 	//look in PATH
 	char *path = getenv("PATH");
 	if (!path) {
-		errno = -ENOENT;
+		errno = ENOENT;
 		return -1;
 	}
 	
@@ -49,7 +49,7 @@ int execvpe(const char *file, char *const argv[], char *const envp[]) {
 		}
 		dir = dirEnd + 1;
 	}
-	errno = -ENOENT;
+	errno = ENOENT;
 	return -1;
 }
 
@@ -59,7 +59,7 @@ int execlp(const char *file, const char *arg, ...) {
 	unsigned int argc = 1;
 	for (; va_arg(args, const char *); argc++) {
 		if (argc >= 512 / sizeof(const char *)) {
-			errno = -E2BIG;
+			errno = E2BIG;
 			return -1;
 		}
 	}

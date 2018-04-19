@@ -36,7 +36,7 @@ void *mmap(void *addr, size_t size, int prot, int flags, int fd, off_t offset) {
 	void *ret = sysMmap(addr, size, flags, fd, offset);
 	int error = (long)ret;
 	if (error < 0) {
-		errno = error;
+		errno = -error;
 		return MAP_FAIL;
 	}
 	return ret;
@@ -45,7 +45,7 @@ void *mmap(void *addr, size_t size, int prot, int flags, int fd, off_t offset) {
 int munmap(void *addr, size_t size) {
 	int ret = sysMunmap(addr, size);
 	if (ret) {
-		errno = ret;
+		errno = -ret;
 		return -1;
 	}
 	return 0;
@@ -230,7 +230,7 @@ static void *doAlloc(size_t size, bool clean) {
 	}
 	struct HeapBlock *start = findBlock(nrofBlocks, clean);
 	if (!start) {
-		//errno = -ENOMEM;
+		//errno = ENOMEM;
 		//return NULL; //TODO expand heap
 		unsigned long more = nrofBlocks;
 		if (!isPrevUsed(lastBlock)) {
@@ -244,7 +244,7 @@ static void *doAlloc(size_t size, bool clean) {
 		}
 		long error = (long)sysMmap(lastBlock + 1, sz, HEAP_FLAGS | MAP_FIXED, 0, 0);
 		if (error < 0) {
-			errno = error;
+			errno = -error;
 			return NULL;
 		}
 

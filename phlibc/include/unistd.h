@@ -37,6 +37,13 @@ ssize_t read(int fd, void *buf, size_t size);
 
 pid_t fork(void);
 
+pid_t getpid(void);
+pid_t getppid(void);
+int setpgid(pid_t pid, pid_t pgid);
+pid_t getpgid(pid_t pid);
+pid_t setsid(void);
+pid_t getsid(pid_t pid);
+
 /* * * Exec * * */
 
 int execve(const char *filename, char *const argv[], char *const envp[]);

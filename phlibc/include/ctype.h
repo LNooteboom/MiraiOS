@@ -13,4 +13,8 @@ static inline int isalnum(int c) {
 	return (isdigit(c) || isalpha(c));
 }
 
+static inline isxdigit(int c) {
+	return (isdigit(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'));
+}
+
 #endif

@@ -187,7 +187,7 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 		const char *s;
 		switch (*c) {
 			case 0:
-				errno = -EINVAL;
+				errno = EINVAL;
 				return -1;
 			case '%':
 				ADD_TO_BUF(buf, 512, len, '%');
@@ -210,7 +210,7 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 				in = va_arg(arg, unsigned long);
 				error = printDec(buf + len, 512 - len, in, true, flags, nFlags, width, precision, varLength);
 				if (error < 0) {
-					errno = error;
+					errno = -error;
 					return -1;
 				}
 				len += error;
@@ -219,7 +219,7 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 				in = va_arg(arg, unsigned long);
 				error = printDec(buf + len, 512 - len, in, false, flags, nFlags, width, precision, varLength);
 				if (error < 0) {
-					errno = error;
+					errno = -error;
 					return -1;
 				}
 				len += error;
@@ -229,7 +229,7 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 				in = va_arg(arg, unsigned long);
 				error = printHex(buf + len, 512 - len, in, false, flags, nFlags, width, precision, varLength);
 				if (error < 0) {
-					errno = error;
+					errno = -error;
 					return -1;
 				}
 				len += error;
@@ -241,13 +241,13 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 				in = va_arg(arg, unsigned long);
 				error = printHex(buf + len, 512 - len, in, true, flags, nFlags, width, precision, varLength);
 				if (error < 0) {
-					errno = error;
+					errno = -error;
 					return -1;
 				}
 				len += error;
 				break;
 			default:
-				errno = -EINVAL;
+				errno = EINVAL;
 				return -1;
 		}
 	}

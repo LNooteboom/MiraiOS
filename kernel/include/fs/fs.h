@@ -157,7 +157,7 @@ int fsCloseOnExec(void);
 
 int sysWrite(int fd, const void *buffer, size_t size);
 int sysRead(int fd, void *buffer, size_t size);
-int sysIoctl(int fd, unsigned long request, ...);
+int sysIoctl(int fd, unsigned long request, unsigned long arg);
 int sysOpen(int dirfd, const char *fileName, unsigned int flags);
 int sysClose(int fd);
 

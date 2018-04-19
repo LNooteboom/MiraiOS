@@ -3,11 +3,12 @@
 #include <stdio.h>
 #include <errno.h>
 #include <uapi/syscalls.h>
+#include <stdarg.h>
 
 ssize_t write(int fd, const void *buf, size_t size) {
 	ssize_t ret = sysWrite(fd, buf, size);
 	if (ret) {
-		errno = ret;
+		errno = -ret;
 		return -1;
 	}
 	return size;
@@ -16,17 +17,30 @@ ssize_t write(int fd, const void *buf, size_t size) {
 ssize_t read(int fd, void *buf, size_t size) {
 	ssize_t ret = sysRead(fd, buf, size);
 	if (ret < 0) {
-		errno = ret;
+		errno = -ret;
 		return -1;
 	}
 	return ret;
+}
+
+int ioctl(int fd, unsigned long request, ...) {
+	va_list args;
+	va_start(args, request);
+	unsigned long arg = va_arg(args, unsigned long);
+	va_end(args);
+	int error = sysIoctl(fd, request, arg);
+	if (error < 0) {
+		errno = -error;
+		return -1;
+	}
+	return error;
 }
 
 int fputs(const char *restrict s, FILE *restrict stream) {
 	size_t len = strlen(s);
 	/*int error = sysWrite(stream->fd, s, len);
 	if (error) {
-		errno = error;
+		errno = -error;
 		return -1;
 	}
 	return 0;*/
@@ -39,7 +53,7 @@ int fputs(const char *restrict s, FILE *restrict stream) {
 char *fgets(char *s, size_t size, FILE *stream) {
 	/*ssize_t read = sysRead(stream->fd, s, size - 1);
 	if (read < 0) {
-		errno = read;
+		errno = -read;
 		return NULL;
 	}*/
 	size_t read = fread(s, 1, size - 1, stream);

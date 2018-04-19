@@ -1,12 +1,15 @@
 #include <sched/signal.h>
 #include <sched/spinlock.h>
 #include <sched/process.h>
+#include <sched/pgrp.h>
 #include <arch/cpu.h>
 #include <mm/heap.h>
 #include <mm/memset.h>
 #include <errno.h>
 #include <userspace.h>
 #include <print.h>
+
+int sigprocmask(int how, const sigset_t *newset, sigset_t *oldset, struct Process *proc);
 
 #define COPY(regName)	regs->regName = irqStack[i++]
 static void copyRegs(struct SigRegs *regs, unsigned long *irqStack) {
@@ -81,6 +84,7 @@ void handleSignal(thread_t curThread, unsigned long *irqStack) {
 
 	struct SigRegs *regs = proc->sigRegStack;
 	copyRegs(regs, irqStack);
+	regs->sigMask = proc->sigMask;
 	regs->floatsUsed = curThread->floatsUsed;
 	if (curThread->floatsUsed) {
 		memcpy(regs->fxsaveArea, curThread->fxsaveArea, 512);
@@ -130,8 +134,13 @@ void handleSignal(thread_t curThread, unsigned long *irqStack) {
 		iret[4] = 0x10; //kernel ss
 	}
 
+	releaseSpinlock(&proc->lock);
+	sigprocmask(SIG_SETMASK, &proc->sigAct[sigNum].sa_mask, NULL, proc);
+	goto out;
+
 	release:
 	releaseSpinlock(&proc->lock);
+	out:
 	kfree(sig);
 }
 
@@ -144,11 +153,12 @@ void sigRet(struct SigRegs **regs) {
 	
 	releaseSpinlock(&proc->lock);
 
+	sigprocmask(SIG_SETMASK, &(*regs)->sigMask, NULL, proc);
+	acquireSpinlock(&curThread->lock);
+
 	curThread->nextThread = (*regs)->nextThread;
 	curThread->prevThread = (*regs)->prevThread;
 	curThread->queue = (*regs)->queue;
-
-	//todo set mask
 }
 
 static void notifyProcess(struct Process *proc, int sigNum, struct SigRegs *regs) {
@@ -183,6 +193,9 @@ static void notifyProcess(struct Process *proc, int sigNum, struct SigRegs *regs
 int sendSignal(struct Process *proc, int sigNum) {
 	if (proc->state == PROCSTATE_FINISHED) {
 		return -ESRCH;
+	}
+	if (proc->pid == 1 && !(proc->sigAct[sigNum].saTrampoline)) {
+		return -EPERM; //do not send unhandled signals to init
 	}
 	
 	struct PendingSignal *ps = kzalloc(sizeof(*ps));
@@ -244,4 +257,77 @@ int sendSignalToPid(pid_t pid, int sigNum) {
 		return -ESRCH;
 	}
 	return sendSignal(proc, sigNum);
+}
+
+int sendSignalToGroup(pid_t pgid, int sigNum) {
+	struct PGroup *grp = getPGroup(pgid);
+	if (!grp) {
+		return -ESRCH;
+	}
+	struct Process *proc = grp->first;
+	int error = 0;
+	while (proc && !error) {
+		struct Process *next = proc->grpNext;
+		error = sendSignal(proc, sigNum);
+		proc = next;
+	}
+	return error;
+}
+
+int sigprocmask(int how, const sigset_t *newset, sigset_t *oldset, struct Process *proc) {
+	int error = 0;
+	acquireSpinlock(&proc->lock);
+
+	sigset_t newMask = proc->sigMask;
+	if (oldset) {
+		*oldset = newMask;
+	}
+	if (!newset) {
+		goto release;
+	}
+	switch (how) {
+		case SIG_BLOCK:
+			newMask |= *newset;
+			break;
+		case SIG_UNBLOCK:
+			newMask &= ~(*newset);
+			break;
+		case SIG_SETMASK:
+			newMask = *newset;
+			break;
+		default:
+			error = -EINVAL;
+			goto release;
+	}
+	sigset_t unblocked = (newMask | proc->sigMask) ^ proc->sigMask; //get signals that were masked before but not now
+	unblocked &= proc->sigPending;
+	proc->sigMask = newMask;
+	releaseSpinlock(&proc->lock);
+
+	if (!unblocked) {
+		goto out;
+	}
+
+	int base = 0;
+	while (true) {
+		int set = __builtin_ffsll(unblocked); //find first set bit (unblocked signal)
+		if (!set) {
+			break;
+		}
+		int sigNum = set - 1 + base;
+		sendSignal(proc, sigNum);
+
+		base = set;
+		unblocked >>= set;
+	}
+
+	release:
+	releaseSpinlock(&proc->lock);
+	out:
+	return error;
+}
+
+int sysSigprocmask(int how, const sigset_t *newset, sigset_t *oldset) {
+	struct Process *proc = getCurrentThread()->process;
+	return sigprocmask(how, newset, oldset, proc);
 }

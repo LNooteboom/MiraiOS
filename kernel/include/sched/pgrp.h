@@ -29,5 +29,6 @@ struct Session {
 
 void leaveGroup(struct Process *proc);
 int setpgid(struct Process *proc, pid_t pgid);
+struct PGroup *getPGroup(pid_t pgid);
 
 #endif

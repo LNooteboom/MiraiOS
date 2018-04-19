@@ -21,7 +21,7 @@ char *getenv(const char *name) {
 pid_t fork(void) {
 	pid_t ret = sysFork();
 	if (ret < 0) {
-		errno = ret;
+		errno = -ret;
 		return -1;
 	}
 	return ret;
@@ -30,7 +30,7 @@ pid_t fork(void) {
 pid_t waitpid(pid_t pid, int *wstatus, int options) {
 	pid_t ret = sysWaitPid(pid, wstatus, options);
 	if (ret < 0) {
-		errno = ret;
+		errno = -ret;
 		return -1;
 	}
 	return ret;
@@ -39,8 +39,47 @@ pid_t waitpid(pid_t pid, int *wstatus, int options) {
 int chdir(const char *path) {
 	int ret = sysChDir(path);
 	if (ret) {
-		errno = ret;
+		errno = -ret;
 		return -1;
 	}
 	return 0;
+}
+
+pid_t getpid(void) {
+	return sysGetId(0, SYSGETID_PID); //can never fail
+}
+pid_t getppid(void) {
+	return sysGetId(0, SYSGETID_PPID);
+}
+int setpgid(pid_t pid, pid_t pgid) {
+	int error = sysSetpgid(pid, pgid);
+	if (error) {
+		errno = -error;
+		return -1;
+	}
+	return 0;
+}
+pid_t getpgid(pid_t pid) {
+	pid_t ret = sysGetId(pid, SYSGETID_PGID);
+	if (ret < 0) {
+		errno = -ret;
+		return -1;
+	}
+	return ret;
+}
+pid_t setsid(void) {
+	pid_t ret = sysSetsid();
+	if (ret < 0) {
+		errno = -ret;
+		return -1;
+	}
+	return ret;
+}
+pid_t getsid(pid_t pid) {
+	pid_t ret = sysGetId(pid, SYSGETID_SID);
+	if (ret < 0) {
+		errno = -ret;
+		return -1;
+	}
+	return ret;
 }

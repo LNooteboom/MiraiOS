@@ -19,7 +19,7 @@ struct Vtty *kernelTty = &ttys[0];
 struct Vtty *currentTty = &ttys[0];
 
 static int ttyWrite(struct File *file, const void *buffer, size_t bufSize);
-static int ttyIoctl(struct File *file, unsigned long req, va_list args);
+static int ttyIoctl(struct File *file, unsigned long req, unsigned long arg2);
 static struct DevFileOps ttyOps = {
 	.write = ttyWrite,
 	.read = ttyRead,
@@ -36,9 +36,9 @@ static int ttyWrite(struct File *file, const void *buffer, size_t bufSize) {
 	return ttyPuts(file->inode->cachedData, buffer, bufSize);
 }
 
-static int ttyIoctl(struct File *file, unsigned long req, va_list args) {
+static int ttyIoctl(struct File *file, unsigned long req, unsigned long arg2) {
 	struct Vtty *tty = file->inode->cachedData;
-	pid_t *arg = va_arg(args, pid_t *);
+	pid_t *arg = (pid_t *)arg2;
 	int error = 0;
 	switch(req) {
 		case TIOCGPGRP:

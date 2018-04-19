@@ -149,9 +149,7 @@ int sysRead(int fd, void *buffer, size_t size) {
 	return fsRead(fp.file, buffer, size);
 }
 
-int sysIoctl(int fd, unsigned long request, ...) {
-	va_list args;
-	va_start(args, request);
+int sysIoctl(int fd, unsigned long request, unsigned long arg) {
 
 	union FilePipe fp;
 	int error = getFileFromFD(getCurrentThread()->process, fd, &fp);
@@ -166,13 +164,11 @@ int sysIoctl(int fd, unsigned long request, ...) {
 	struct DevFileOps *ops = f->inode->ops;
 	int ret = -ENOSYS;
 	if ((f->inode->type & ITYPE_MASK) == ITYPE_CHAR && ops && ops->ioctl) {
-		ret = ops->ioctl(f, request, args);
+		ret = ops->ioctl(f, request, arg);
 	}
 
 	releaseSpinlock(&f->inode->lock);
 	releaseSpinlock(&f->lock);
-
-	va_end(args);
 
 	return ret;
 }

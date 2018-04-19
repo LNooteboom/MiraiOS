@@ -23,4 +23,14 @@ typedef __PHLIBC_TYPE_SSIZE_T ssize_t;
 typedef __PHLIBC_TYPE_OFF_T off_t;
 #endif
 
+#ifndef __PHLIBC_DEF_UID_T
+#define __PHLIBC_DEF_UID_T
+typedef __PHLIBC_TYPE_OFF_T uid_t;
+#endif
+
+#ifndef __PHLIBC_DEF_GID_T
+#define __PHLIBC_DEF_GID_T
+typedef __PHLIBC_TYPE_OFF_T gid_t;
+#endif
+
 #endif

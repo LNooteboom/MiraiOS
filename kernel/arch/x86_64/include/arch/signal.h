@@ -31,9 +31,12 @@ struct SigRegs {
 
 	enum threadState tState;
 	bool floatsUsed;
+
 	struct ThreadInfoQueue *queue;
 	struct ThreadInfo *nextThread;
 	struct ThreadInfo *prevThread;
+	sigset_t sigMask;
+
 	char fxsaveArea[512] __attribute__((aligned(16)));
 };
 

@@ -16,7 +16,7 @@ struct sigaction;
 //SYSCALLS
 /*00*/ int sysRead(int fd, void *buffer, size_t size);
 /*01*/ int sysWrite(int fd, const void *buffer, size_t size);
-/*02*/ int sysIoctl(int fd, unsigned long request, ...);
+/*02*/ int sysIoctl(int fd, unsigned long request, unsigned long arg);
 /*03*/ int sysOpen(int dirfd, const char *fileName, unsigned int flags);
 /*04*/ int sysClose(int fd);
 /*05*/ int sysGetDent(int fd, struct GetDent *buf);
@@ -34,9 +34,10 @@ struct sigaction;
 /*11*/ int sysAccess(int dirfd, const char *path, int mode);
 /*12*/ pid_t sysSetsid(void);
 /*13*/ int sysSetpgid(pid_t pid, pid_t pgid);
-/*14*/ pid_t sysGetId(int which);
+/*14*/ pid_t sysGetId(pid_t pid, int which);
 /*15*/ void sysSigRet(void);
 /*16*/ int sysSigHandler(int sigNum, struct sigaction *action, struct sigaction *oldAction);
+/*17*/ int sysSigprocmask(int how, const unsigned long long *newset, unsigned long long *oldset);
 //END
 
 #endif

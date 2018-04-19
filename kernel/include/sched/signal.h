@@ -19,5 +19,6 @@ void handleSignal(thread_t curThread, unsigned long *irqStack);
 
 int sendSignal(struct Process *proc, int sigNum);
 int sendSignalToPid(pid_t pid, int sigNum);
+int sendSignalToGroup(pid_t pgid, int sigNum);
 
 #endif

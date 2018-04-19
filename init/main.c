@@ -18,9 +18,9 @@ int main(void) {
 	sysOpen(AT_FDCWD, "/dev/tty0", SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE); //stderr
 
 	environ = env;
-	pid_t sh = sysFork();
+	pid_t sh = fork();
 	if (!sh) {
-		//execvpe("sh", environ, environ);
+		setpgid(0, 0);
 		execlp("sh", "sh", "test", NULL);
 	}
 	sysWaitPid(sh, NULL, 0);

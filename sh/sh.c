@@ -4,10 +4,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/wait.h>
-
-#include <uapi/syscalls.h>
-#include <uapi/termios.h>
-#include <uapi/signal.h>
+#include <signal.h>
+#include <sys/ioctl.h>
+#include <termios.h>
 
 #define COMMAND_BUF_LEN	512
 
@@ -19,23 +18,19 @@ extern void _PHSigTramp(void);
 
 void handler(int sig) {
 	printf("\n%s", getenv("PS1"));
+	exit(0);
 }
 
 int main(void) {
 	puts("MiraiOS Shell v0.1");
 
-	struct sigaction act = {
-		.sa_handler = handler,
-		.saTrampoline = _PHSigTramp
-	};
-	sysSigHandler(SIGINT, &act, NULL);
+	signal(SIGINT, handler);
 
-	pid_t curPid = sysGetId(SYSGETID_PID);
+	pid_t curPgid = getpgid(0);
 
 	while (1) {
-		sysIoctl(STDOUT_FILENO, TIOCSPGRP, &curPid);
+		ioctl(STDIN_FILENO, TIOCSPGRP, &curPgid);
 		printf("%s", getenv("PS1"));
-
 		fgets(commandBuf, COMMAND_BUF_LEN, stdin);
 
 		int commandLen = strlen(commandBuf);
@@ -71,8 +66,9 @@ int main(void) {
 		fflush(stdout);
 		pid_t child = fork();
 		if (!child) {
-			child = sysGetId(SYSGETID_PID);
-			sysIoctl(STDOUT_FILENO, TIOCSPGRP, &child);
+			setpgid(0, 0);
+			pid_t grp = getpgid(0);
+			ioctl(STDIN_FILENO, TIOCSPGRP, &grp);
 			execvp(commandBuf, newArgv);
 			if (errno == -ENOENT) {
 				printf("%s: Command not found\n", commandBuf);

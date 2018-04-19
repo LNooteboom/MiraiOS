@@ -1,4 +1,5 @@
 #include <sched/pgrp.h>
+#include <sched/process.h>
 #include <sched/spinlock.h>
 #include <mm/heap.h>
 #include <mm/memset.h>
@@ -159,6 +160,10 @@ int setpgid(struct Process *proc, pid_t pgid) {
 	return error;
 }
 
+struct PGroup *getPGroup(pid_t pgid) {
+	return (struct PGroup *)rbSearch(pgRoot, pgid);
+}
+
 int sysSetpgid(pid_t pid, pid_t pgid) {
 	struct Process *curProc = getCurrentThread()->process;
 	struct Process *proc;
@@ -233,21 +238,32 @@ pid_t sysSetsid(void) {
 	return ret;
 }
 
-pid_t sysGetId(int which) {
+/*
+Get pid, ppid, pgid or sid from process pointed to by pid
+if pid == 0 then get from current process
+*/
+pid_t sysGetId(pid_t pid, int which) {
 	pid_t ret = 0;
 	thread_t curThread = getCurrentThread();
+	struct Process *proc = curThread->process;
+	if (pid) {
+		proc = getProcFromPid(pid);
+		if (!proc) {
+			return -ESRCH;
+		}
+	}
 	switch (which) {
 		case SYSGETID_PID:
-			ret = curThread->process->pid;
+			ret = proc->pid;
 			break;
 		case SYSGETID_PPID:
-			ret = curThread->process->ppid;
+			ret = proc->ppid;
 			break;
 		case SYSGETID_PGID:
-			ret = curThread->process->pgid;
+			ret = proc->pgid;
 			break;
 		case SYSGETID_SID:
-			ret = curThread->process->sid;
+			ret = proc->sid;
 			break;
 		default:
 			ret = -EINVAL;

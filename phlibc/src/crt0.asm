@@ -36,15 +36,7 @@ _start:
 	call main
 
 	mov rdi, rax
-	jmp exit
-
-_PHSigTramp:
-	xchg bx, bx
-	call rax
-	mov eax, 0x15
-	syscall
-
-exit:
+exit: ;fall through
 	push rdi
 	cmp qword [_PHAtExitFunc], 0
 	je .noAtExit
@@ -54,11 +46,16 @@ exit:
 	call _fini
 
 	call _PHCloseAll
-
 	pop rdi
+_exit: ;fall through
 	mov eax, 8
 	syscall
 
+_PHSigTramp: ;signal trampoline, rax contains sa_handler
+	call rax
+	mov eax, 0x15
+	syscall
+	
 SECTION .bss
 
 environ: resq 1

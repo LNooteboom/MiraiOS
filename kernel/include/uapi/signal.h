@@ -23,6 +23,10 @@
 #define SIG_DFL		((void *)0)
 #define SIG_IGN		((void *)-1)
 
+#define SIG_BLOCK	1
+#define SIG_UNBLOCK	2
+#define SIG_SETMASK	3
+
 typedef unsigned long long	sigset_t;
 
 union sigval {

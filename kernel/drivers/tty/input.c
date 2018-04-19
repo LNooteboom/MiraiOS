@@ -98,7 +98,7 @@ int ttyHandleKeyEvent(int eventCode, bool released) {
 	if (ctrlPressed) {
 		if (eventCode == KEY_C) {
 			ttyPuts(tty, "^C", 2);
-			sendSignalToPid(tty->foreground, SIGINT);
+			sendSignalToGroup(tty->foreground, SIGINT);
 		}
 		return 0;
 	}
