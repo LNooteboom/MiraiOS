@@ -221,6 +221,7 @@ sysSigRet:
 		push qword [rsi + 0x80] ;rsp
 		push qword [rsi + 0x88] ;rflags
 		push 0x2B ;cs
+		jmp .end
 	.kernel:
 		push 0x10
 		push qword [rsi + 0x80]

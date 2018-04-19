@@ -118,7 +118,7 @@ FILE *fopen(const char *filename, const char *mode) {
 	_PHLastFile->next = f;
 	_PHLastFile = f;
 
-	int error = sysOpen(filename, flags);
+	int error = sysOpen(AT_FDCWD, filename, flags);
 	if (error) {
 		errno = error;
 		goto freeBuf;

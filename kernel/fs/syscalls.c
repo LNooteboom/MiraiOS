@@ -9,6 +9,15 @@
 #include <modules.h>
 #include <stdarg.h>
 
+/*
+Get file or pipe struct from fd
+
+return value:
+	-EBADF on error
+	0 on file
+	1 on read-only pipe
+	3 on write-only pipe
+*/
 int getFileFromFD(struct Process *proc, int fd, union FilePipe *fp) {
 	struct ProcessFile *pf;
 	struct File *f;
@@ -78,6 +87,23 @@ int allocateFD(struct Process *proc, struct ProcessFile **pf) {
 		*pf = file;
 	}
 	return fileno;
+}
+
+static struct Inode *getCwd(int dirfd, struct Process *proc) {
+	if (dirfd == AT_FDCWD) {
+		return proc->cwd;
+	}
+	struct Inode *ret = NULL;
+	acquireSpinlock(&proc->fdLock);
+	union FilePipe fp;
+	int error = getFileFromFD(proc, dirfd, &fp);
+	if (error) goto out;
+
+	ret = fp.file->inode;
+
+	out:
+	releaseSpinlock(&proc->fdLock);
+	return ret;
 }
 
 int sysWrite(int fd, const void *buffer, size_t size) {
@@ -151,7 +177,7 @@ int sysIoctl(int fd, unsigned long request, ...) {
 	return ret;
 }
 
-int sysOpen(const char *fileName, unsigned int flags) {
+int sysOpen(int dirfd, const char *fileName, unsigned int flags) {
 	//check flags
 	if (flags & SYSOPEN_FLAG_DIR && flags & SYSOPEN_FLAG_WRITE) {
 		return -EISDIR;
@@ -171,11 +197,12 @@ int sysOpen(const char *fileName, unsigned int flags) {
 
 	pf->file.flags = flags & ~(SYSOPEN_FLAG_CREATE | SYSOPEN_FLAG_CLOEXEC | SYSOPEN_FLAG_EXCL);
 
-	struct Inode *inode = getInodeFromPath(proc->cwd, fileName);
+	struct Inode *cwd = getCwd(dirfd, proc);
+	struct Inode *inode = getInodeFromPath(cwd, fileName);
 	if (!inode && flags & SYSOPEN_FLAG_CREATE) {
 		//create file
 		int fileNameIndex;
-		struct Inode *dir = getBaseDirFromPath(proc->cwd, &fileNameIndex, fileName);
+		struct Inode *dir = getBaseDirFromPath(cwd, &fileNameIndex, fileName);
 		if (!dir) {
 			return -ENOENT; //dir does not exist
 		}
@@ -268,12 +295,13 @@ int sysChDir(const char *path) {
 	return 0;
 }
 
-int sysAccess(const char *path, int mode) {
+int sysAccess(int dirfd, const char *path, int mode) {
 	int error = validateUserString(path);
 	if (error) return error;
 
 	struct Process *proc = getCurrentThread()->process;
-	struct Inode *inode = getInodeFromPath(proc->cwd, path);
+	struct Inode *cwd = getCwd(dirfd, proc);
+	struct Inode *inode = getInodeFromPath(cwd, path);
 	if (!inode) {
 		return -ENOENT;
 	}

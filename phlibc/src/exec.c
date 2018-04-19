@@ -40,7 +40,7 @@ int execvpe(const char *file, char *const argv[], char *const envp[]) {
 		memcpy(&buf[dirLen + 1], file, nameLen);
 		buf[dirLen + 1 + nameLen] = 0;
 
-		if (!sysAccess(buf, SYSACCESS_X)) {
+		if (!sysAccess(AT_FDCWD, buf, SYSACCESS_X)) {
 			return execve(buf, argv, envp);
 		}
 	

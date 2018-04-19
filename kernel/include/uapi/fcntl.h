@@ -21,4 +21,6 @@
 #define SYSACCESS_W				4
 #define SYSACCESS_X				8
 
+#define AT_FDCWD				-1
+
 #endif

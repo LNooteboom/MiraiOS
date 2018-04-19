@@ -290,7 +290,7 @@ int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	if (fnLen > PAGE_SIZE) return -EINVAL;
 	char namebuf[fnLen];
 
-	error = sysAccess(fileName, SYSACCESS_X);
+	error = sysAccess(AT_FDCWD, fileName, SYSACCESS_X);
 	if (error) return error;
 
 	memcpy(namebuf, fileName, fnLen);

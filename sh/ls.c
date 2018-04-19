@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
 	} else {
 		dir = ".";
 	}
-	int dirFD = sysOpen(dir, SYSOPEN_FLAG_READ | SYSOPEN_FLAG_DIR);
+	int dirFD = sysOpen(AT_FDCWD, dir, SYSOPEN_FLAG_READ | SYSOPEN_FLAG_DIR);
 	struct GetDent dent;
 	while (1) {
 		int err = sysGetDent(dirFD, &dent);

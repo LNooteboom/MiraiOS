@@ -221,7 +221,7 @@ static void mergeBlock(struct HeapBlock *start, struct HeapBlock *end) {
 
 static void *doAlloc(size_t size, bool clean) {
 	if (size >= MMAP_THRESHOLD) {
-		return 1; //TODO
+		return mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0); //TODO add entry in list to support free()
 	}
 
 	unsigned long nrofBlocks = (size / sizeof(struct HeapBlock)) + 1;

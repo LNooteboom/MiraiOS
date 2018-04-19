@@ -147,7 +147,7 @@ excPF:
 		call printk
 		mov rdi, -1
 		call sysExit
-	.panic
+	.panic:
 	mov rax, [rsp + 0x20]
 	mov [panicStack], rax
 	call panic

@@ -18,7 +18,7 @@ char *newArgv[32];
 extern void _PHSigTramp(void);
 
 void handler(int sig) {
-	printf("int!\n");
+	printf("\n%s", getenv("PS1"));
 }
 
 int main(void) {
