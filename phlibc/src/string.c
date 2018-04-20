@@ -81,3 +81,8 @@ const char *strchrnul(const char *s, int c) {
 	}
 	return s;
 }
+
+int strcmp(const char *s1, const char *s2) {
+	int len = strlen(s1);
+	return memcmp(s1, s2, len);
+}

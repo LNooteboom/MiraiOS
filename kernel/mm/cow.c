@@ -8,6 +8,7 @@
 #include <arch/map.h>
 #include <errno.h>
 #include <userspace.h>
+#include <arch/cpu.h>
 
 int mmDoCOW(uintptr_t addr) {
 	int error = validateUserPointer((void *)addr, 1);
@@ -23,6 +24,7 @@ int mmDoCOW(uintptr_t addr) {
 		return -EINVAL;
 	}
 	
+	excStackPush();
 
 	struct Process *proc = getCurrentThread()->process;
 	acquireSpinlock(&proc->memLock);
@@ -59,10 +61,12 @@ int mmDoCOW(uintptr_t addr) {
 	*pte = newPage | oldPageFlags | PAGE_FLAG_USER | PAGE_FLAG_WRITE | PAGE_FLAG_INUSE | PAGE_FLAG_PRESENT;
 	tlbInvalidateLocal((void *)addr, 1); //TODO ajust this for userspace multithreading
 	
-	return 0;
+	error = 0;
+	goto ret;
 	
 	deallocPhys:
 	deallocPhysPage(newPage);
 	ret:
+	excStackPop();
 	return error;
 }

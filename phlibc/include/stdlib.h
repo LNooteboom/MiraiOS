@@ -12,6 +12,10 @@ typedef __PHLIBC_TYPE_SIZE_T size_t;
 extern "C" {
 #endif
 
+static inline int abs(int i) {
+	return (i < 0)? -i : i;
+}
+
 void abort(void);
 
 void exit(int code);

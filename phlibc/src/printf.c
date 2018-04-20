@@ -132,6 +132,20 @@ static int printHex(char *buf, int bufLen, unsigned long in, bool caps,
 	return nLen;
 }
 
+static int printFloat(char *buf, int bufLen, float f) {
+	int ret = 0;
+	if (f < 0) {
+		ADD_TO_BUF(buf, bufLen, ret, '-');
+		f = -f;
+	}
+	unsigned long i = f;
+	ret += printDec(&buf[ret], bufLen - ret, i, false, "", 0, -1, -1, 0);
+	ADD_TO_BUF(buf, bufLen, ret, '.');
+	f = (f - i) * 1000000 + 0.5;
+	ret += printDec(&buf[ret], bufLen - ret, (unsigned long)f, false, "", 0, -1, 6, 0);
+	return ret;
+}
+
 int vfprintf(FILE *stream, const char *format, va_list arg) {
 	char buf[512];
 	int len = 0;
@@ -185,6 +199,7 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 
 		unsigned long in;
 		const char *s;
+		float f;
 		switch (*c) {
 			case 0:
 				errno = EINVAL;
@@ -240,6 +255,15 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 			case 'X':
 				in = va_arg(arg, unsigned long);
 				error = printHex(buf + len, 512 - len, in, true, flags, nFlags, width, precision, varLength);
+				if (error < 0) {
+					errno = -error;
+					return -1;
+				}
+				len += error;
+				break;
+			case 'f':
+				f = va_arg(arg, double);
+				error = printFloat(buf + len, 512 - len, f);
 				if (error < 0) {
 					errno = -error;
 					return -1;

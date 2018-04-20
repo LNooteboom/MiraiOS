@@ -130,4 +130,7 @@ This field will become the stack pointer when an interrupt occurs from userspace
 */
 void tssSetRSP0(void *rsp);
 
+void excStackPush(void);
+void excStackPop(void);
+
 #endif

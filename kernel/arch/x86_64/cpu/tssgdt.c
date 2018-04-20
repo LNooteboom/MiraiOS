@@ -51,3 +51,13 @@ void tssSetRSP0(void *rsp) {
 	struct CpuInfo *cpuInfoNull = NULL;
 	doPcpuWrite64((uint64_t)(&cpuInfoNull->tss.rsp[0]), (uint64_t)rsp);
 }
+
+void excStackPush(void) {
+	struct CpuInfo *info = (struct CpuInfo *)pcpuRead64(addr);
+	info->tss.ist[0] -= 0x400;
+}
+
+void excStackPop(void) {
+	struct CpuInfo *info = (struct CpuInfo *)pcpuRead64(addr);
+	info->tss.ist[0] += 0x400;
+}

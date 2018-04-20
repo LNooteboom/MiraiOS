@@ -32,6 +32,8 @@ const char *strchr(const char *s, int c);
 
 const char *strchrnul(const char *s, int c);
 
+int strcmp(const char *s1, const char *s2);
+
 #if defined(__cplusplus)
 } /* extern "C" */
 #endif

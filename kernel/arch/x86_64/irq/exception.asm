@@ -48,6 +48,7 @@ initExceptions:
     ret
 
 excBaseErrorCode:
+	xchg bx, bx
 	push rax ;rsp+8 = irq num, +16 = error
 	mov rax, [rsp + 8]
 	xchg [rsp + 16], rax ;error becomes irq num
@@ -56,6 +57,7 @@ excBaseErrorCode:
 	pop rax ;load error in rax
 	jmp __excBase
 excBase:
+	xchg bx, bx
 	push rax
 	xor eax, eax
 __excBase: ;error code in rax
@@ -158,11 +160,34 @@ excNM:
 	push rax
 	swapgs
 
-	mov rax, [gs:8]
-	mov [rax + 0x28], dword 1
 	clts
-	fxrstor [rax + 0x30]
 
+	mov rax, [gs:8]
+	cmp [rax + 0x28], dword 0
+	jne .rstor
+		;initialize sse regs
+		mov [rax + 0x28], dword 1 ;set thread->floatsUsed
+		ldmxcsr [defaultMxcsr]
+		movaps xmm0, [sseZero]
+		movaps xmm1, [sseZero]
+		movaps xmm2, [sseZero]
+		movaps xmm3, [sseZero]
+		movaps xmm4, [sseZero]
+		movaps xmm5, [sseZero]
+		movaps xmm6, [sseZero]
+		movaps xmm7, [sseZero]
+		movaps xmm8, [sseZero]
+		movaps xmm9, [sseZero]
+		movaps xmm10, [sseZero]
+		movaps xmm11, [sseZero]
+		movaps xmm12, [sseZero]
+		movaps xmm13, [sseZero]
+		movaps xmm14, [sseZero]
+		movaps xmm15, [sseZero]
+		jmp .out
+	.rstor:
+		fxrstor [rax + 0x30]
+	.out:
 	swapgs
 	pop rax
 	iretq
@@ -207,6 +232,7 @@ excMC:
 	jmp excBase
 
 excXM:
+	;iretq
 	push 19
 	jmp excBase
 
@@ -227,6 +253,11 @@ dummyInterrupt:
 	iretq
 
 SECTION .rodata
+
+ALIGN 16
+sseZero: 	dq 0
+			dq 0
+defaultMxcsr: dd 0x01100
 
 excMessageBase:	db 'CPU exception: %s', 10, 'Error code: %d', 10, 'At: %x', 10, 0
 nullStr: db 0

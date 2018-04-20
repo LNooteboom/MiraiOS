@@ -33,6 +33,9 @@ _start:
 
 	pop rdi
 	mov rsi, rsp
+	mov rax, ~(0xF)
+	and rsp, rax
+	;sub rsp, 8
 	call main
 
 	mov rdi, rax
