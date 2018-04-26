@@ -127,8 +127,11 @@ void handleSignal(thread_t curThread, unsigned long *irqStack) {
 	} else {
 		//perform default action
 		//TODO add thread stop and core dump
-		iret[-4] = -1;
-		iret[0] = (long)sysExit; //return to sysExit(-1)
+		//iret[-4] = -1;
+		//iret[0] = (long)sysExit; //return to sysExit(-1)
+		memcpy(&proc->exitInfo, &sig->info, sizeof(siginfo_t));
+		proc->exitInfo.si_status = SIG_SIGNALED | (sigNum << SIG_TERMSIGNO_SHIFT);
+		iret[0] = (long)signalExit;
 		iret[1] = 8; //kernel cs
 		iret[3] = (long)curThread; //rsp
 		iret[4] = 0x10; //kernel ss

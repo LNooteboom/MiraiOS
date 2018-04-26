@@ -23,7 +23,7 @@ struct sigaction;
 /*06*/ int sysExec(const char *fileName, char *const argv[], char *const envp[]);
 /*07*/ pid_t sysFork(void);
 /*08*/ void sysExit(int exitValue);
-/*09*/ pid_t sysWaitPid(pid_t filter, int *waitStatus, int options);
+/*09*/ pid_t sysWaitPid(pid_t filter, void *waitStatus, int options);
 /*0A*/ int sysSleep(uint64_t seconds, uint32_t nanoSeconds);
 /*0B*/ int sysArchPrctl(int which, void *addr);
 /*0C*/ void* sysMmap(void *addr, size_t size, int flags, int fd, uint64_t offset);
@@ -37,7 +37,7 @@ struct sigaction;
 /*14*/ pid_t sysGetId(pid_t pid, int which);
 /*15*/ void sysSigRet(void);
 /*16*/ int sysSigHandler(int sigNum, struct sigaction *action, struct sigaction *oldAction);
-/*17*/ int sysSigprocmask(int how, const unsigned long long *newset, unsigned long long *oldset);
+/*17*/ int sysSigprocmask(int how, const uint64_t *newset, uint64_t *oldset);
 //END
 
 #endif

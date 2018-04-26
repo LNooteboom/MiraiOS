@@ -21,16 +21,16 @@ void abort(void);
 void exit(int code);
 
 void free(void *ptr);
-
-void *malloc(size_t size);
-
-void *calloc(size_t nmemb, size_t size);
+void *malloc(size_t size) __attribute__((malloc, assume_aligned(16)));
+void *calloc(size_t nmemb, size_t size) __attribute__((malloc, assume_aligned(16)));
 
 int atexit(void (*function)(void));
 
 int atoi(const char *nptr);
 
 char *getenv(const char *name);
+
+double strtod(const char *s, char **endp);
 
 #if defined(__cplusplus)
 } /* extern "C" */

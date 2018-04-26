@@ -18,7 +18,6 @@ extern void _PHSigTramp(void);
 
 void handler(int sig) {
 	printf("\n%s", getenv("PS1"));
-	exit(0);
 }
 
 int main(void) {

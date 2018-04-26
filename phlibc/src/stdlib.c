@@ -4,6 +4,9 @@
 #include <errno.h>
 #include <uapi/syscalls.h>
 #include <sys/wait.h>
+#include <locale.h>
+
+static struct lconv loc;
 
 char *getenv(const char *name) {
 	char *curEnv = *environ;
@@ -82,4 +85,13 @@ pid_t getsid(pid_t pid) {
 		return -1;
 	}
 	return ret;
+}
+
+char *setlocale(int category, const char *locale) {
+	errno = ENOSYS;
+	return NULL;
+}
+
+struct lconv *localeconv(void) {
+	return &loc;
 }

@@ -17,4 +17,8 @@ static inline int isxdigit(int c) {
 	return (isdigit(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'));
 }
 
+static inline int isspace(int c) {
+	return (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f');
+}
+
 #endif

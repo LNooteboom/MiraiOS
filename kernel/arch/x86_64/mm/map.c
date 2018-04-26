@@ -166,3 +166,15 @@ uintptr_t mmCreateAddressSpace(void) {
 	ret:
 	return 0;
 }
+
+void mmSetWritable(void *addr, size_t size, bool write) {
+	size_t numPages = sizeToPages(size);
+	pte_t *pte = mmGetEntry((uintptr_t)addr, 0);
+	for (size_t i = 0; i < numPages; i++) {
+		if (write) {
+			*pte |= PAGE_FLAG_WRITE;
+		} else {
+			*pte &= ~PAGE_FLAG_WRITE;
+		}
+	}
+}

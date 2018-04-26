@@ -2,6 +2,7 @@
 #define INCLUDE_PAGEMAP_H
 
 #include <mm/paging.h>
+#include <stdbool.h>
 
 /*
 Maps a page with physical address paddr to the virtual address vaddr.
@@ -37,5 +38,10 @@ void mmUnmapUserspace(void);
 Creates an empty address space for usermode, with only kernel pages mapped
 */
 uintptr_t mmCreateAddressSpace(void);
+
+/*
+Enable/disable write access
+*/
+void mmSetWritable(void *addr, size_t size, bool write);
 
 #endif

@@ -3,7 +3,7 @@ BITS 64
 global setupCRegs:function
 
 setupCRegs:
-	mov eax, 1 | (1 << 1) | (1 << 5) | (1 << 31) ;set CR0.PE, CR0.MP, CR0.NE and CR0.PG
+	mov eax, 1 | (1 << 1) | (1 << 5) | (1 << 16) | (1 << 31) ;set CR0.PE, CR0.MP, CR0.WP, CR0.NE and CR0.PG
 	mov cr0, rax
 
 	;set CR4.DE, CR4.PSE, CR4.PAE, CR4.PGE CR4.OSFXSR, CR4.OSXMMEXCPT (and CR4.SMEP if possible)

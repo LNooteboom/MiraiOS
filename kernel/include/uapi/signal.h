@@ -38,6 +38,7 @@ typedef struct {
 	int si_signo;
 	int si_errno;
 	int si_code;
+	int si_status;
 
 	union {
 		//sysKill()
@@ -51,7 +52,6 @@ typedef struct {
 		struct {
 			pid_t si_pid;
 			uid_t si_uid;
-			int si_status;
 		} chld;
 
 		//SIGSEGV & friends

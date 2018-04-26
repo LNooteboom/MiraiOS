@@ -146,11 +146,9 @@ static int printFloat(char *buf, int bufLen, float f) {
 	return ret;
 }
 
-int vfprintf(FILE *stream, const char *format, va_list arg) {
-	char buf[512];
-	int len = 0;
+int vsnprintf(char *buf, size_t size, const char *format, va_list arg) {
+	size_t len = 0;
 	int error = 0;
-
 	for (const char *c = format; *c != 0; c++) {
 		if (*c != '%') {
 			buf[len++] = *c;
@@ -205,16 +203,16 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 				errno = EINVAL;
 				return -1;
 			case '%':
-				ADD_TO_BUF(buf, 512, len, '%');
+				ADD_TO_BUF(buf, size, len, '%');
 				break;
 			case 'c':
 				in = va_arg(arg, unsigned long);
-				ADD_TO_BUF(buf, 512, len, in);
+				ADD_TO_BUF(buf, size, len, in);
 				break;
 			case 's':
 				s = va_arg(arg, const char *);
 				while (*s) {
-					ADD_TO_BUF(buf, 512, len, *s);
+					ADD_TO_BUF(buf, size, len, *s);
 					s++;
 				}
 				break;
@@ -223,7 +221,7 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 			case 'd':
 			case 'i':
 				in = va_arg(arg, unsigned long);
-				error = printDec(buf + len, 512 - len, in, true, flags, nFlags, width, precision, varLength);
+				error = printDec(buf + len, size - len, in, true, flags, nFlags, width, precision, varLength);
 				if (error < 0) {
 					errno = -error;
 					return -1;
@@ -232,7 +230,7 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 				break;
 			case 'u':
 				in = va_arg(arg, unsigned long);
-				error = printDec(buf + len, 512 - len, in, false, flags, nFlags, width, precision, varLength);
+				error = printDec(buf + len, size - len, in, false, flags, nFlags, width, precision, varLength);
 				if (error < 0) {
 					errno = -error;
 					return -1;
@@ -242,7 +240,7 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 
 			case 'x':
 				in = va_arg(arg, unsigned long);
-				error = printHex(buf + len, 512 - len, in, false, flags, nFlags, width, precision, varLength);
+				error = printHex(buf + len, size - len, in, false, flags, nFlags, width, precision, varLength);
 				if (error < 0) {
 					errno = -error;
 					return -1;
@@ -254,7 +252,7 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 				//Fall through
 			case 'X':
 				in = va_arg(arg, unsigned long);
-				error = printHex(buf + len, 512 - len, in, true, flags, nFlags, width, precision, varLength);
+				error = printHex(buf + len, size - len, in, true, flags, nFlags, width, precision, varLength);
 				if (error < 0) {
 					errno = -error;
 					return -1;
@@ -263,7 +261,7 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 				break;
 			case 'f':
 				f = va_arg(arg, double);
-				error = printFloat(buf + len, 512 - len, f);
+				error = printFloat(buf + len, size - len, f);
 				if (error < 0) {
 					errno = -error;
 					return -1;
@@ -276,6 +274,24 @@ int vfprintf(FILE *stream, const char *format, va_list arg) {
 		}
 	}
 	buf[len] = 0;
+	return len;
+}
+
+int snprintf(char *buf, size_t size, const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+
+	int error = vsnprintf(buf, size, format, args);
+
+	va_end(args);
+	return error;
+}
+
+int vfprintf(FILE *stream, const char *format, va_list arg) {
+	char buf[512];
+	int error = 0;
+	int len = vsnprintf(buf, 512, format, arg);
+	
 	//error = fputs(buf, stream);
 	error = fwrite(buf, 1, len, stream);
 	if (!error) {

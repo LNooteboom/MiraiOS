@@ -58,6 +58,9 @@ int vfprintf(FILE *stream, const char *format, va_list arg);
 int fprintf(FILE *stream, const char *format, ...);
 int printf(const char *format, ...);
 
+int snprintf(char *buf, size_t size, const char *format, ...);
+int vsnprintf(char *buf, size_t size, const char *format, va_list arg);
+
 
 int fclose(FILE *stream);
 FILE *fopen(const char *filename, const char *mode);

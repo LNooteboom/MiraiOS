@@ -284,7 +284,8 @@ int sysFork(void) {
 	releaseProcLock:
 	releaseSpinlock(&curProc->lock);
 	exitProc:
-	exitProcess(newProc, error);
+	//TODO set error
+	exitProcess(newProc);
 	ret:
 	printk("sysFork failed! error: %d\n", error);
 	return error;

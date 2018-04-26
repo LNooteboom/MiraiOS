@@ -51,6 +51,7 @@ exit: ;fall through
 	call _PHCloseAll
 	pop rdi
 _exit: ;fall through
+_Exit:
 	mov eax, 8
 	syscall
 

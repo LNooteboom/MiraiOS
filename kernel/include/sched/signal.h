@@ -7,6 +7,13 @@
 #include <arch/signal.h>
 
 #define NROF_SIGNALS	(SIGRTMAX + 1)
+#define SIG_STATUS_MASK		0x000FF
+#define SIG_EXITED			0x00100
+#define SIG_CONTINUED		0x00200
+#define SIG_SIGNALED		0x00300
+#define SIG_STOPPED			0x00400
+#define SIG_TERMSIGNO_MASK	0xFF000
+#define SIG_TERMSIGNO_SHIFT	12
 
 struct PendingSignal {
 	struct PendingSignal *next;

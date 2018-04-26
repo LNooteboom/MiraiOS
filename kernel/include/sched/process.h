@@ -119,7 +119,7 @@ struct Process {
 
 	spinlock_t lock;
 
-	int exitValue;
+	siginfo_t exitInfo;
 
 	thread_t mainThread;
 
@@ -137,9 +137,9 @@ void linkChild(struct Process *parent, struct Process *child);
 
 void removeProcess(struct Process *proc);
 
-void exitProcess(struct Process *proc, int exitValue);
+void exitProcess(struct Process *proc);
 
-void sysExit(int exitValue);
+void signalExit(void);
 
 void procHTAdd(struct Process *proc);
 void procHTDel(struct Process *proc);

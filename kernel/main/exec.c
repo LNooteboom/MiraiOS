@@ -10,10 +10,12 @@
 #include <mm/memset.h>
 #include <mm/heap.h>
 #include <mm/mmap.h>
+#include <mm/pagemap.h>
 #include <sched/elf.h>
 #include <modules.h>
 #include <sched/pgrp.h>
 #include <uapi/syscalls.h>
+#include <arch/tlb.h>
 
 struct Process initProcess;
 
@@ -44,15 +46,13 @@ static int elfLoad(struct File *f, struct ElfPHEntry *entry) {
 	error = validateUserPointer(vaddr, entry->pMemSz);
 	if (error) return error;
 
-	pageFlags_t flags = PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN | PAGE_FLAG_USER;
+	pageFlags_t flags = PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN | PAGE_FLAG_USER | PAGE_FLAG_WRITE;
 	if (entry->flags & PHFLAG_EXEC) {
 		flags |= PAGE_FLAG_EXEC;
 	}
-	if (entry->flags & PHFLAG_WRITE) {
-		flags |= PAGE_FLAG_WRITE;
-	}
 	//readable flag is ignored
-	allocPageAt(vaddr, align(entry->pMemSz, entry->alignment), flags);
+	size_t sz = align(entry->pMemSz, entry->alignment);
+	allocPageAt(vaddr, sz, flags);
 
 	error = fsRead(f, (void *)entry->pVAddr, entry->pFileSz);
 	if (error != (int)entry->pFileSz) {
@@ -60,6 +60,12 @@ static int elfLoad(struct File *f, struct ElfPHEntry *entry) {
 			error = -EINVAL;
 		}
 		goto deallocP;
+	}
+
+	if (!(entry->flags & PAGE_FLAG_WRITE)) {
+		//disable write access
+		mmSetWritable(vaddr, sz, false);
+		tlbInvalidateLocal(vaddr, sz / PAGE_SIZE);
 	}
 
 	return 0;
@@ -289,6 +295,8 @@ int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	}
 	if (fnLen > PAGE_SIZE) return -EINVAL;
 	char namebuf[fnLen];
+
+	printk("exc: %s\n", fileName);
 
 	error = sysAccess(AT_FDCWD, fileName, SYSACCESS_X);
 	if (error) return error;

@@ -3,6 +3,7 @@
 #include <mm/heap.h>
 #include <mm/physpaging.h>
 #include <mm/mmap.h>
+#include <mm/memset.h>
 #include <fs/fs.h>
 #include <arch/tlb.h>
 #include <userspace.h>
@@ -10,7 +11,7 @@
 #include <sched/readyqueue.h>
 #include <panic.h>
 #include <sched/pgrp.h>
-
+#include <sched/signal.h>
 #include <sched/queue.h>
 
 static void unlinkChild(struct Process *proc) {
@@ -47,9 +48,8 @@ void removeProcess(struct Process *proc) { //remove zombie
 	kfree(proc);
 }
 
-void exitProcess(struct Process *proc, int exitValue) { //can also be called on failed fork
+void exitProcess(struct Process *proc) { //can also be called on failed fork
 	proc->state = PROCSTATE_FINISHED;
-	proc->exitValue = exitValue;
 
 	//Orphan any children
 	acquireSpinlock(&initProcess.lock);
@@ -85,7 +85,8 @@ void exitProcess(struct Process *proc, int exitValue) { //can also be called on 
 	releaseSpinlock(&parent->lock);
 }
 
-void sysExit(int exitValue) {
+//exit info already set in process
+void signalExit(void) {
 	thread_t curThread = getCurrentThread();
 	if (curThread->process->pid == 1) {
 		panic("\n[PANIC] Attempted to kill init!");
@@ -94,14 +95,20 @@ void sysExit(int exitValue) {
 	//set current thread as mainThread
 	
 	threadQueueRemove(curThread);
-	exitProcess(curThread->process, exitValue);
+	exitProcess(curThread->process);
 
 	//exit thread
 	curThread->detached = true;
 	kthreadExit(NULL);
 }
 
-pid_t sysWaitPid(pid_t filter, int *waitStatus, int options) {
+void sysExit(int exitValue) {
+	struct Process *proc = getCurrentThread()->process;
+	proc->exitInfo.si_status = (exitValue & SIG_STATUS_MASK) | SIG_EXITED;
+	signalExit();
+}
+
+pid_t sysWaitPid(pid_t filter, void *waitStatus, int options) {
 	//check if any of the current children that match the filter are status=PROCSTATE_FINISHED 
 	//if so return
 	pid_t ret = 0;
@@ -129,7 +136,8 @@ pid_t sysWaitPid(pid_t filter, int *waitStatus, int options) {
 	releaseSpinlock(&proc->lock);
 	if (ret > 0) {
 		if (waitStatus) {
-			*waitStatus = child->exitValue; //TODO expand this when signals get added
+			//*waitStatus = child->exitValue; //TODO expand this when signals get added
+			memcpy(waitStatus, &proc->exitInfo, sizeof(proc->exitInfo));
 		}
 		removeProcess(child);
 		releaseSpinlock(&curThread->lock);
@@ -148,7 +156,8 @@ pid_t sysWaitPid(pid_t filter, int *waitStatus, int options) {
 	kthreadStop();
 
 	if (waitStatus) {
-		*waitStatus = curThread->waitProc->exitValue;
+		//*waitStatus = curThread->waitProc->exitValue;
+		memcpy(waitStatus, &proc->exitInfo, sizeof(proc->exitInfo));
 	}
 	removeProcess(curThread->waitProc);
 

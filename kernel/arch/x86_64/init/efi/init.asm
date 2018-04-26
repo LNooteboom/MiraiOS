@@ -36,6 +36,12 @@ __init:
 	cmp rax, [r15] ;check boot services signature
 	jne bootError
 
+	;clear CR0.CD
+	mov rax, cr0
+	mov rdx, ~(1 << 30)
+	and rax, rdx
+	mov cr0, rax
+
 	;detect support for NX bit
 	xor r13d, r13d
 	mov eax, 0x80000001

@@ -2,7 +2,7 @@
 #include <uapi/syscalls.h>
 #include <uapi/fcntl.h>
 #include <uapi/getDent.h>
-#include <openlibm_math.h>
+#include <stdlib.h>
 
 int main(int argc, char **argv) {
 	char *dir;
@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 		}
 		
 	}
-	float f = sin(argc);
+	float f = strtod(argv[1], NULL);
 	printf("%f", f);
 
 	return 0;

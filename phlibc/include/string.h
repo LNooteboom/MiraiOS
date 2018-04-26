@@ -34,6 +34,13 @@ const char *strchrnul(const char *s, int c);
 
 int strcmp(const char *s1, const char *s2);
 
+static inline int strcoll(const char *s1, const char *s2) {
+	return strcmp(s1, s2);
+}
+
+char *strpbrk(const char *s, const char *accept);
+size_t strspn(const char *s, const char *accept);
+
 #if defined(__cplusplus)
 } /* extern "C" */
 #endif

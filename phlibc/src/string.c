@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdbool.h>
 
 void *memcpy(void *dest, const void *src, size_t n) {
 	if (n % sizeof(long)) {
@@ -85,4 +86,37 @@ const char *strchrnul(const char *s, int c) {
 int strcmp(const char *s1, const char *s2) {
 	int len = strlen(s1);
 	return memcmp(s1, s2, len);
+}
+
+char *strpbrk(const char *s, const char *accept) {
+	while (*s) {
+		const char *a = accept;
+		while (*a) {
+			if (*s == *a) {
+				return (char *)s;
+			}
+			a++;
+		}
+		s++;
+	}
+	return NULL;
+}
+
+size_t strspn(const char *s, const char *accept) {
+	size_t ret = 0;
+	while (s[ret]) {
+		bool found = false;
+		const char *a = accept;
+		while (*a) {
+			if (s[ret] == *a) {
+				found = true;
+				break;
+			}
+			a++;
+		}
+		if (!found) {
+			break;
+		}
+	}
+	return ret;
 }
