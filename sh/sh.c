@@ -61,7 +61,6 @@ int main(void) {
 			puts("Exit");
 			exit(0);
 		}
-
 		fflush(stdout);
 		pid_t child = fork();
 		if (!child) {

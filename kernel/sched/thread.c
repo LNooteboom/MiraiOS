@@ -68,6 +68,7 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 }
 
 int kthreadCreateFromMain(thread_t *thread) {
+	printk("[SCHED] Using %d-level feedback queue\n", NROF_QUEUE_PRIORITIES);
 	//alloc thread stack
 	struct ThreadInfo *thrd = allocKStack();
 	if (!thrd) return -ENOMEM;
@@ -92,6 +93,8 @@ int kthreadCreateFromMain(thread_t *thread) {
 
 	setCurrentThread(thrd);
 	pcpuWrite32(threadLoad, 32);
+
+	printk("[SCHED] Registered kmain() thread\n");
 	
 	return 0;
 }

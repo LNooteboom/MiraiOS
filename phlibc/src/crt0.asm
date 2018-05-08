@@ -11,6 +11,8 @@ extern _PHCloseAll
 
 global _start:function
 global exit:function
+global _exit:function
+global _Exit:function
 
 global environ:data
 global errno:data
@@ -20,6 +22,7 @@ global _PHSigTramp:function
 SECTION .text
 
 _start:
+	xchg bx, bx
 	;handle args
 	mov rdi, [rsp] ;argc
 	lea rsi, [rsp + 8] ;argv

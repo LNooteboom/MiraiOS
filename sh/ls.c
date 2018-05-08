@@ -25,8 +25,6 @@ int main(int argc, char **argv) {
 		}
 		
 	}
-	float f = strtod(argv[1], NULL);
-	printf("%f", f);
 
 	return 0;
 }

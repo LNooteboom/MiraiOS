@@ -4,5 +4,5 @@
 
 void _PHAssert(const char *expr, const char *file, int line) {
 	fprintf(stderr, "Assertion failed: %s in %s at line %d\n", expr, file, line);
-	exit(-1);
+	//exit(-1);
 }

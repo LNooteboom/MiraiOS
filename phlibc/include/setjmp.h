@@ -1,7 +1,7 @@
 #ifndef __PHLIBC_SETJMP_H
 #define __PHLIBC_SETJMP_H
 
-typedef int jmp_buf[8];
+typedef long jmp_buf[8];
 
 int setjmp(jmp_buf buf);
 int _setjmp(jmp_buf buf);

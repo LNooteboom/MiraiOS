@@ -153,6 +153,11 @@ Closes all file descriptors with the PROCFILE_CLOEXEC flag set
 */
 int fsCloseOnExec(void);
 
+/*
+Renames a file
+*/
+int fsRename(struct Inode *newDir, const char *newName, struct Inode *oldDir, const char *oldName, int flags);
+
 //System calls
 
 int sysWrite(int fd, const void *buffer, size_t size);

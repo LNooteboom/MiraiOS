@@ -319,3 +319,13 @@ int printf(const char *format, ...) {
 	va_end(args);
 	return error;
 }
+
+int sprintf(char *buf, const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+
+	int error = vsnprintf(buf, 0x7FFFFFFF, format, args);
+
+	va_end(args);
+	return error;
+}

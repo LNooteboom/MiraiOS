@@ -106,6 +106,7 @@ int fbInit(void) {
 			PAGE_FLAG_CLEAN | PAGE_FLAG_WRITE);
 	}
 	kernelTty->focus = true;
+	kernelTty->globalDirty = true;
 
 	for (int i = 0; i < kernelTty->charWidth * SCROLLBACK_LINES; i++) {
 		kernelTty->buf[i].c = 0;

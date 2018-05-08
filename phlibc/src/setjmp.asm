@@ -1,11 +1,13 @@
 global setjmp:function
 global longjmp:function
+global _setjmp:function
+global _longjmp:function
 
 _setjmp:
 setjmp: ;(jmp_buf buf)
 	pop rcx
 	;save callee saved regs
-	mov [rdi], rax ;ret addr
+	mov [rdi], rcx ;ret addr
 	mov [rdi + 0x08], rbx
 	mov [rdi + 0x10], rbp
 	mov [rdi + 0x18], rsp

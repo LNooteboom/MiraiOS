@@ -8,6 +8,11 @@
 typedef __PHLIBC_TYPE_PID_T pid_t;
 #endif
 
+#define WIFEXITED(status)	((status & 0x00F00) == 0x00100)
+#define WEXITSTATUS(status)	(status & 0x000FF)
+#define WIFSIGNALED(status)	((status & 0x00F00) == 0x00300)
+#define WTERMSIG(status)	((status >> 12) & 0xFF)
+
 #if defined(__cplusplus)
 extern "C" {
 #endif

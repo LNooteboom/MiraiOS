@@ -120,3 +120,15 @@ size_t strspn(const char *s, const char *accept) {
 	}
 	return ret;
 }
+
+char *strstr(const char *str, const char *substr) {
+	int pos = 0;
+	size_t len = strlen(substr);
+	while (str[pos]) {
+		if (!memcmp(str, substr, len)) {
+			return &str[pos];
+		}
+		pos++;
+	}
+	return NULL;
+}

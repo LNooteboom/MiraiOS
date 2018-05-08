@@ -4,6 +4,7 @@
 #include <fs/devfile.h>
 #include <sched/process.h>
 #include <mm/heap.h>
+#include <mm/memset.h>
 #include <errno.h>
 #include <userspace.h>
 #include <modules.h>
@@ -208,6 +209,7 @@ int sysOpen(int dirfd, const char *fileName, unsigned int flags) {
 		if (error) {
 			return error;
 		}
+		return fileno;
 	} else if (flags & SYSOPEN_FLAG_EXCL) {
 		return -EEXIST;
 	} else if (!inode) {
@@ -303,4 +305,58 @@ int sysAccess(int dirfd, const char *path, int mode) {
 	}
 	//TODO check for permissions
 	return 0;
+}
+
+int sysSeek(int fd, int64_t offset, int whence) {
+	union FilePipe fp;
+	int error = getFileFromFD(getCurrentThread()->process, fd, &fp);
+	if (error) {
+		return -EBADF;
+	}
+
+
+	return fsSeek(fp.file, offset, whence);
+}
+
+int sysUnlink(int dirfd, const char *path, int flags) {
+	int error = validateUserString(path);
+	if (error) return error;
+
+	struct Process *proc = getCurrentThread()->process;
+	struct Inode *cwd = getCwd(dirfd, proc);
+
+	struct Inode *inode = getInodeFromPath(cwd, path);
+	if (isDir(inode) || !(flags & AT_REMOVEDIR)) {
+		return -EISDIR;
+	}
+
+	int fileNameIndex;
+	struct Inode *dir = getBaseDirFromPath(cwd, &fileNameIndex, path);
+
+	return fsUnlink(dir, &path[fileNameIndex]);
+}
+
+int sysRename(int oldDirfd, const char *oldPath, int newDirfd, const char *newPath, int flags) {
+	int error = validateUserString(oldPath);
+	if (error) return error;
+	error = validateUserString(newPath);
+	if (error) return error;
+
+	struct Process *proc = getCurrentThread()->process;
+	struct Inode *oldDir = getCwd(oldDirfd, proc);
+	struct Inode *newDir = getCwd(newDirfd, proc);
+
+	int oldFileIndex;
+	oldDir = getBaseDirFromPath(oldDir, &oldFileIndex, oldPath);
+	int newFileIndex;
+	newDir = getBaseDirFromPath(newDir, &newFileIndex, newPath);
+
+	char oldNameBuf[NAME_MAX + 1];
+	int len = strlen(&oldPath[oldFileIndex]);
+	if (len >= NAME_MAX) {
+		return -E2BIG;
+	}
+	memcpy(oldNameBuf, &oldPath[oldFileIndex], len + 1);
+
+	return fsRename(newDir, &newPath[newFileIndex], oldDir, oldNameBuf, flags);
 }

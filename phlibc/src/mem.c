@@ -3,8 +3,9 @@
 #include <uapi/syscalls.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <string.h>
 
-#include <stdio.h>
+//#include <stdio.h>
 
 #define HEAP_MAX		((void *)(0x80000000UL))
 #define MMAP_THRESHOLD	(256*1024)
@@ -220,8 +221,11 @@ static void mergeBlock(struct HeapBlock *start, struct HeapBlock *end) {
 }
 
 static void *doAlloc(size_t size, bool clean) {
+	if (!size) {
+		return NULL;
+	}
 	if (size >= MMAP_THRESHOLD) {
-		return mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0); //TODO add entry in list to support free()
+		//return mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0); //TODO add entry in list to support free()
 	}
 
 	unsigned long nrofBlocks = (size / sizeof(struct HeapBlock)) + 1;
@@ -281,4 +285,24 @@ void *malloc(size_t size) {
 
 void *calloc(size_t nmemb, size_t size) {
 	return doAlloc(nmemb * size, true);
+}
+
+void *realloc(void *ptr, size_t size) {
+	if (!size) {
+		free(ptr);
+		return NULL;
+	}
+	size += 32;
+	void *ret = malloc(size);
+	if (!ptr) {
+		return ret;
+	}
+	if (!ret) goto out;
+
+	memcpy(ret, ptr, size);
+
+	//out:
+	free(ptr);
+	out:
+	return ret;
 }

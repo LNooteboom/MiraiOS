@@ -10,6 +10,9 @@
 
 #define STREAM_MODEMASK	3
 #define STREAM_FREEBUF	(1 << 2)
+#define STREAM_EOF		(1 << 3)
+#define STREAM_ERROR	(1 << 4)
+#define STREAM_PROC		(1 << 5)
 
 extern FILE _PHStdout;
 extern FILE _PHStderr;
@@ -22,7 +25,8 @@ FILE _PHStdin = {
 	.writeEnd = _PHStdinBuf,
 	.readEnd = _PHStdinBuf,
 	.bufEnd = _PHStdinBuf + BUFSIZ,
-	.next = &_PHStdout
+	.next = &_PHStdout,
+	.cbuf = EOF
 };
 
 char _PHStdoutBuf[BUFSIZ];
@@ -34,7 +38,8 @@ FILE _PHStdout = {
 	.readEnd = _PHStdoutBuf,
 	.bufEnd = _PHStdoutBuf + BUFSIZ,
 	.next = &_PHStderr,
-	.prev = &_PHStdin
+	.prev = &_PHStdin,
+	.cbuf = EOF
 };
 
 char _PHStderrBuf[BUFSIZ];
@@ -45,7 +50,8 @@ FILE _PHStderr = {
 	.writeEnd = _PHStderrBuf,
 	.readEnd = _PHStderrBuf,
 	.bufEnd = _PHStderrBuf + BUFSIZ,
-	.prev = &_PHStdout
+	.prev = &_PHStdout,
+	.cbuf = EOF
 };
 
 FILE *stdin = &_PHStdin;
@@ -55,13 +61,8 @@ FILE *stderr = &_PHStderr;
 FILE *_PHFirstFile = &_PHStdin;
 FILE *_PHLastFile = &_PHStderr;
 
-FILE *fopen(const char *filename, const char *mode) {
-	FILE *f = NULL;
-	if (!mode || !*mode) {
-		errno = EINVAL;
-		goto ret;
-	}
-	unsigned int flags = 0;
+static int parseMode(const char *mode) {
+	int flags = 0;
 	switch (mode[0]) {
 		case 'r':
 			flags = SYSOPEN_FLAG_READ;
@@ -70,7 +71,7 @@ FILE *fopen(const char *filename, const char *mode) {
 					flags |= SYSOPEN_FLAG_WRITE;
 				} else {
 					errno = EINVAL;
-					goto ret;
+					return -1;
 				}
 			}
 			break;
@@ -81,7 +82,7 @@ FILE *fopen(const char *filename, const char *mode) {
 					flags |= SYSOPEN_FLAG_READ;
 				} else {
 					errno = EINVAL;
-					goto ret;
+					return -1;
 				}
 			}
 			break;
@@ -92,14 +93,25 @@ FILE *fopen(const char *filename, const char *mode) {
 					flags |= SYSOPEN_FLAG_READ;
 				} else {
 					errno = EINVAL;
-					goto ret;
+					return -1;
 				}
 			}
 			break;
 		default:
 			errno = EINVAL;
-			goto ret;
+			return -1;
 	}
+	return flags;
+}
+
+FILE *fopen(const char *filename, const char *mode) {
+	FILE *f = NULL;
+	if (!mode || !*mode) {
+		errno = EINVAL;
+		goto ret;
+	}
+	int flags = parseMode(mode);
+	if (flags < 0) goto ret;
 
 	f = malloc(sizeof(*f));
 	if (!f) {
@@ -113,12 +125,14 @@ FILE *fopen(const char *filename, const char *mode) {
 	f->writeEnd = f->buf;
 	f->readEnd = f->buf;
 	f->flags = _IOFBF | STREAM_FREEBUF;
+	f->cbuf = EOF;
+	f->seekOffset = 0;
 
 	f->prev = _PHLastFile;
 	_PHLastFile->next = f;
 	_PHLastFile = f;
 
-	int error = sysOpen(AT_FDCWD, filename, flags);
+	int error = sysOpen(AT_FDCWD, filename, (unsigned int)flags);
 	if (error) {
 		errno = -error;
 		goto freeBuf;
@@ -134,6 +148,23 @@ FILE *fopen(const char *filename, const char *mode) {
 	return f;
 }
 
+FILE *freopen(const char *restrict filename, const char *restrict mode, FILE *restrict stream) {
+	fflush(stream);
+	int error;
+
+	sysClose(stream->fd);
+
+	int flags = parseMode(mode);
+	error = sysOpen(AT_FDCWD, filename, (unsigned int)flags);
+	if (error) {
+		errno = -error;
+		stream->fd = -1;
+		fclose(stream);
+		return NULL;
+	}
+	return stream;
+}
+
 int fflush(FILE *stream) {
 	size_t writeSize = stream->writeEnd - stream->buf;
 	int error = 0;
@@ -144,6 +175,7 @@ int fflush(FILE *stream) {
 	stream->writeEnd = stream->buf;
 	stream->readEnd = stream->buf;
 	if (error < 0) {
+		stream->flags |= STREAM_ERROR;
 		errno = -error;
 		return -1;
 	}
@@ -151,6 +183,9 @@ int fflush(FILE *stream) {
 }
 
 int fclose(FILE *stream) {
+	if (stream->flags & STREAM_PROC) {
+		return pclose(stream);
+	}
 	int error = fflush(stream);
 	if (error) return error;
 
@@ -165,7 +200,9 @@ int fclose(FILE *stream) {
 		_PHLastFile = stream->prev;
 	}
 
-	error = sysClose(stream->fd);
+	if (stream->fd >= 0) {
+		error = sysClose(stream->fd);
+	}
 	if (stream->flags & STREAM_FREEBUF) {
 		free(stream->buf);
 	}
@@ -231,7 +268,10 @@ static size_t fwriteFBF(const void *ptr, size_t size, size_t nmemb, FILE *stream
 		if (fflush(stream)) return 0;
 
 		if (totalSize > (size_t)(stream->bufEnd - stream->buf)) {
-			if (write(stream->fd, ptr, totalSize) < 0) return 0;
+			if (write(stream->fd, ptr, totalSize) < 0) {
+				stream->flags |= STREAM_ERROR;
+				return 0;
+			}
 			return nmemb;
 		}
 	}
@@ -264,16 +304,47 @@ size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream) {
 	} else {
 		//_IONBF
 		if (fflush(stream) < 0) return 0;
-		if (write(stream->fd, ptr, size * nmemb) < 0) return 0;
+		if (write(stream->fd, ptr, size * nmemb) < 0) {
+			stream->flags |= STREAM_ERROR;
+			return 0;
+		}
 	}
 	return nmemb;
 }
 
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 	//TODO? Kernel VFS already does caching
-	ssize_t rd = read(stream->fd, ptr, size * nmemb);
-	if (rd <= 0) {
+	size_t sz = size * nmemb;
+	if (!sz) {
 		return 0;
 	}
+	if (stream->cbuf != EOF) {
+		char *cptr = ptr;
+		*cptr = stream->cbuf;
+		cptr++;
+		sz--;
+		ptr = cptr;
+		if (!sz) {
+			return 1;
+		}
+	}
+	ssize_t rd = read(stream->fd, ptr, sz);
+	if (rd <= 0) {
+		stream->flags |= STREAM_ERROR;
+		return 0;
+	}
+	if (rd != (ssize_t)sz) {
+		stream->flags |= STREAM_EOF;
+	}
 	return rd / size;
+}
+
+int feof(FILE *stream) {
+	return stream->flags & STREAM_EOF;
+}
+int ferror(FILE *stream) {
+	return stream->flags & STREAM_ERROR;
+}
+void clearerr(FILE *stream){
+	stream->flags &= ~STREAM_ERROR;
 }

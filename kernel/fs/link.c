@@ -11,12 +11,12 @@ int fsLink(struct Inode *dir, struct Inode *inode, const char *name) {
 	acquireSpinlock(&inode->lock);
 	if (inode->nrofLinks && isDir(inode)) {
 		releaseSpinlock(&inode->lock);
-		return -EINVAL; //hardlinks are not allowed for dirs
+		return -EISDIR; //hardlinks are not allowed for dirs
 	}
 
 	struct DirEntry entry;
 	size_t nameLen = strlen(name);
-	if (nameLen <= 31) {
+	if (nameLen < INLINENAME_MAX) {
 		memcpy(entry.inlineName, name, nameLen);
 		entry.inlineName[nameLen] = 0;
 	} else {
@@ -43,15 +43,21 @@ int fsLink(struct Inode *dir, struct Inode *inode, const char *name) {
 	return 0;
 }
 
-static void deleteInode(struct Inode *inode) {
+static int deleteInode(struct Inode *inode) {
 	if (inode->ramfs) {
 		//delete cache
 		if (inode->cachedData) {
 			if (isDir(inode)) {
+				if (inode->fileSize > 2) {
+					return -ENOTEMPTY;
+				}
 				dirCacheDelete(inode);
 			} else if (!(inode->ramfs & RAMFS_INITRD)) {
-				//file
-				deallocPages(inode->cachedData, inode->cachedDataSize);
+				//file TODO
+				struct File f = {
+					.inode = inode
+				};
+				fsTruncate(&f, 0);
 			}
 		}
 		//delete inode
@@ -61,19 +67,10 @@ static void deleteInode(struct Inode *inode) {
 	}
 }
 
-int fsUnlink(struct Inode *dir, const char *name) {
-	acquireSpinlock(&dir->lock);
-	struct DirEntry *entry = dirCacheLookup(dir, name);
-
-	if (!entry) {
-		releaseSpinlock(&dir->lock);
-		return -ENOENT;
-	}
-
-	struct Inode *inode = entry->inode;
+int unlinkInode(struct Inode *inode) {
+	int error = 0;
 	if (!inode->ramfs) { //temp
 		printk("Error deleting inode: unimplemented");
-		releaseSpinlock(&dir->lock);
 		return -ENOSYS;
 	}
 	
@@ -89,11 +86,26 @@ int fsUnlink(struct Inode *dir, const char *name) {
 			releaseSpinlock(&inode->lock);
 		} else {
 			releaseSpinlock(&inode->lock);
-			deleteInode(inode);
+			error = deleteInode(inode);
 		}
 	} else {
 		releaseSpinlock(&inode->lock);
 	}
+	return error;
+}
+
+int fsUnlink(struct Inode *dir, const char *name) {
+	acquireSpinlock(&dir->lock);
+	struct DirEntry *entry = dirCacheLookup(dir, name);
+
+	if (!entry) {
+		releaseSpinlock(&dir->lock);
+		return -ENOENT;
+	}
+
+	struct Inode *inode = entry->inode;
+	unlinkInode(inode);
+	
 	//delete direntry
 	dirCacheRemove(entry);
 

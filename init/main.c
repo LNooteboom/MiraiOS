@@ -17,6 +17,9 @@ int main(void) {
 	sysOpen(AT_FDCWD, "/dev/tty0", SYSOPEN_FLAG_WRITE); //stdout
 	sysOpen(AT_FDCWD, "/dev/tty0", SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE); //stderr
 
+	sysOpen(AT_FDCWD, "/tmp", SYSOPEN_FLAG_CREATE | SYSOPEN_FLAG_DIR);
+
+
 	environ = env;
 	pid_t sh = fork();
 	if (!sh) {

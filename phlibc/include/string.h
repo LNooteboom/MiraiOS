@@ -38,8 +38,16 @@ static inline int strcoll(const char *s1, const char *s2) {
 	return strcmp(s1, s2);
 }
 
+static inline int strncmp(const char *s1, const char *s2, size_t n) {
+	return memcmp(s1, s2, n);
+}
+
 char *strpbrk(const char *s, const char *accept);
 size_t strspn(const char *s, const char *accept);
+
+char *strstr(const char *str, const char *substr);
+
+char *strerror(int err);
 
 #if defined(__cplusplus)
 } /* extern "C" */

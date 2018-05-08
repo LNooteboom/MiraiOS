@@ -38,6 +38,9 @@ struct sigaction;
 /*15*/ void sysSigRet(void);
 /*16*/ int sysSigHandler(int sigNum, struct sigaction *action, struct sigaction *oldAction);
 /*17*/ int sysSigprocmask(int how, const uint64_t *newset, uint64_t *oldset);
+/*18*/ int sysSeek(int fd, int64_t offset, int whence);
+/*19*/ int sysUnlink(int dirfd, const char *path, int flags);
+/*1A*/ int sysRename(int oldDirfd, const char *oldPath, int newDirfd, const char *newPath, int flags);
 //END
 
 #endif

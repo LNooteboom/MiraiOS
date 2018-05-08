@@ -18,5 +18,6 @@
 #define EACCES		16
 #define EPERM		17
 #define ESRCH		18
+#define ENOTEMPTY	19
 
 #endif

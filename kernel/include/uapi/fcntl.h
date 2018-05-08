@@ -22,5 +22,8 @@
 #define SYSACCESS_X				8
 
 #define AT_FDCWD				-1
+#define AT_REMOVEDIR			(1 << 0)
+
+#define RENAME_NOREPLACE		(1 << 0)
 
 #endif

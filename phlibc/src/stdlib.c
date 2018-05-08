@@ -5,8 +5,33 @@
 #include <uapi/syscalls.h>
 #include <sys/wait.h>
 #include <locale.h>
+#include <signal.h>
+
+static char *errorTbl[] = {
+	[EINVAL] = "Invalid argument",
+	[EBUSY] = "Device or resource busy",
+	[EIO] = "I/O error",
+	[ENOENT] = "File or directory not found",
+	[EISDIR] = "Is a directory",
+	[ENOTDIR] = "Is not a directory",
+	[ENOSYS] = "Not supported",
+	[EROFS] = "Read-only file system",
+	[EBADF] = "Bad file descriptor",
+	[EFAULT] = "Fault occured",
+	[ECHILD] = "Child does not exist",
+	[EEXIST] = "File or directory exists",
+	[ENOMEM] = "Out of memory",
+	[E2BIG] = "Argument list too big",
+	[EACCES] = "Access denied",
+	[EPERM] = "Permission denied",
+	[ESRCH] = "No such process"
+};
 
 static struct lconv loc;
+
+char *strerror(int err) {
+	return errorTbl[err];
+}
 
 char *getenv(const char *name) {
 	char *curEnv = *environ;
@@ -31,7 +56,11 @@ pid_t fork(void) {
 }
 
 pid_t waitpid(pid_t pid, int *wstatus, int options) {
-	pid_t ret = sysWaitPid(pid, wstatus, options);
+	siginfo_t stat;
+	pid_t ret = sysWaitPid(pid, &stat, options);
+	if (wstatus) {
+		*wstatus = stat.si_status;
+	}
 	if (ret < 0) {
 		errno = -ret;
 		return -1;

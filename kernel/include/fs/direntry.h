@@ -6,6 +6,8 @@
 #include <stddef.h>
 #include <uapi/getDent.h>
 
+#define INLINENAME_MAX	32
+
 struct DirEntry {
 	struct Inode *inode;
 	struct Inode *parent;
@@ -14,7 +16,7 @@ struct DirEntry {
 	uint32_t nameLen;
 	union {
 		char *name;
-		char inlineName[32];
+		char inlineName[INLINENAME_MAX];
 	};
 };
 
