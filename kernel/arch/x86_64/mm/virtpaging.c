@@ -119,7 +119,7 @@ static pte_t *allocVMem(uint32_t nrofPages) {
 		}
 		if (curFree && newEntry == &curFree[curNrofPages]) {
 			newEntry = &curFree[nrofPages];
-			unsigned int diff = ((uintptr_t)KVMemEnd - (uintptr_t)newEntry) / PAGE_SIZE;
+			unsigned int diff = ((uintptr_t)mmGetEntry((uintptr_t)KVMemEnd, 0) - (uintptr_t)newEntry) / PAGE_SIZE;
 			*newEntry = packAddrAndSize(NULL, diff);
 			if (prev) {
 				updateAddr(prev, newEntry);

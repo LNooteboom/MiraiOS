@@ -9,14 +9,24 @@
 Sets n bytes of data at str to c
 */
 static inline void memset(volatile void *str, char c, size_t n) {
-    asm volatile ("rep stosb": "+D"(str), "+a"(c), "+c"(n) : : "memory");
+	if (n & 7) {
+    	asm volatile ("rep stosb": "+D"(str), "+a"(c), "+c"(n) : : "memory");
+	} else {
+		n >>= 3;
+		asm volatile ("rep stosq": "+D"(str), "+a"(c), "+c"(n) : : "memory");
+	}
 }
 
 /*
 Copies n bytes of data from src to dst
 */
 static inline void memcpy(volatile void *dst, const void *src, size_t n) {
-	asm volatile ("rep movsb": "+S"(src), "+D"(dst), "+c"(n) : : "memory");
+	if (n & 7) {
+		asm volatile ("rep movsb": "+S"(src), "+D"(dst), "+c"(n) : : "memory");
+	} else {
+		n >>= 3;
+		asm volatile ("rep movsq": "+S"(src), "+D"(dst), "+c"(n) : : "memory");
+	}
 }
 
 /*

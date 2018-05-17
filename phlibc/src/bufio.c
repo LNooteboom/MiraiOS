@@ -76,7 +76,7 @@ static int parseMode(const char *mode) {
 			}
 			break;
 		case 'w':
-			flags = SYSOPEN_FLAG_WRITE | SYSOPEN_FLAG_TRUNC;
+			flags = SYSOPEN_FLAG_WRITE | SYSOPEN_FLAG_TRUNC | SYSOPEN_FLAG_CREATE;
 			if (mode[1]) {
 				if (mode[1] == '+') {
 					flags |= SYSOPEN_FLAG_READ;

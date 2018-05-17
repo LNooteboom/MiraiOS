@@ -271,6 +271,7 @@ static void *doAlloc(size_t size, bool clean) {
 }
 
 void free(void *mem) {
+	if (!mem) return;
 	struct HeapBlock *start = ((struct HeapBlock *)mem) - 1;
 	struct HeapBlock *end = nextBlock(start);
 	setNext(start, getNextSize(start), 0);

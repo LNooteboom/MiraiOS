@@ -6,7 +6,7 @@
 #define ADD_TO_BUF(buf, bufLen, used, c) 	\
 	do {									\
 		if (used == bufLen) {				\
-			return -EINVAL;					\
+			return -E2BIG;					\
 		}									\
 		buf[used++] = c;					\
 	} while (0)
@@ -174,6 +174,9 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list arg) {
 		//width
 		if (isdigit(*c)) {
 			//parse width
+			while (isdigit(*c)) {
+				c++;
+			}
 		} else if (*c == '*') {
 			width = va_arg(arg, int);
 			c++;
@@ -182,7 +185,9 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list arg) {
 		if (*c == '.') {
 			c++;
 			if (isdigit(*c)) {
-
+				while (isdigit(*c)) {
+					c++;
+				}
 			} else if (*c == '*') {
 				precision = va_arg(arg, int);
 				c++;
@@ -190,7 +195,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list arg) {
 			//invalid
 		}
 		//varLength
-		if (*c == 'h' || *c == 'I' || *c == 'L') {
+		while (*c == 'h' || *c == 'I' || *c == 'L' || *c == 'l') {
 			varLength = *c;
 			c++;
 		}
@@ -259,6 +264,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list arg) {
 				}
 				len += error;
 				break;
+			case 'g': //Fall through
 			case 'f':
 				f = va_arg(arg, double);
 				error = printFloat(buf + len, size - len, f);
@@ -269,6 +275,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list arg) {
 				len += error;
 				break;
 			default:
+				printf("undefined: %c\n", *c);
 				errno = EINVAL;
 				return -1;
 		}
@@ -282,6 +289,9 @@ int snprintf(char *buf, size_t size, const char *format, ...) {
 	va_start(args, format);
 
 	int error = vsnprintf(buf, size, format, args);
+	if (error < 0) {
+		printf("snprintf fail: %d\n", errno);
+	}
 
 	va_end(args);
 	return error;
@@ -325,6 +335,9 @@ int sprintf(char *buf, const char *format, ...) {
 	va_start(args, format);
 
 	int error = vsnprintf(buf, 0x7FFFFFFF, format, args);
+	if (error < 0) {
+		printf("sprintf fail: %d\n", errno);
+	}
 
 	va_end(args);
 	return error;

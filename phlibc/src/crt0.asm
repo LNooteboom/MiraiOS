@@ -22,7 +22,6 @@ global _PHSigTramp:function
 SECTION .text
 
 _start:
-	xchg bx, bx
 	;handle args
 	mov rdi, [rsp] ;argc
 	lea rsi, [rsp + 8] ;argv

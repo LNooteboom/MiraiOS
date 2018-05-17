@@ -29,7 +29,7 @@ void *memset(void *str, int c, size_t n) {
 int memcmp(const void *a, const void *b, size_t n) {
 	int ret = 0;
 	for (size_t i = 0; i < n; i++) {
-		ret += ((char*)a)[i] - ((char*)b)[i];
+		ret = ((char*)a)[i] - ((char*)b)[i];
 		if (ret) break;
 	}
 	return ret;
@@ -84,7 +84,7 @@ const char *strchrnul(const char *s, int c) {
 }
 
 int strcmp(const char *s1, const char *s2) {
-	int len = strlen(s1);
+	int len = strlen(s1) + 1;
 	return memcmp(s1, s2, len);
 }
 
@@ -126,7 +126,7 @@ char *strstr(const char *str, const char *substr) {
 	size_t len = strlen(substr);
 	while (str[pos]) {
 		if (!memcmp(str, substr, len)) {
-			return &str[pos];
+			return (char *)&str[pos];
 		}
 		pos++;
 	}
