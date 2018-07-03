@@ -9,6 +9,7 @@
 #include <mm/heap.h>
 #include <stdarg.h>
 #include <uapi/termios.h>
+#include <userspace.h>
 
 #include <arch/map.h>
 
@@ -40,9 +41,13 @@ static int ttyIoctl(struct File *file, unsigned long req, unsigned long arg2) {
 	struct Vtty *tty = file->inode->cachedData;
 	pid_t *arg = (pid_t *)arg2;
 	int error = 0;
+	struct UserAccBuf b;
 	switch(req) {
 		case TIOCGPGRP:
-			*arg = tty->foreground;
+			USER_ACC_TRY(b, error) {
+				*arg = tty->foreground;
+				USER_ACC_END();
+			}
 			break;
 		case TIOCSPGRP:
 			tty->foreground = *arg;

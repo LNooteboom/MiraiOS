@@ -25,7 +25,7 @@ double strtod(const char *s, char **endp) {
 	} else if (*s == '+') {
 		s++;
 	} else if (!isdigit(*s) && *s != '.') {
-		errno = -EINVAL;
+		errno = EINVAL;
 		return 0.0;
 	}
 
@@ -39,14 +39,14 @@ double strtod(const char *s, char **endp) {
 			if (!radix && !expSym) {
 				radix = end;
 			} else {
-				errno = -EINVAL;
+				errno = EINVAL;
 				return 0.0;
 			}
 		} else if (*end == 'E' || *end == 'e') {
 			if (!expSym) {
 				expSym = end;
 			} else {
-				errno = -EINVAL;
+				errno = EINVAL;
 				return 0.0;
 			}
 		} else if (!isdigit(*end)) {

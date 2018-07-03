@@ -20,6 +20,7 @@ typedef int pid_t;
 struct Process;
 struct ThreadInfoQueue;
 struct SigRegs;
+struct UserAccBuf;
 
 enum threadState {
 	THREADSTATE_FINISHED,
@@ -47,6 +48,7 @@ struct ThreadInfo {
 	char fxsaveArea[512] __attribute__((aligned(16))); //0x30
 	int sigDepth;				//0x230
 	bool sigCont;				//0x234
+	struct UserAccBuf *userAccBuf; //0x238
 	//end of asm accessible part
 	void *fsBase;
 	void *gsBase;

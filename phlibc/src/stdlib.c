@@ -8,6 +8,7 @@
 #include <signal.h>
 
 static char *errorTbl[] = {
+	[0] = "",
 	[EINVAL] = "Invalid argument",
 	[EBUSY] = "Device or resource busy",
 	[EIO] = "I/O error",

@@ -326,7 +326,10 @@ int sysUnlink(int dirfd, const char *path, int flags) {
 	struct Inode *cwd = getCwd(dirfd, proc);
 
 	struct Inode *inode = getInodeFromPath(cwd, path);
-	if (isDir(inode) || !(flags & AT_REMOVEDIR)) {
+	if (!inode) {
+		return -ENOENT;
+	}
+	if (isDir(inode) && !(flags & AT_REMOVEDIR)) {
 		return -EISDIR;
 	}
 

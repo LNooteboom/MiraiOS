@@ -51,11 +51,10 @@ int main(void) {
 		newArgv[newArgc] = NULL;
 
 		if (!memcmp(commandBuf, "cd", 3)) {
-			if (newArgc == 1) {
-				chdir("/");
-				continue;
+			char *dir = (newArgc == 1)? "/" : newArgv[1];
+			if (chdir(dir)) {
+				printf("cd %s: %s\n", dir, strerror(errno));
 			}
-			chdir(newArgv[1]);
 			continue;
 		} else if (!memcmp(commandBuf, "exit", 5)) {
 			puts("Exit");
@@ -68,8 +67,10 @@ int main(void) {
 			pid_t grp = getpgid(0);
 			ioctl(STDIN_FILENO, TIOCSPGRP, &grp);
 			execvp(commandBuf, newArgv);
-			if (errno == -ENOENT) {
+			if (errno == ENOENT) {
 				printf("%s: Command not found\n", commandBuf);
+			} else {
+				printf("%s: %s\n", commandBuf, strerror(errno));
 			}
 			exit(-1);
 		}

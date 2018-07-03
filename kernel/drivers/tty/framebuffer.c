@@ -11,6 +11,7 @@
 #include <fs/fs.h>
 #include <fs/devfile.h>
 #include <print.h>
+#include <userspace.h>
 
 #include <arch/map.h>
 
@@ -146,15 +147,18 @@ static uint8_t sgrToColor(int sgr) {
 
 //Returns nrof chars to skip
 static int parseEscape(struct Vtty *tty, const char *text) {
+	int final = 0;
+	struct UserAccBuf b;
+	USER_ACC_TRY(b, final) {
+
 	if (text[1] != '[') {
-		return 0;
+		goto ret;
 	}
 	int args[8];
 	memset(args, 0, 8 * sizeof(int));
 	int nrofArgs = 0;
 	int i = 2;
 	bool noArgs = true;
-	int final = 0;
 
 	while (text[i]) {
 		if (text[i] >= '0' && text[i] <= '9') {
@@ -170,7 +174,7 @@ static int parseEscape(struct Vtty *tty, const char *text) {
 		i++;
 	}
 	if (!final) {
-		return 0;
+		goto ret;
 	}
 	if (!noArgs) {
 		nrofArgs++;
@@ -205,6 +209,8 @@ static int parseEscape(struct Vtty *tty, const char *text) {
 			}
 			break;
 	}
+	ret:
+	USER_ACC_END();}
 	return final;
 }
 
@@ -212,9 +218,22 @@ int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 	acquireSpinlock(&tty->lock);
 	int linePos = tty->cursorY * tty->charWidth;
 	struct VttyChar *vc;
+	int error = 0;
 	for (unsigned int i = 0; i < textLen; i++) {
 		tty->buf[linePos + tty->cursorX].dirty = 1;
-		switch (text[i]) {
+		char c;
+		if (ttyEarly) {
+			c = text[i];
+		} else {
+			struct UserAccBuf b;
+			USER_ACC_TRY(b, error) {
+				c = text[i];
+				USER_ACC_END();
+			} USER_ACC_CATCH {
+				goto upd;
+			}
+		}
+		switch (c) {
 			case '\r':
 				tty->cursorX = 0;
 				break;
@@ -227,7 +246,7 @@ int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 				break;
 			default:
 				vc = &tty->buf[linePos + tty->cursorX];
-				vc->c = text[i];
+				vc->c = c;
 				vc->fgCol = tty->curFGCol;
 				vc->bgCol = tty->curBGCol;
 				//vc->dirty = 1;
@@ -239,6 +258,7 @@ int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 				break;
 		}
 	}
+	upd:
 	if (ttyEarly) {
 		fbUpdate(tty);
 		releaseSpinlock(&tty->lock);
@@ -248,7 +268,7 @@ int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 			semSignal(&tty->updateSem);
 		}
 	}
-	return 0;
+	return error;
 }
 
 void ttyScroll(int amount) {

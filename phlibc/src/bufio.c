@@ -133,11 +133,12 @@ FILE *fopen(const char *filename, const char *mode) {
 	_PHLastFile = f;
 
 	int error = sysOpen(AT_FDCWD, filename, (unsigned int)flags);
-	if (error) {
+	if (error < 0) {
 		errno = -error;
 		goto freeBuf;
 	}
 	f->fd = error;
+	goto ret;
 
 	freeBuf:
 	free(f->buf);

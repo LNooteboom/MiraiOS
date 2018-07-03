@@ -127,12 +127,11 @@ void acpiMadtInit(uint64_t madtPaddr, size_t madtLen) {
 		}
 		i += recHeader->len;
 	}
-	cpuInfos = kmalloc(nrofCPUs * sizeof(struct CpuInfo));
+	cpuInfos = kzalloc(nrofCPUs * sizeof(struct CpuInfo));
 	if (!cpuInfos) {
 		panic("No memory available for cpuInfos!\n");
 	}
 	
-	memset(cpuInfos, 0, nrofCPUs * sizeof(struct CpuInfo));
 	for (unsigned int i = 0; i < nrofCPUs; i++) {
 		printk("CPU %d info at: %x\n", i, &cpuInfos[i]);
 		cpuInfos[i].addr = &cpuInfos[i];

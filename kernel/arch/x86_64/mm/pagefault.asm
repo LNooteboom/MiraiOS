@@ -1,4 +1,5 @@
 global excPF:function
+global _userAcc:function
 
 extern puts
 extern hexprintln
@@ -135,6 +136,26 @@ excPF:
 
     .error:
 	add rsp, 0x58
+	mov rcx, [gs:8]
+	mov rax, [rcx + 0x238] ;userAccBuf
+	test rax, rax
+	jz .noCatch
+		;page fault during USER_ACC
+		add rsp, 8 ;error code
+		mov r15, [rax]
+		mov r14, [rax + 0x08]
+		mov r13, [rax + 0x10]
+		mov r12, [rax + 0x18]
+		mov rbp, [rax + 0x20]
+		mov rbx, [rax + 0x28]
+		mov rdx, [rax + 0x30] ;rip
+		
+		mov [rsp], rdx ;return rip
+		mov qword [rcx + 0x238], 0
+		mov eax, -10 ;-EFAULT
+		iretq
+
+	.noCatch:
 
 	mov rdi, PFmsg2
 	mov rsi, cr2
@@ -148,10 +169,31 @@ excPF:
 		mov rdi, -1
 		call sysExit
 	.panic:
+
 	mov rax, [rsp + 0x20]
 	mov [panicStack], rax
 	call panic
 	jmp $
+
+_userAcc: ;(struct UserAccBuf *buf)
+	mov rax, [rsp]
+	mov rdx, [gs:8]
+	test rdx, rdx
+	jz .ret
+
+	mov [rdi], r15
+	mov [rdi + 0x08], r14
+	mov [rdi + 0x10], r13
+	mov [rdi + 0x18], r12
+	mov [rdi + 0x20], rbp
+	mov [rdi + 0x28], rbx
+	mov [rdi + 0x30], rax ;ret addr
+
+	mov [rdx + 0x238], rdi
+
+	.ret:
+	xor eax, eax
+	ret
 
 SECTION .rodata
 PFmsg2: db 'Page fault cr2:%X rip:%X error:%x', 10, 0

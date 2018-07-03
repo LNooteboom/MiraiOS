@@ -5,6 +5,7 @@
 #include <uapi/eventcodes.h>
 #include <fs/devfile.h>
 #include <sched/signal.h>
+#include <userspace.h>
 
 extern char keymap[];
 extern char shiftKeymap[];
@@ -33,18 +34,25 @@ ssize_t ttyRead(struct File *file, void *buffer, size_t bufSize) {
 
 	int ri = tty->inputReadIndex;
 	int end = (tty->inputMode & INPUT_MODE_LINEBUF)? tty->inputLineIndex : ((tty->inputWriteIndex - 1) % INPUT_BUF_SIZE);
-	do {
-		if (!bufSize) {
-			ttySignalInputSem(tty);
-			break;
-		}
-		ri = (ri + 1) % INPUT_BUF_SIZE;
-		*cbuf++ = tty->inputBuf[ri];
-		bufSize--;
-		ret++;
-	} while (ri != end);
+	int error;
+	struct UserAccBuf b;
+	USER_ACC_TRY(b, error) {
+		do {
+			if (!bufSize) {
+				ttySignalInputSem(tty);
+				break;
+			}
+			ri = (ri + 1) % INPUT_BUF_SIZE;
+			*cbuf++ = tty->inputBuf[ri];
+			bufSize--;
+			ret++;
+		} while (ri != end);
+		tty->inputReadIndex = ri;
+		USER_ACC_END();
+	} USER_ACC_CATCH {
+		ret = error;
+	}
 
-	tty->inputReadIndex = ri;
 	releaseSpinlock(&tty->inputLock);
 	acquireSpinlock(&file->lock);
 	acquireSpinlock(&file->inode->lock);

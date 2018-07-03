@@ -8,6 +8,7 @@
 #include <sched/thread.h> //for jiffyCounter
 #include <print.h>
 #include <panic.h>
+#include <userspace.h>
 
 struct CfEntry { //describes 1 page of file data
 	void *addr;
@@ -32,6 +33,10 @@ int fsTruncate(struct File *file, uint64_t newSize) {
 		goto ret;
 	}
 	struct CachedFile *cf = inode->cachedData;
+	if (!cf) {
+		goto ret; //error = 0;
+	}
+
 	int nrofEntries = cf->nrofEntries;
 	for (unsigned int i = 0; i < cf->nrofEntries; i++) {
 		if (cf->entries[i].fileOffset < newSize) {
@@ -83,6 +88,9 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 		bytesCopied = -EISDIR;
 		goto ret;
 	}
+	if (!inode->cachedData) {
+		goto ret; //bytesCopied = 0
+	}
 
 	if ((inode->type & ITYPE_MASK) == ITYPE_CHAR) {
 		bytesCopied = -ENOSYS;
@@ -99,14 +107,20 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 	}
 	
 	if (inode->ramfs & RAMFS_INITRD) {
-		memcpy(buffer, inode->cachedData + file->offset, bytesLeft);
-		file->offset += bytesLeft;
-
-		bytesCopied = bytesLeft;
+		//memcpy(buffer, inode->cachedData + file->offset, bytesLeft);
+		int error = userMemcpy(buffer, inode->cachedData + file->offset, bytesLeft);
+		if (!error) {
+			bytesCopied = bytesLeft;
+			file->offset += bytesLeft;
+		} else {
+			bytesCopied = error;
+		}
+		
 		goto ret;
 	}
 
 	struct CachedFile *cf = inode->cachedData;
+	uint64_t oldOffset = file->offset;
 
 	while (bytesLeft) {
 		struct CfEntry *entry = NULL;
@@ -128,8 +142,14 @@ ssize_t fsRead(struct File *file, void *buffer, size_t bufSize) {
 		entry->lastAccessed = jiffyCounter;
 		unsigned int diff = file->offset - offset;
 		//unsigned int nrofBytes = PAGE_SIZE - diff;
-		unsigned int nrofBytes = ((bytesLeft > PAGE_SIZE)? PAGE_SIZE : bytesLeft) - diff;
-		memcpy(buffer, (void *)((uintptr_t)(entry->addr) + diff), nrofBytes);
+		unsigned int nrofBytes = ((bytesLeft > PAGE_SIZE)? PAGE_SIZE : bytesLeft);
+		//memcpy(buffer, (void *)((uintptr_t)(entry->addr) + diff), nrofBytes);
+		int error = userMemcpy(buffer, (void *)((uintptr_t)(entry->addr) + diff), nrofBytes);
+		if (error) {
+			file->offset = oldOffset;
+			bytesCopied = error;
+			goto ret;
+		}
 
 		buffer = (void *)((uintptr_t)buffer + nrofBytes);
 		file->offset += nrofBytes;
@@ -217,7 +237,11 @@ int fsWrite(struct File *file, const void *buffer, size_t bufSize) {
 
 				//and write
 				unsigned int copy = (bufSize > PAGE_SIZE)? PAGE_SIZE : bufSize;
-				memcpy(page, buffer, copy);
+				//memcpy(page, buffer, copy);
+				error = userMemcpy(page, buffer, copy);
+				if (error) {
+					goto ret;
+				}
 				buffer = (void *)((uintptr_t)buffer + copy);
 				bufSize -= copy;
 				file->offset += copy;
@@ -249,7 +273,11 @@ int fsWrite(struct File *file, const void *buffer, size_t bufSize) {
 
 		unsigned int diff = file->offset - offset;
 		unsigned int nrofBytes = PAGE_SIZE - diff;
-		memcpy((void *)((uintptr_t)(entry->addr) + diff), buffer, nrofBytes);
+		//memcpy((void *)((uintptr_t)(entry->addr) + diff), buffer, nrofBytes);
+		error = userMemcpy((void *)((uintptr_t)(entry->addr) + diff), buffer, nrofBytes);
+		if (error) {
+			goto ret;
+		}
 
 		buffer = (void *)((uintptr_t)buffer + nrofBytes);
 		file->offset += nrofBytes;

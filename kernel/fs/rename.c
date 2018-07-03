@@ -18,6 +18,27 @@ int fsRename(struct Inode *newDir, const char *newName, struct Inode *oldDir, co
 		goto releaseOldDir;
 	}
 	inode = oldEntry->inode;
+	if (oldDir == newDir) {
+		//change name only, no need to move between dirs
+		if (oldEntry->nameLen >= INLINENAME_MAX) {
+			kfree(oldEntry->name);
+		}
+
+		int nameLen = strlen(newName);
+		if (nameLen < INLINENAME_MAX) {
+			memcpy(&oldEntry->inlineName, newName, nameLen);
+		} else {
+			oldEntry->name = kmalloc(nameLen);
+			if (!oldEntry->name) {
+				error = -ENOMEM;
+				goto releaseOldDir;
+			}
+			memcpy(&oldEntry->name, newName, nameLen);
+		}
+		oldEntry->nameLen = nameLen;
+		error = 0;
+		goto releaseOldDir;
+	}
 	
 	releaseSpinlock(&oldDir->lock);
 	
