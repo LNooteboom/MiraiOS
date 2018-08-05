@@ -51,6 +51,7 @@ void __attribute__((noreturn)) panic(const char *fmt, ...) {
 
 
 	vprintk(fmt, args);
+	puts("[\e[31mCRITICAL\e[0m] The system has crashed, please reset your computer\n");
 	fbPanicUpdate();
 
 	va_end(args);

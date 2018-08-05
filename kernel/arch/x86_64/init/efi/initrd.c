@@ -11,6 +11,8 @@ extern EFI_SYSTEM_TABLE *efiSystemTable;
 uint16_t initrdPath[] = L"initrd";
 uint16_t initrdFail[] = L"Failed to load initrd!";
 
+uint16_t tex[] = L"0";
+
 EFI_GUID efiLoadedImageGuid = {
 	.data1 = 0x5B1B31A1,
 	.data2 = 0x9562,
@@ -47,7 +49,7 @@ static int64_t getKernelPath(EFI_DEVICE_PATH_PROTOCOL *prot, uint16_t **kernelPa
 	size_t pSize = 0;
 	while (prot2->Type != 0x7F || prot2->SubType != 0xFF) {
 		if (prot2->Type == 0x04 && prot2->SubType == 0x04) {
-			pSize += devicePathNodeLength(prot2) - sizeof(EFI_DEVICE_PATH_PROTOCOL);
+			pSize += devicePathNodeLength(prot2) - sizeof(EFI_DEVICE_PATH_PROTOCOL) + 2;
 		}
 		prot2 = nextDevicePathNode(prot2);
 	}
@@ -60,12 +62,11 @@ static int64_t getKernelPath(EFI_DEVICE_PATH_PROTOCOL *prot, uint16_t **kernelPa
 	uint64_t size = 0;
 	prot2 = prot;
 	int bufIndex = 0;
-	bool backslash = false;
 	while (prot2->Type != 0x7F || prot2->SubType != 0xFF) {
 		if (prot2->Type == 0x04 && prot2->SubType == 0x04) {
-			int curSize = devicePathNodeLength(prot2) - sizeof(EFI_DEVICE_PATH_PROTOCOL);
+			int curSize = devicePathNodeLength(prot2) - sizeof(EFI_DEVICE_PATH_PROTOCOL) - 2;
 			uint16_t *str = (uint16_t*)(prot2) + 2;
-			if (!backslash && str[0] != L'\\') {
+			if (str[0] != L'\\') {
 				buf[bufIndex++] = L'\\';
 				size += 2;
 			}
@@ -150,10 +151,14 @@ int efiHandleInitrd(void) {
 	void *initrd;
 	if (efiCall4(efiSystemTable->BootServices->AllocatePages, 0, 2, initrdNrofPages, (uint64_t)&initrd))
 		goto error;
+
+	efiCall2(initrdProt->SetPosition, (uint64_t)initrdProt, 0);
+	size_t sz = initrdSize;
 	//read initrd into memory
 	if (efiCall3(initrdProt->Read, (uint64_t)initrdProt, (uint64_t)&initrdSize, (uint64_t)initrd))
 		goto error;
 
+	hexprint2(initrdSize, efiSystemTable);
 	//close initrd file
 	efiCall1(initrdProt->Close, (uint64_t)initrdProt);
 	
@@ -162,6 +167,7 @@ int efiHandleInitrd(void) {
 
 	bootInfo.initrd = initrd;
 	bootInfo.initrdLen = initrdSize;
+	//while (1);
 	return 0;
 
 	error:

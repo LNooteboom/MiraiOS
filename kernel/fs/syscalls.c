@@ -217,7 +217,7 @@ int sysOpen(int dirfd, const char *fileName, unsigned int flags) {
 	}
 	pf->file.inode = inode;
 
-	if (flags & SYSOPEN_FLAG_TRUNC) {
+	if (flags & SYSOPEN_FLAG_TRUNC && (inode->type & ITYPE_MASK) == ITYPE_FILE) {
 		error = fsTruncate(&pf->file, 0);
 		if (error) return error;
 	}

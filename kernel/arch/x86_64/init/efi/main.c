@@ -188,7 +188,7 @@ void efiMain(EFI_HANDLE _imageHandle, EFI_SYSTEM_TABLE *_efiSystemTable) {
 	uint64_t mmapKey;
 	if (efiHandleMmap(&mmapKey))
 		goto error;
-
+		
 	//exit boot services
 	efiCall2(efiSystemTable->BootServices->ExitBootServices, (uint64_t)imageHandle, mmapKey);
 	efiFini();

@@ -26,7 +26,7 @@ int _userAcc(struct UserAccBuf *buf);
 	}} while (0)
 #define USER_ACC_CATCH			else
 
-static inline int userMemcpy(void *dst, void *src, size_t n) {
+static inline int userMemcpy(volatile void *dst, const void *src, size_t n) {
 	int error;
 	struct UserAccBuf b;
 	USER_ACC_TRY(b, error) {

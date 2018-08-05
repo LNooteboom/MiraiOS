@@ -221,4 +221,6 @@ typedef struct {
 	//filename following this struct
 } EFI_FILE_INFO;
 
+void hexprint2(uint64_t val, EFI_SYSTEM_TABLE *sysTbl);
+
 #endif

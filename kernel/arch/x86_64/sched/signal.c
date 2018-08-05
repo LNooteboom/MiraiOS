@@ -109,11 +109,10 @@ void handleSignal(thread_t curThread, unsigned long *irqStack) {
 	stack -= sz / 8;
 	memcpy(stack, &sig->info, sizeof(siginfo_t));
 	
-	
+	curThread->sigDepth++;
+	tssSetRSP0((void *)(iret + 5));
+	curThread->stackPointer = (uintptr_t)(iret + 5);
 	if (proc->sigAct[sigNum].sa_handler) {
-		curThread->sigDepth++;
-		tssSetRSP0((void *)(iret + 5));
-		curThread->stackPointer = (uintptr_t)(iret + 5);
 		//return to signal handler
 		iret[4] = 0x23;
 		iret[3] = (long)stack; //rsp
@@ -127,8 +126,6 @@ void handleSignal(thread_t curThread, unsigned long *irqStack) {
 	} else {
 		//perform default action
 		//TODO add thread stop and core dump
-		//iret[-4] = -1;
-		//iret[0] = (long)sysExit; //return to sysExit(-1)
 		memcpy(&proc->exitInfo, &sig->info, sizeof(siginfo_t));
 		proc->exitInfo.si_status = SIG_SIGNALED | (sigNum << SIG_TERMSIGNO_SHIFT);
 		iret[0] = (long)signalExit;

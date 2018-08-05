@@ -28,6 +28,10 @@ int fsTruncate(struct File *file, uint64_t newSize) {
 	struct Inode *inode = file->inode;
 	acquireSpinlock(&inode->lock);
 
+	if ((inode->type & ITYPE_MASK) != ITYPE_FILE) {
+		return -EISDIR;
+	}
+
 	if (newSize > inode->fileSize) {
 		error = -ENOSYS;
 		goto ret;
