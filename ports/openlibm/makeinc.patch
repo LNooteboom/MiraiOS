@@ -1,0 +1,36 @@
+*** Make.1.inc	2018-08-07 12:21:26.903051419 +0200
+--- Make.inc	2018-08-07 12:22:01.707817324 +0200
+***************
+*** 3,9 ****
+  # Default build rule for any Makefile in this project: all
+  default: all
+  
+! OS := $(shell uname)
+  # Do not forget to bump SOMINOR when changing VERSION,
+  # and SOMAJOR when breaking ABI in a backward-incompatible way
+  VERSION = 0.5.5
+--- 3,9 ----
+  # Default build rule for any Makefile in this project: all
+  default: all
+  
+! OS := MiraiOS
+  # Do not forget to bump SOMINOR when changing VERSION,
+  # and SOMAJOR when breaking ABI in a backward-incompatible way
+  VERSION = 0.5.5
+***************
+*** 43,49 ****
+  endif
+  
+  ifeq ($(USEGCC),1)
+! CC = gcc
+  CFLAGS_add += -fno-gnu89-inline -fno-builtin
+  endif
+  
+--- 43,49 ----
+  endif
+  
+  ifeq ($(USEGCC),1)
+! CC = x86_64-miraios-gcc
+  CFLAGS_add += -fno-gnu89-inline -fno-builtin
+  endif
+  

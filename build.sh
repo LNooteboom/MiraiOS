@@ -26,6 +26,7 @@ BUILDDIR=build;
 
 export INITRDDIR=$PWD/initrd;
 export SYSROOT=$PWD/sysroot
+export PREFIX=$SYSROOT
 
 KERNELDIR=kernel;
 KERNELNAME=miraiBoot;
@@ -77,6 +78,14 @@ buildUserspace init
 cp init/init $SYSROOT
 
 buildUserspace sh
+
+#build default ports
+cd ports
+for port in $(cat default_ports); do
+	make -C $port
+	#make -C $port clean
+done
+cd ..
 
 #create initrd
 cd $INITRDDIR

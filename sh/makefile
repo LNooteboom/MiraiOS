@@ -8,4 +8,4 @@ clean:
 
 $(d)/%: %.c
 	@echo "(USER-CC)	$@"
-	@$(TARGET_USER)-gcc $(CFLAG_USER) -o $@ $+ -lopenlibm
+	@$(TARGET_USER)-gcc $(CFLAG_USER) -o $@ $+

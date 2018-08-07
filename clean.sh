@@ -8,3 +8,9 @@ make -C sh clean
 #rm -rf initrd/
 rm -rf build/
 rm -rf sysroot/*
+
+cd ports
+for port in $(cat default_ports); do
+	make -C $port clean
+done
+cd ..
