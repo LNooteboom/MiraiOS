@@ -1,5 +1,5 @@
 d = $(SYSROOT)/bin
-PROGRAMS = $(d)/sh $(d)/echo $(d)/ls
+PROGRAMS = $(d)/sh $(d)/echo $(d)/ls $(d)/touch $(d)/rm $(d)/mkdir $(d)/cat
 
 all: $(PROGRAMS)
 

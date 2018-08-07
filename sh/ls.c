@@ -1,30 +1,28 @@
 #include <stdio.h>
-#include <uapi/syscalls.h>
-#include <uapi/fcntl.h>
-#include <uapi/getDent.h>
-#include <stdlib.h>
+#include <dirent.h>
+#include <errno.h>
 
 int main(int argc, char **argv) {
-	char *dir;
+	char *name;
 	if (argc == 2) {
-		dir = argv[1];
+		name = argv[1];
 	} else {
-		dir = ".";
-	}
-	int dirFD = sysOpen(AT_FDCWD, dir, SYSOPEN_FLAG_READ | SYSOPEN_FLAG_DIR);
-	struct GetDent dent;
-	while (1) {
-		int err = sysGetDent(dirFD, &dent);
-		if (err <= 0) {
-			break;
-		}
-		if (dent.type == 1) {
-			printf("\e[32m%s\e[0m\n", dent.name);
-		} else {
-			printf("%s\n", dent.name);
-		}
-		
+		name = ".";
 	}
 
-	return 0;
+	DIR *dir = opendir(name);
+	if (!dir) {
+		return errno;
+	}
+	while (1) {
+		struct dirent *entry = readdir(dir);
+		if (!entry) {
+			return errno;
+		}
+		if (entry->d_type == DT_DIR) {
+			printf("\e[32m%s\e[0m\n", entry->d_name);
+		} else {
+			printf("%s\n", entry->d_name);
+		}
+	}
 }

@@ -6,12 +6,9 @@ DIR := openlibm-$(VERSION)
 DESCRIPTION := "OpenLibm is an effort to have a high quality, portable, standalone C mathematical library (libm). \
 It can be used standalone in applications and programming language implementations."
 
-.PHONY: all clean extract
+.PHONY: all patch compile install
 
 all: install
-
-clean:
-	rm -rf $(TAR) $(DIR) .patched
 
 patch: $(DIR)
 ifeq (,$(wildcard ./.patched))

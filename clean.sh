@@ -11,6 +11,6 @@ rm -rf sysroot/*
 
 cd ports
 for port in $(cat default_ports); do
-	make -C $port clean
+	make -C $port tidy
 done
 cd ..

@@ -7,12 +7,9 @@ DESCRIPTION := "Lua is a powerful, efficient, lightweight, embeddable scripting 
 It supports procedural programming, object-oriented programming, functional programming, \
 data-driven programming, and data description."
 
-.PHONY: all clean extract
+.PHONY: all patch compile install
 
 all: install
-
-clean:
-	rm -rf $(TAR) $(DIR) .patched
 
 patch: $(DIR)
 ifeq (,$(wildcard ./.patched))

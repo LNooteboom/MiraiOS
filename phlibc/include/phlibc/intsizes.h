@@ -10,4 +10,6 @@
 #define __PHLIBC_TYPE_UID_T		int
 #define __PHLIBC_TYPE_GID_T		int
 
+#define __PHLIBC_TYPE_INO_T		unsigned int
+
 #endif

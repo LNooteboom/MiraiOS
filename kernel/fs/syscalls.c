@@ -256,6 +256,13 @@ int sysClose(int fd) {
 	return 0;
 }
 
+/*
+Gets a directory entry
+return values:
+<0: error value (on fail)
+0: end of directory
+>0: file name length
+*/
 int sysGetDent(int fd, struct GetDent *buf) {
 	int ret = validateUserPointer(buf, sizeof(struct GetDent));
 	if (ret) return ret;

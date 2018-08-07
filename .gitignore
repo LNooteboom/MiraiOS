@@ -30,6 +30,10 @@ init/init
 
 config
 
+#Downloaded files
+*.tar.gz
+*.tar.bz2
+
 GPATH
 GRTAGS
 GTAGS
