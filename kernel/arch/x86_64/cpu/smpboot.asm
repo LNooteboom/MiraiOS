@@ -110,7 +110,8 @@ smpbootStart:
 	;mov [cpuStartedUp], dword 1
 	mov [r15 + 0x20], dword 1
 
-	xor r15, r15
+	xor r15d, r15d
+	xor r13d, r13d
 	jmp nextThread
 
 	.error:

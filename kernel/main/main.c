@@ -70,7 +70,6 @@ void kmain(void) {
 	if (error) {
 		panic("Failed to execute init: %d\n", error);
 	}
-
 	kthreadExit(NULL);
 }
 

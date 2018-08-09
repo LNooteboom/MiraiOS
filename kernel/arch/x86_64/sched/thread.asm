@@ -121,6 +121,7 @@ kthreadExit:
 	call setCurrentThread
 
 	mov eax, [r15 + 0x18]
+	mov r13d, 1
 	test eax, eax
 	jnz nextThread ;don't free joined if thread is detached
 		mov rdi, r15
@@ -134,7 +135,7 @@ kthreadExit:
 		lea rdi, [r15 + 0x14]
 		call releaseSpinlock
 
-		xor r15d, r15d
+		xor r13d, r13d
 		;xor edi, edi
 		;call setCurrentThread
 		jmp nextThread
@@ -409,9 +410,9 @@ kthreadStop:
 	lea rdi, [r15 + 0x14]
 	call releaseSpinlock
 
-	xor r15d, r15d
+	xor r13d, r13d
 
-nextThread: ;r15 = old thread
+nextThread: ;r15 = old thread, r13 = clean up
 	call readyQueuePop
 	mov r14, rax ;r14 = new thread
 
@@ -423,7 +424,7 @@ nextThread: ;r15 = old thread
 		mov rcx, [r15 + 0x20]
 		test rcx, rcx
 		jz .load2
-			mov rdx, [initProcess + 0x10]
+			mov rdx, [initProcess + 0x8]
 			mov cr3, rdx ;Do cr3 switch if old thread was userspace
 		.load2:
 		sti
@@ -432,8 +433,14 @@ nextThread: ;r15 = old thread
 		jmp nextThread
 	.load:
 
+	test r13, r13
+	jnz .c
+		xor r15d, r15d
+		jmp .diffThread
+	.c:
 	cmp r14, r15
 	je .sameThread
+		.diffThread
 		;should always happen
 		lea rdi, [r14 + 0x14]
 		call acquireSpinlock

@@ -84,8 +84,6 @@ static int createDirs(struct Inode *root, char *name, size_t nameLen, uint32_t f
 }
 
 static int parseInitrd(struct Inode *rootInode) {
-	//char *initrd = bootInfo.initrd;
-	printk("%d\n", bootInfo.initrdLen);
 	char *initrd = ioremap((uintptr_t)bootInfo.initrd, bootInfo.initrdLen);
 	struct CpioHeader *initrdHeader;
 	unsigned long curPosition = 0;
