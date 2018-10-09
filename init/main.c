@@ -13,9 +13,13 @@ char *env[] = {
 };
 
 int main(void) {
-	sysOpen(AT_FDCWD, "/dev/tty0", SYSOPEN_FLAG_READ); //stdin
-	sysOpen(AT_FDCWD, "/dev/tty0", SYSOPEN_FLAG_WRITE); //stdout
-	sysOpen(AT_FDCWD, "/dev/tty0", SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE); //stderr
+	if (getpid() != 1) {
+		exit(1);
+	}
+
+	sysOpen(AT_FDCWD, "/dev/tty1", SYSOPEN_FLAG_READ); //stdin
+	sysOpen(AT_FDCWD, "/dev/tty1", SYSOPEN_FLAG_WRITE); //stdout
+	sysOpen(AT_FDCWD, "/dev/tty1", SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE); //stderr
 
 	sysOpen(AT_FDCWD, "/tmp", SYSOPEN_FLAG_CREATE | SYSOPEN_FLAG_DIR);
 
@@ -24,7 +28,7 @@ int main(void) {
 	pid_t sh = fork();
 	if (!sh) {
 		setpgid(0, 0);
-		execlp("sh", "sh", "test", NULL);
+		execlp("sh", "sh", NULL);
 	}
 	sysWaitPid(sh, NULL, 0);
 

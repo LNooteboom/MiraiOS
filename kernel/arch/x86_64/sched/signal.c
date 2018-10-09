@@ -86,6 +86,7 @@ void handleSignal(thread_t curThread, unsigned long *irqStack) {
 	copyRegs(regs, irqStack);
 	regs->sigMask = proc->sigMask;
 	regs->floatsUsed = curThread->floatsUsed;
+
 	if (curThread->floatsUsed) {
 		memcpy(regs->fxsaveArea, curThread->fxsaveArea, 512);
 	}
@@ -98,7 +99,8 @@ void handleSignal(thread_t curThread, unsigned long *irqStack) {
 		if (iret[0] < 0xffffffff80000000) {
 			stack = (unsigned long *)iret[3];
 		} else {
-			stack = *((unsigned long **)curThread - 1);
+			//stack = *((unsigned long **)curThread - 1); //err
+			stack = (unsigned long *)curThread->userStackPointer;
 		}
 
 		stack -= 128 / 8;//account for red zone
@@ -108,8 +110,7 @@ void handleSignal(thread_t curThread, unsigned long *irqStack) {
 	size_t sz = align(sizeof(siginfo_t), 8);
 	stack -= sz / 8;
 	memcpy(stack, &sig->info, sizeof(siginfo_t));
-	
-	curThread->sigDepth++;
+
 	tssSetRSP0((void *)(iret + 5));
 	curThread->stackPointer = (uintptr_t)(iret + 5);
 	if (proc->sigAct[sigNum].sa_handler) {
@@ -155,10 +156,9 @@ void sigRet(struct SigRegs **regs) {
 
 	sigprocmask(SIG_SETMASK, &(*regs)->sigMask, NULL, proc);
 	acquireSpinlock(&curThread->lock);
-
-	curThread->nextThread = (*regs)->nextThread;
-	curThread->prevThread = (*regs)->prevThread;
-	curThread->queue = (*regs)->queue;
+	
+	curThread->sigDepth--;
+	curThread->queueEntry = curThread->queueEntry->prevQueueEntry;
 }
 
 static void notifyProcess(struct Process *proc, int sigNum, struct SigRegs *regs) {
@@ -170,10 +170,13 @@ static void notifyProcess(struct Process *proc, int sigNum, struct SigRegs *regs
 
 	thread_t mainThread = proc->mainThread;
 	acquireSpinlock(&mainThread->lock);
-	regs->queue = mainThread->queue;
-	regs->nextThread = mainThread->nextThread;
-	regs->prevThread = mainThread->prevThread;
 	regs->tState = mainThread->state;
+	regs->newQueueEntry.thread = mainThread;
+
+	mainThread->sigDepth++;
+	regs->newQueueEntry.sigDepth = mainThread->sigDepth;
+	regs->newQueueEntry.prevQueueEntry = mainThread->queueEntry;
+	mainThread->queueEntry = &regs->newQueueEntry;
 
 	regs->next = proc->sigRegStack;
 	proc->sigRegStack = regs;
@@ -183,7 +186,7 @@ static void notifyProcess(struct Process *proc, int sigNum, struct SigRegs *regs
 			if (!(proc->sigAct[sigNum].sa_handler)) {
 				//threadQueueRemove(mainThread);
 			}
-			readyQueuePush(mainThread);
+			readyQueuePush(mainThread->queueEntry);
 		}
 		lapicSendIPI(cpuInfos[mainThread->cpuAffinity].apicID, RESCHED_VEC, IPI_FIXED);
 	}
@@ -218,7 +221,7 @@ int sendSignal(struct Process *proc, int sigNum) {
 	proc->sigNrPending++;
 
 	if ( !(proc->sigMask & (1 << sigNum))) {
-		struct SigRegs *regs = kmalloc(sizeof(*regs));
+		struct SigRegs *regs = kzalloc(sizeof(*regs));
 		notifyProcess(proc, sigNum, regs);
 	}
 

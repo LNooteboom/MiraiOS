@@ -55,9 +55,11 @@ static void drawChar(char *vmem, int newline, struct VttyChar *vc) {
 		unsigned char line = font8x16[charIndex++];
 		for (unsigned int charX = 0; charX < 8; charX++) {
 			if (line & 1) {
-				write32(vmem, fgPix);
+				//write32(vmem, fgPix);
+				*(uint32_t *)vmem = fgPix;
 			} else {
-				write32(vmem, bgPix);
+				//write32(vmem, bgPix);
+				*(uint32_t *)vmem = bgPix;
 			}
 			vmem += BPP;
 			line >>= 1;
@@ -87,12 +89,17 @@ static int fbUpdate(struct Vtty *tty) {
 			addr += (FONT_WIDTH * BPP);
 		}
 		lineAddr += fb->pitch * FONT_HEIGHT;
+		if (tty->scrollbackY + y + 1 == SCROLLBACK_LINES) {
+			vc = tty->buf;
+		}
 	}
 	tty->globalDirty = false;
 
 	//draw cursor
 	vc = tty->buf + tty->cursorX + tty->cursorY * tty->charWidth;
-	addr = fb->vmem + fb->pitch * FONT_HEIGHT * (tty->cursorY - tty->scrollbackY) + tty->cursorX * FONT_WIDTH * BPP;
+	int y = (tty->cursorY - tty->scrollbackY) % tty->charHeight;
+	y = (y < 0)? -y : y;
+	addr = fb->vmem + fb->pitch * FONT_HEIGHT * y + tty->cursorX * FONT_WIDTH * BPP;
 	struct VttyChar curVc = {
 		.c = vc->c,
 		.bgCol = 7,
@@ -112,13 +119,13 @@ static void newline(struct Vtty *tty) {
 	}
 
 	//clear line
-	/*struct VttyChar *vc = &tty->buf[tty->cursorY * tty->charWidth];
+	struct VttyChar *vc = &tty->buf[tty->cursorY * tty->charWidth];
 	for (int x = 0; x < tty->charWidth; x++) {
 		vc->c = 0;
 		vc->bgCol = 0;
 		vc->dirty = 1;
 		vc++;
-	}*/
+	}
 
 	//adjust scrollback pos
 	int y = tty->cursorY - tty->charHeight + 1;
@@ -128,8 +135,6 @@ static void newline(struct Vtty *tty) {
 		} else {
 			y = 0;
 		}
-	} else if (y >= SCROLLBACK_LINES) {
-		y = y % SCROLLBACK_LINES;
 	}
 	if (tty->scrollbackY != y) {
 		tty->scrollbackY = y;
@@ -216,10 +221,10 @@ static int parseEscape(struct Vtty *tty, const char *text) {
 
 int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 	acquireSpinlock(&tty->lock);
-	int linePos = tty->cursorY * tty->charWidth;
 	struct VttyChar *vc;
 	int error = 0;
 	for (unsigned int i = 0; i < textLen; i++) {
+		int linePos = tty->cursorY * tty->charWidth;
 		tty->buf[linePos + tty->cursorX].dirty = 1;
 		char c;
 		if (ttyEarly) {
@@ -254,6 +259,7 @@ int ttyPuts(struct Vtty *tty, const char *text, size_t textLen) {
 				tty->cursorX++;
 				if (tty->cursorX >= tty->charWidth) {
 					newline(tty);
+					linePos = tty->cursorY * tty->charWidth;
 				}
 				break;
 		}

@@ -54,15 +54,13 @@ int kthreadCreate(thread_t *thread, void *(*start)(void *), void *arg, int flags
 	thrd->cpuAffinity = pcpuRead32(cpuInfosIndex);
 
 	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
-
-	//thrd->joinFirst = NULL;
-	//thrd->joinLast = NULL;
-	//thrd->nrofJoinThreads = 0;
+	thrd->queueEntry = &thrd->defaultQueueEntry;
+	thrd->defaultQueueEntry.thread = thrd;
 
 	kthreadInit(thrd, start, arg); //initializes stackpointer
 
 	//now push it to the scheduling queue
-	readyQueuePush(thrd); //initializes nextThread and prevThread
+	readyQueuePush(thrd->queueEntry); //initializes nextThread and prevThread
 	
 	return 0;
 }
@@ -84,10 +82,8 @@ int kthreadCreateFromMain(thread_t *thread) {
 	//thrd->cpuAffinity = 0;
 	thrd->fixedPriority = true;
 	thrd->jiffiesRemaining = TIMESLICE_BASE << thrd->priority;
-
-	//thrd->joinFirst = NULL;
-	//thrd->joinLast = NULL;
-	//thrd->nrofJoinThreads = 0;
+	thrd->queueEntry = &thrd->defaultQueueEntry;
+	thrd->defaultQueueEntry.thread = thrd;
 
 	setCPUThreadLoad(1 << (NROF_QUEUE_PRIORITIES - 1));
 
@@ -147,9 +143,9 @@ void kthreadFreeJoined(thread_t thread) {
 	while (curFreeThread) {
 		acquireSpinlock(&curFreeThread->lock);
 
-		curFreeThread->queue = NULL;
-		thread_t nextFreeThread = curFreeThread->nextThread;
-		readyQueuePush(curFreeThread);
+		curFreeThread->queueEntry->queue = NULL;
+		thread_t nextFreeThread = curFreeThread->queueEntry->nextThread->thread;
+		readyQueuePush(curFreeThread->queueEntry);
 
 		releaseSpinlock(&curFreeThread->lock);
 		curFreeThread = nextFreeThread;

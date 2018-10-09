@@ -248,10 +248,13 @@ int execInit(const char *fileName) {
 	}
 	//ThreadInfo struct is at the top of the kernel stack
 	struct ThreadInfo *mainThread = (struct ThreadInfo *)(kernelStackBottom + THREAD_STACK_SIZE - sizeof(struct ThreadInfo));
+	memset(mainThread, 0, sizeof(struct ThreadInfo));
 
 	mainThread->priority = 1;
 	mainThread->jiffiesRemaining = TIMESLICE_BASE << 1;
 	mainThread->cpuAffinity = 1;
+	mainThread->queueEntry = &mainThread->defaultQueueEntry;
+	mainThread->defaultQueueEntry.thread = mainThread;
 
 	mainThread->process = &initProcess;
 	initProcess.mainThread = mainThread;
@@ -274,7 +277,7 @@ int execInit(const char *fileName) {
 
 	uthreadInit(mainThread, start, 0, 0, sp);
 
-	readyQueuePush(mainThread);
+	readyQueuePush(mainThread->queueEntry);
 
 	return 0;
 

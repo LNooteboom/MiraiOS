@@ -267,6 +267,8 @@ int sysFork(void) {
 	mainThread->process = newProc;
 	mainThread->state = THREADSTATE_SCHEDWAIT;
 	mainThread->detached = true;
+	mainThread->queueEntry = &mainThread->defaultQueueEntry;
+	mainThread->defaultQueueEntry.thread = mainThread;
 
 	newProc->mainThread = mainThread;
 
@@ -277,7 +279,7 @@ int sysFork(void) {
 	procHTAdd(newProc);
 	setpgid(newProc, grp);
 	
-	readyQueuePush(mainThread);
+	readyQueuePush(mainThread->queueEntry);
 
 	return newProc->pid;
 

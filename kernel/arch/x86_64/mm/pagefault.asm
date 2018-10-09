@@ -137,6 +137,8 @@ excPF:
     .error:
 	add rsp, 0x58
 	mov rcx, [gs:8]
+	test ecx, ecx
+	jz .noCatch
 	mov rax, [rcx + 0x238] ;userAccBuf
 	test rax, rax
 	jz .noCatch

@@ -5,15 +5,15 @@
 #include <sched/spinlock.h>
 
 struct ThreadInfoQueue {
-	struct ThreadInfo *first;
-	struct ThreadInfo *last;
+	struct ThreadQueueEntry *first;
+	struct ThreadQueueEntry *last;
 	int nrofThreads;
 };
 
 /*
 Pops a thread from the front of a queue.
 */
-struct ThreadInfo *threadQueuePop(struct ThreadInfoQueue *queue);
+struct ThreadQueueEntry *threadQueuePop(struct ThreadInfoQueue *queue);
 
 /*
 Pushes a thread to the back of a queue

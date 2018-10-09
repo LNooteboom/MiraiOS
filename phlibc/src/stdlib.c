@@ -7,6 +7,8 @@
 #include <locale.h>
 #include <signal.h>
 
+#include <stdio.h>
+
 static char *errorTbl[] = {
 	[0] = "",
 	[EINVAL] = "Invalid argument",
@@ -25,7 +27,8 @@ static char *errorTbl[] = {
 	[E2BIG] = "Argument list too big",
 	[EACCES] = "Access denied",
 	[EPERM] = "Permission denied",
-	[ESRCH] = "No such process"
+	[ESRCH] = "No such process",
+	[ENOTEMPTY] = "Directory not empty"
 };
 
 static struct lconv loc;

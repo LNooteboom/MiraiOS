@@ -33,7 +33,7 @@ void semSignal(semaphore_t *semaphore) {
 		semaphore->value++;
 		goto end;
 	}
-	thread_t freed = threadQueuePop(&semaphore->queue);
+	struct ThreadQueueEntry *freed = threadQueuePop(&semaphore->queue);
 	if (freed) {
 		readyQueuePush(freed);
 	} else {

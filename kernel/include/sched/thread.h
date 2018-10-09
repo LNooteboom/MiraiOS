@@ -21,6 +21,7 @@ struct Process;
 struct ThreadInfoQueue;
 struct SigRegs;
 struct UserAccBuf;
+struct ThreadInfo;
 
 enum threadState {
 	THREADSTATE_FINISHED,
@@ -29,6 +30,20 @@ enum threadState {
 	THREADSTATE_LOCKWAIT,
 	THREADSTATE_SLEEP,
 	THREADSTATE_PIDWAIT
+};
+
+struct ThreadQueueEntry {
+	struct ThreadInfo *thread;
+	bool sigCont;
+	int sigDepth;
+	
+	struct ThreadQueueEntry *nextThread;
+	struct ThreadQueueEntry *prevThread;
+	struct ThreadInfoQueue *queue;
+
+	struct ThreadQueueEntry *prevQueueEntry;
+
+	void *waitData;
 };
 
 /*
@@ -47,15 +62,17 @@ struct ThreadInfo {
 	//0x2C-0x2F unused
 	char fxsaveArea[512] __attribute__((aligned(16))); //0x30
 	int sigDepth;				//0x230
-	bool sigCont;				//0x234
+	//bool sigCont;				//0x234
+	bool unused;
 	struct UserAccBuf *userAccBuf; //0x238
+	struct ThreadQueueEntry *queueEntry; //0x240
+	void *userStackPointer;		//0x248
 	//end of asm accessible part
 	void *fsBase;
 	void *gsBase;
 
-	struct ThreadInfo *nextThread;
-	struct ThreadInfo *prevThread;
-	struct ThreadInfoQueue *queue;
+	struct ThreadQueueEntry defaultQueueEntry;
+	
 
 	struct SigRegs *sigRegs;
 
@@ -66,7 +83,7 @@ struct ThreadInfo {
 	bool fixedPriority;
 	int jiffiesRemaining;
 
-	unsigned long sleepTime;
+	//unsigned long sleepTime;
 	
 	struct ThreadInfo *joinFirst;
 	struct ThreadInfo *joinLast;

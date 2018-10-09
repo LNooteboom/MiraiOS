@@ -131,6 +131,10 @@ syscallEntry64:
 
 	cld
 
+	mov rcx, [rsp + 0x50]
+	mov rbx, [gs:8]
+	mov [rbx + 0x248], rcx
+
 	mov rcx, r10
 
 	mov rbx, [rsp + 0x48]
@@ -201,7 +205,7 @@ sysSigRet:
 		mov edi, -1
 		call sysExit
 	.valid:
-	sub [rbx + 0x230], dword 1
+	;sub [rbx + 0x230], dword 1
 
 	push rax
 	mov rdi, rsp
@@ -240,9 +244,12 @@ sysSigRet:
 
 	cmp [r9 + 0x98], dword 2 ;state was either SCHEDWAIT or RUNNING
 	jbe .return
-	cmp [r8 + 0x234], dword 0 ;sigrun
+	;cmp [r8 + 0x234], dword 0 ;sigrun
+	mov rcx, [r8 + 0x240] ;queueEntry
+	cmp [rcx + 8], dword 0 ;sigCont
 	jne .return
-		mov [r8 + 0x234], dword 0 ;set sigrun to 0
+		;mov [r8 + 0x234], dword 0 ;set sigrun to 0
+		mov [rcx + 8], dword 0 ;set sigCont to 0
 		mov rax, [r9 + 0x98] ;thread state
 		mov [r8 + 0x10], rax
 
@@ -289,6 +296,7 @@ sysSigRet:
 	pop rdx
 	pop rcx
 	pop rax
+	xchg bx, bx
 	iretq
 
 ALIGN 8

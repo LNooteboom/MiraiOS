@@ -234,8 +234,6 @@ static void *doAlloc(size_t size, bool clean) {
 	}
 	struct HeapBlock *start = findBlock(nrofBlocks, clean);
 	if (!start) {
-		//errno = ENOMEM;
-		//return NULL; //TODO expand heap
 		unsigned long more = nrofBlocks;
 		if (!isPrevUsed(lastBlock)) {
 			more -= getPrevSize(lastBlock);

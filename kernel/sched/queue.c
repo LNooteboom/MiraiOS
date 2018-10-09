@@ -7,12 +7,12 @@
 #include <sched/signal.h>
 #include <sched/process.h>
 
-struct ThreadInfo *threadQueuePop(struct ThreadInfoQueue *queue) {
-	struct ThreadInfo *ret = queue->first;
-	if (!ret) {
+struct ThreadQueueEntry *threadQueuePop(struct ThreadInfoQueue *queue) {
+	struct ThreadQueueEntry *qe = queue->first;
+	if (!qe) {
 		return NULL;
 	}
-	queue->first = ret->nextThread;
+	queue->first = qe->nextThread;
 	if (!queue->first) {
 		//queue is now empty
 		queue->last = NULL;
@@ -20,51 +20,51 @@ struct ThreadInfo *threadQueuePop(struct ThreadInfoQueue *queue) {
 		queue->first->prevThread = NULL;
 	}
 	queue->nrofThreads -= 1;
-	ret->queue = NULL;
-	
-	return ret;
+	qe->queue = NULL;
+	return qe;
 }
 
 void threadQueuePush(struct ThreadInfoQueue *queue, struct ThreadInfo *thread) {
-	thread->queue = queue;
-	thread->nextThread = NULL;
+	struct ThreadQueueEntry *qe = thread->queueEntry;
+	qe->queue = queue;
+	qe->nextThread = NULL;
 	if (queue->last) {
-		queue->last->nextThread = thread;
-		thread->prevThread = queue->last;
-		queue->last = thread;
+		queue->last->nextThread = qe;
+		qe->prevThread = queue->last;
 	} else {
-		queue->first = thread;
-		queue->last = thread;
-		thread->prevThread = NULL;
+		queue->first = qe;
+		qe->prevThread = NULL;
 	}
+	queue->last = qe;
 	queue->nrofThreads += 1;
 }
 
 void threadQueuePushFront(struct ThreadInfoQueue *queue, struct ThreadInfo *thread) {
-	thread->queue = queue;
-	thread->prevThread = NULL;
-	thread->nextThread = queue->first;
-	queue->first = thread;
+	struct ThreadQueueEntry *qe = thread->queueEntry;
+	qe->queue = queue;
+	qe->prevThread = NULL;
+	qe->nextThread = queue->first;
+	queue->first = qe;
 	if (!queue->last) {
-		queue->last = thread;
+		queue->last = qe;
 	}
 	queue->nrofThreads += 1;
 }
 
 void threadQueueRemove(struct ThreadInfo *thread) {
-	struct ThreadInfoQueue *queue = thread->queue;
-	struct ThreadInfo *next = thread->nextThread;
-	struct ThreadInfo *prev = thread->prevThread;
+	/*struct ThreadInfoQueue *queue = thread->queueEntry->queue;
+	struct ThreadInfo *next = thread->queueEntry->nextThread;
+	struct ThreadInfo *prev = thread->queueEntry->prevThread;
 	struct SigRegs *regs = NULL;
 	while (true) {
 		if (queue) {
 			if (prev) {
-				prev->nextThread = next;
+				prev->queueEntry->nextThread = next;
 			} else {
 				queue->first = next;
 			}
 			if (next) {
-				next->prevThread = prev;
+				next->queueEntry->prevThread = prev;
 			} else {
 				queue->last = prev;
 			}
@@ -89,5 +89,23 @@ void threadQueueRemove(struct ThreadInfo *thread) {
 	}
 
 	thread->sigDepth = 0;
-	thread->queue = NULL;
+	thread->queueEntry->queue = NULL;*/
+	struct ThreadQueueEntry *qe = thread->queueEntry;
+	while (qe) {
+		if (qe->queue) {
+			if (qe->prevThread) {
+				qe->prevThread->nextThread = qe->nextThread;
+			} else {
+				qe->queue->first = qe->nextThread;
+			}
+			if (qe->nextThread) {
+				qe->nextThread->prevThread = qe->prevThread;
+			} else {
+				qe->queue->last = qe->prevThread;
+			}
+			qe->queue->nrofThreads -= 1;
+		}
+		qe->queue = NULL;
+		qe = qe->prevQueueEntry;
+	}
 }

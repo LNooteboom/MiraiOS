@@ -153,7 +153,7 @@ int efiHandleInitrd(void) {
 		goto error;
 
 	efiCall2(initrdProt->SetPosition, (uint64_t)initrdProt, 0);
-	size_t sz = initrdSize;
+	//size_t sz = initrdSize;
 	//read initrd into memory
 	if (efiCall3(initrdProt->Read, (uint64_t)initrdProt, (uint64_t)&initrdSize, (uint64_t)initrd))
 		goto error;

@@ -79,7 +79,7 @@ void exitProcess(struct Process *proc) { //can also be called on failed fork
 	acquireSpinlock(&parentThread->lock);
 	if (parentThread->state == THREADSTATE_PIDWAIT && checkFilter(parentThread->waitPid, proc)) {
 		parentThread->waitProc = proc;
-		readyQueuePush(parentThread);
+		readyQueuePush(parentThread->queueEntry); //TODO
 	}
 	releaseSpinlock(&parentThread->lock);
 	releaseSpinlock(&parent->lock);

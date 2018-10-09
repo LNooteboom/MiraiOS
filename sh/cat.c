@@ -2,6 +2,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include <uapi/syscalls.h>
+
 #define BUFSIZE	512
 
 char buf[BUFSIZE];
@@ -28,6 +30,10 @@ int main(int argc, char **argv) {
 			break;
 		}
 		fwrite(buf, 1, ret, stdout);
+		/*for (size_t i = 0; i < ret; i++) {
+			sysWrite(1, &buf[i], 1);
+			//sysSleep(0, 2000000);
+		}*/
 	}
 
 	if (argc >= 2) {

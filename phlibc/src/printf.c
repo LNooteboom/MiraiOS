@@ -216,6 +216,10 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list arg) {
 				break;
 			case 's':
 				s = va_arg(arg, const char *);
+				if (!s) {
+					ADD_TO_BUF(buf, size, len, '%');
+					break;
+				}
 				while (*s) {
 					ADD_TO_BUF(buf, size, len, *s);
 					s++;

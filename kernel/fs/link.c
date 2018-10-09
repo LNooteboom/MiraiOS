@@ -44,20 +44,18 @@ int fsLink(struct Inode *dir, struct Inode *inode, const char *name) {
 }
 
 static int deleteInode(struct Inode *inode) {
+	int error = 0;
 	if (inode->ramfs) {
 		//delete cache
 		if (inode->cachedData) {
 			if (isDir(inode)) {
-				if (inode->fileSize > 2) {
-					return -ENOTEMPTY;
-				}
-				dirCacheDelete(inode);
+				error = dirCacheDelete(inode);
 			} else if (!(inode->ramfs & RAMFS_INITRD)) {
 				//file TODO
 				struct File f = {
 					.inode = inode
 				};
-				fsTruncate(&f, 0);
+				error = fsTruncate(&f, 0);
 			}
 		}
 		//delete inode
@@ -65,6 +63,7 @@ static int deleteInode(struct Inode *inode) {
 	} else {
 		//call fs drivers
 	}
+	return error;
 }
 
 int unlinkInode(struct Inode *inode) {
@@ -75,6 +74,11 @@ int unlinkInode(struct Inode *inode) {
 	}
 	
 	acquireSpinlock(&inode->lock);
+	if (inode->nrofLinks == 1 && isDir(inode) && inode->fileSize > 2) {
+		//attempting to remove dir which is not empty
+		releaseSpinlock(&inode->lock);
+		return -ENOTEMPTY;
+	}
 
 	inode->nrofLinks--;
 	if (!inode->nrofLinks) {
@@ -104,11 +108,13 @@ int fsUnlink(struct Inode *dir, const char *name) {
 	}
 
 	struct Inode *inode = entry->inode;
-	unlinkInode(inode);
+	int error = unlinkInode(inode);
+	if (error) goto out;
 	
 	//delete direntry
 	dirCacheRemove(entry);
 
+	out:
 	releaseSpinlock(&dir->lock);
-	return 0;
+	return error;
 }

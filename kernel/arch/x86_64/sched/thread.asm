@@ -355,7 +355,7 @@ migrateMainStack:
 	;mov r8, rdi
 	sub r8, initStackEnd
 	add rsp, r8
-	add rbp, r8
+	;add rbp, r8
 	ret
 
 kthreadStop:
@@ -440,7 +440,7 @@ nextThread: ;r15 = old thread, r13 = clean up
 	.c:
 	cmp r14, r15
 	je .sameThread
-		.diffThread
+		.diffThread:
 		;should always happen
 		lea rdi, [r14 + 0x14]
 		call acquireSpinlock

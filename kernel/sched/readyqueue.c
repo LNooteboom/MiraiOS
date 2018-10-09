@@ -32,10 +32,11 @@ static void calcNewPriority(thread_t thread) {
 }
 
 static thread_t getThreadFromCPU(struct CpuInfo *cpu) {
-	thread_t ret;
+	thread_t ret = NULL;
 	for (int i = 0; i < NROF_QUEUE_PRIORITIES; i++) {
-		ret = threadQueuePop(&cpu->readyList[i]);
-		if (ret) {
+		struct ThreadQueueEntry *qe = threadQueuePop(&cpu->readyList[i]);
+		if (qe) {
+			ret = qe->thread;
 			cpu->nrofReadyThreads--;
 			ret->jiffiesRemaining = TIMESLICE_BASE << i;
 			break;
@@ -87,11 +88,13 @@ thread_t readyQueuePop(void) {
 	return NULL;
 }
 
-void readyQueuePush(thread_t thread) {
-	if (thread->sigDepth) {
-		thread->sigCont = true;
+void readyQueuePush(struct ThreadQueueEntry *qe) {
+	thread_t thread = qe->thread;
+	if (qe->sigDepth < thread->sigDepth) {
+		qe->sigCont = true;
 		return;
 	}
+
 	thread->state = THREADSTATE_SCHEDWAIT;
 	calcNewPriority(thread);
 	int priority = thread->priority;
