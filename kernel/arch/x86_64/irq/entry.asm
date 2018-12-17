@@ -23,7 +23,7 @@ extern releaseSpinlock
 extern setCurrentThread
 extern kfree
 extern nextThread
-extern sysExit
+extern sigretExit
 
 extern printk
 
@@ -203,7 +203,7 @@ sysSigRet:
 	jne .valid
 		;invalid signal return, exit
 		mov edi, -1
-		call sysExit
+		call sigretExit
 	.valid:
 	;sub [rbx + 0x230], dword 1
 

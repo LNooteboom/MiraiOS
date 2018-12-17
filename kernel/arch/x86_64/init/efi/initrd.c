@@ -99,13 +99,15 @@ int efiHandleInitrd(void) {
 
 	//make filename relative to kernel location
 	EFI_DEVICE_PATH_PROTOCOL *kernelPathProt;
-	if (efiCall3(efiSystemTable->BootServices->HandleProtocol, (uint64_t)imageHandle, (uint64_t)&efiLoadedImagePathGuid, (uint64_t)&kernelPathProt))
-		goto error;
+	//if (efiCall3(efiSystemTable->BootServices->HandleProtocol, (uint64_t)imageHandle, (uint64_t)&efiLoadedImagePathGuid, (uint64_t)&kernelPathProt))
+	//	goto error;
+	kernelPathProt = loadedImageProt->FilePath;
 	int64_t kernelPathSize;
 	uint16_t *kernelPath;
 	if ((kernelPathSize = getKernelPath(kernelPathProt, &kernelPath)) < 0)
 		goto error;
 
+	//efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)kernelPath);
 	//find last backslash in kernelPath
 	for (int i = (kernelPathSize / 2) - 1; i >= 0; i--) {
 		if (kernelPath[i] == L'\\') {
@@ -123,6 +125,8 @@ int efiHandleInitrd(void) {
 
 	//deallocate kernel name buffer
 	efiCall1(efiSystemTable->BootServices->FreePool, (uint64_t)kernelPath);
+
+	//efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)newInitrdPath);
 
 	//open file
 	EFI_FILE_PROTOCOL *initrdProt;

@@ -9,7 +9,7 @@ extern cprint
 extern panic
 extern printk
 extern puts
-extern sysExit
+extern pfExit
 
 extern mmGetEntry
 extern allocPhysPage
@@ -168,8 +168,9 @@ excPF:
 	cmp rdx, rax
 	jae .panic
 		call printk
-		mov rdi, -1
-		call sysExit
+		mov rdi, cr2
+		mov rsi, [rsp + 8]
+		call pfExit
 	.panic:
 
 	mov rax, [rsp + 0x20]

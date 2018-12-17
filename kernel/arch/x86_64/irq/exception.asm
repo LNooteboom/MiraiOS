@@ -12,7 +12,7 @@ extern idtSetDPL
 extern excPF
 
 extern kthreadExit
-extern sysExit
+extern excExit
 
 global initExceptions:function
 global undefinedInterrupt:function
@@ -99,9 +99,9 @@ __excBase: ;error code in rax
 		call panic
 		jmp .halt
 	.userThread:
-		call printk
-		mov edi, -1
-		call sysExit
+		mov rdi, [rsp + 0x48]
+		mov rsi, [rsp + 0x50]
+		call excExit
     .halt:
 	cli
 	hlt

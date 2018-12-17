@@ -76,6 +76,8 @@ struct Process {
 		char inlineName[32];
 		char *name;
 	};
+	
+	spinlock_t lock;
 
 	//Hash table list next & prev
 	struct Process *htNext;
@@ -100,6 +102,16 @@ struct Process {
 	struct Process *grpNext;
 	struct Process *grpPrev;
 
+	//user info
+	uid_t ruid;
+	uid_t euid;
+	uid_t suid;
+	gid_t rgid;
+	gid_t egid;
+	gid_t sgid;
+	unsigned int nrofGroups;
+	gid_t groups[NGROUPS_MAX];
+
 	//signal info & handling
 	bool sigResched;
 	int sigNrPending;
@@ -114,16 +126,12 @@ struct Process {
 	void *sigAltStack;
 	size_t sigAltStackSize;
 
-
-	struct Inode *cwd;
-
-	spinlock_t lock;
-
 	siginfo_t exitInfo;
 
 	thread_t mainThread;
 
 	//file info
+	struct Inode *cwd;
 	struct ProcessFile inlineFDs[NROF_INLINE_FDS];
 	struct ProcessFile *fds;
 	int nrofFDs; //excluding inlined FDs

@@ -15,7 +15,8 @@
 
 #define THREAD_STACK_SIZE	0x2000
 
-typedef int pid_t;
+//typedef int pid_t;
+#include <uapi/types.h>
 
 struct Process;
 struct ThreadInfoQueue;

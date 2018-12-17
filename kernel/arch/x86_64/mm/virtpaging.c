@@ -258,7 +258,7 @@ void deallocPages(void *addr, size_t size) {
 		deallocVMem(mem, nrofPages);
 	}
 
-	//TODO: Check if TLB inval is actually needed
+	//TODO: Add check if TLB inval is actually needed
 	tlbInvalidateGlobal(addr, nrofPages);
 }
 

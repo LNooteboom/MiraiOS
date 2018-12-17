@@ -22,6 +22,7 @@ struct Process initProcess;
 extern void uthreadInit(thread_t thread, void *start, uint64_t arg1, uint64_t arg2, void *userspaceStackpointer);
 extern void initExecRetThread(thread_t thread, void *start, uint64_t arg1, uint64_t arg2, void *userspaceStackpointer);
 
+
 static int checkElfHeader(struct ElfHeader *header) {
 	if (memcmp(&header->magic[0], "\x7f""ELF", 4)) {
 		return -EINVAL;
@@ -351,7 +352,9 @@ int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	deallocStack:
 	deallocPages((void *)stack, PAGE_SIZE);
 	printk("err: %d", error);
-	sysExit(error);
+	struct Process *proc = getCurrentThread()->process;
+	proc->exitInfo.si_signo = SIGABRT;
+	signalExit();
 	ret:
 	return error;
 }
