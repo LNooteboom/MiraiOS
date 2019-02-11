@@ -11,15 +11,17 @@
 #define SYSOPEN_FLAG_DIR		(1 << 5)
 #define SYSOPEN_FLAG_EXCL		(1 << 6)
 #define SYSOPEN_FLAG_TRUNC		(1 << 7)
+#define SYSOPEN_PERM_SHIFT		8
+#define SYSOPEN_PERM_MASK		0xFFF
 
 #define SEEK_SET	0
 #define SEEK_CUR	1
 #define SEEK_END	2
 
-#define SYSACCESS_OK			1
-#define SYSACCESS_R				2
-#define SYSACCESS_W				4
-#define SYSACCESS_X				8
+#define SYSACCESS_OK			(1 << 0)
+#define SYSACCESS_X				(1 << 1)
+#define SYSACCESS_W				(1 << 2)
+#define SYSACCESS_R				(1 << 3)
 
 #define AT_FDCWD				-1
 #define AT_REMOVEDIR			(1 << 0)

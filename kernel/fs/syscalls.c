@@ -192,7 +192,7 @@ int sysOpen(int dirfd, const char *fileName, unsigned int flags) {
 		return fileno;
 	}
 
-	pf->file.flags = flags & ~(SYSOPEN_FLAG_CREATE | SYSOPEN_FLAG_CLOEXEC | SYSOPEN_FLAG_EXCL);
+	pf->file.flags = flags & (SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE | SYSOPEN_FLAG_DIR | SYSOPEN_FLAG_APPEND);
 
 	struct Inode *cwd = getCwd(dirfd, proc);
 	struct Inode *inode = getInodeFromPath(cwd, fileName);
@@ -204,7 +204,13 @@ int sysOpen(int dirfd, const char *fileName, unsigned int flags) {
 			return -ENOENT; //dir does not exist
 		}
 
+		//check write permission on dir
+		if (!fsAccessAllowed(dir, PERM_W)) {
+			return -EACCES;
+		}
+
 		uint32_t type = (flags & SYSOPEN_FLAG_DIR)? ITYPE_DIR : ITYPE_FILE;
+		type |= ((flags >> SYSOPEN_PERM_SHIFT) & SYSOPEN_PERM_MASK) << CREATE_PERM_SHIFT;
 		error = fsCreate(&pf->file, dir, &fileName[fileNameIndex], type);
 		if (error) {
 			return error;
@@ -215,6 +221,13 @@ int sysOpen(int dirfd, const char *fileName, unsigned int flags) {
 	} else if (!inode) {
 		return -ENOENT;
 	}
+
+	//check permissions
+	int mode = ((flags & SYSACCESS_R)? PERM_R : 0) | ((flags & SYSACCESS_W)? PERM_W : 0);
+	if (!fsAccessAllowed(inode, mode)) {
+		return -EACCES;
+	}
+
 	pf->file.inode = inode;
 
 	if (flags & SYSOPEN_FLAG_TRUNC && (inode->type & ITYPE_MASK) == ITYPE_FILE) {
@@ -301,6 +314,9 @@ int sysChDir(const char *path) {
 }
 
 int sysAccess(int dirfd, const char *path, int mode) {
+	if (mode & ~0xF || (mode & SYSACCESS_OK && mode & (SYSACCESS_R | SYSACCESS_W | SYSACCESS_X))) {
+		return -EINVAL;
+	}
 	int error = validateUserString(path);
 	if (error) return error;
 
@@ -310,8 +326,11 @@ int sysAccess(int dirfd, const char *path, int mode) {
 	if (!inode) {
 		return -ENOENT;
 	}
-	//TODO check for permissions
-	return 0;
+	if (mode & SYSACCESS_OK) {
+		return 0;
+	}
+
+	return (fsAccessAllowed(inode, mode >> 1))? 0 : -EACCES;
 }
 
 int sysSeek(int fd, int64_t offset, int whence) {

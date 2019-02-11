@@ -12,6 +12,7 @@ Userspace processes
 #include <mm/paging.h>
 #include <uapi/mmap.h>
 #include <sched/signal.h>
+#include <uapi/types.h>
 
 #define PROC_HT_SIZE	64
 
@@ -54,6 +55,17 @@ struct ProcessFile {
 		struct File *sharedFile;
 		struct Pipe *pipe;
 	};
+};
+
+struct ProcessCred {
+	uid_t ruid;
+	uid_t euid;
+	uid_t suid;
+	gid_t rgid;
+	gid_t egid;
+	gid_t sgid;
+	unsigned int nrofGroups;
+	gid_t groups[NGROUPS_MAX];
 };
 
 enum ProcessState {
@@ -103,15 +115,8 @@ struct Process {
 	struct Process *grpPrev;
 
 	//user info
-	uid_t ruid;
-	uid_t euid;
-	uid_t suid;
-	gid_t rgid;
-	gid_t egid;
-	gid_t sgid;
-	unsigned int nrofGroups;
-	gid_t groups[NGROUPS_MAX];
-
+	struct ProcessCred cred;
+	
 	//signal info & handling
 	bool sigResched;
 	int sigNrPending;

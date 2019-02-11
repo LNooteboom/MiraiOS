@@ -4,6 +4,21 @@
 #include <mm/heap.h>
 #include <mm/memset.h>
 #include <print.h>
+#include <sched/thread.h>
+#include <sched/process.h>
+
+static inline void setPerm(struct Inode *inode, uint32_t mode) {
+	thread_t curThread = getCurrentThread();
+	if (!curThread->process) {
+		//kernel thread
+		inode->attr.perm = mode;
+		return;
+	}
+	struct ProcessCred *cred = &curThread->process->cred;
+	inode->attr.uid = cred->euid;
+	inode->attr.gid = cred->egid;
+	inode->attr.perm = mode;
+}
 
 int fsOpen(struct File *f) {
 	int error = 0;
@@ -85,10 +100,12 @@ int fsCreate(struct File *f, struct Inode *dir, const char *name, uint32_t type)
 	newInode->inodeID = dir->superBlock->curInodeID;
 	dir->superBlock->curInodeID += 1;
 	newInode->superBlock = dir->superBlock;
-	newInode->type = type;
-	newInode->attr.accessPermissions = 0664;
+	newInode->type = type & 0xFF;
 	newInode->nrofLinks = 1;
 	newInode->ramfs = dir->ramfs;
+
+	setPerm(newInode, type >> CREATE_PERM_SHIFT);
+
 
 	if (isDir(newInode)) {
 		dirCacheInit(newInode, dir);

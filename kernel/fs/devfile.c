@@ -31,11 +31,11 @@ struct Inode *fsCreateCharDev(struct Inode *dir, const char *name, struct DevFil
 	//dir->superBlock->curInodeID += 1;
 	newInode->superBlock = dir->superBlock;
 	newInode->type = ITYPE_CHAR;
-	newInode->attr.accessPermissions = dir->attr.accessPermissions;
 	newInode->nrofLinks = 1;
 	newInode->ramfs = RAMFS_DEVFILE;
 	newInode->ops = ops;
 	newInode->cachedData = privateData;
+	newInode->attr.perm = 0660;
 
 	entry.inode = newInode;
 

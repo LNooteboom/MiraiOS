@@ -63,7 +63,7 @@ static int createDirs(struct Inode *root, char *name, size_t nameLen, uint32_t f
 			curDir = tmp;
 		} else {
 			struct File f;
-			fsCreate(&f, curDir, buf, ITYPE_DIR);
+			fsCreate(&f, curDir, buf, ITYPE_DIR | (0664 << CREATE_PERM_SHIFT));
 			curDir = f.inode;
 		}
 
@@ -78,7 +78,7 @@ static int createDirs(struct Inode *root, char *name, size_t nameLen, uint32_t f
 	newInode->ramfs = RAMFS_PRESENT | RAMFS_INITRD;
 	newInode->type = ITYPE_FILE;
 	newInode->superBlock = &ramfsSuperBlock;
-	newInode->attr.accessPermissions = 0664;
+	newInode->attr.perm = 0664;
 
 	return fsLink(curDir, newInode, name + start);
 }
@@ -141,7 +141,7 @@ int ramfsInit(void) {
 	rootInode->nrofLinks = 1;
 	rootInode->ramfs = RAMFS_PRESENT;
 	rootInode->superBlock = &ramfsSuperBlock;
-	rootInode->attr.accessPermissions = 0664;
+	rootInode->attr.perm = 0755;
 
 	dirCacheInit(rootInode, rootInode);
 

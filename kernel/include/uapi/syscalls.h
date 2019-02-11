@@ -10,6 +10,16 @@
 #define SYSGETID_PGID	2
 #define SYSGETID_SID	3
 
+#define SYSGETID_UID	4
+#define SYSGETID_EUID	5
+#define SYSGETID_GID	6
+#define SYSGETID_EGID	7
+
+#define SYSSETID_UID	4
+#define SYSSETID_EUID	5
+#define SYSSETID_GID	6
+#define SYSSETID_EGID	7
+
 struct GetDent;
 struct sigaction;
 
@@ -35,12 +45,14 @@ struct sigaction;
 /*12*/ pid_t sysSetsid(void);
 /*13*/ int sysSetpgid(pid_t pid, pid_t pgid);
 /*14*/ pid_t sysGetId(pid_t pid, int which);
-/*15*/ void sysSigRet(void);
-/*16*/ int sysSigHandler(int sigNum, struct sigaction *action, struct sigaction *oldAction);
-/*17*/ int sysSigprocmask(int how, const uint64_t *newset, uint64_t *oldset);
-/*18*/ int sysSeek(int fd, int64_t offset, int whence);
-/*19*/ int sysUnlink(int dirfd, const char *path, int flags);
-/*1A*/ int sysRename(int oldDirfd, const char *oldPath, int newDirfd, const char *newPath, int flags);
+/*15*/ int sysSetId(pid_t id, int which);
+/*16*/ void sysSigRet(void);
+/*17*/ int sysSigHandler(int sigNum, struct sigaction *action, struct sigaction *oldAction);
+/*18*/ int sysSigprocmask(int how, const uint64_t *newset, uint64_t *oldset);
+/*19*/ int sysSeek(int fd, int64_t offset, int whence);
+/*1A*/ int sysUnlink(int dirfd, const char *path, int flags);
+/*1B*/ int sysRename(int oldDirfd, const char *oldPath, int newDirfd, const char *newPath, int flags);
+
 //END
 
 #endif

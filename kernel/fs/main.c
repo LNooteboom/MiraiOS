@@ -8,7 +8,6 @@
 #include <mm/heap.h>
 #include <sched/process.h>
 
-
 struct RbNode *activeInodes;
 
 struct Inode *rootDir;
@@ -116,4 +115,42 @@ int fsCloseOnExec(void) {
 		}
 	}
 	return 0;
+}
+
+bool fsAccessAllowed(struct Inode *inode, int mode) {
+	struct Process *proc = getCurrentThread()->process;
+	if (!proc) {
+		//kernel thread
+		return true;
+	}
+	struct ProcessCred *cred = &proc->cred;
+	if (!cred->euid) {
+		//root
+		return true;
+	}
+
+	struct InodeAttributes *attr = &inode->attr;
+	if (cred->euid == attr->uid) {
+		//owner
+		int perm = (attr->perm >> PERM_OWNER) & PERM_MASK;
+		return (mode & perm) == mode;
+	}
+	bool inGroup = false;
+	if (cred->egid == attr->gid) {
+		inGroup = true;
+	} else {
+		for (unsigned int i = 0; i < cred->nrofGroups; i++) {
+			if (cred->groups[i] == attr->gid) {
+				inGroup = true;
+				break;
+			}
+		}
+	}
+	if (inGroup) {
+		int perm = (attr->perm >> PERM_GROUP) & PERM_MASK;
+		return (mode & perm) == mode;
+	}
+	//others
+	int perm = (attr->perm >> PERM_OTHERS) & PERM_MASK;
+	return (mode & perm) == mode;
 }

@@ -148,44 +148,31 @@ static int createStack(void **sp, uintptr_t stack, char *const argv[], char *con
 	return error;
 }
 
-static int execCommon(thread_t mainThread, const char *fileName, void **startAddr, void **sp, struct Inode *cwd) {
+static int execCommon(thread_t mainThread, struct File *executable, void **startAddr, void **sp) {
 	int error;
-	//Open the executable
-	struct Inode *inode = getInodeFromPath(cwd, fileName);
-	if (!inode) {
-		error = -ENOENT;
-		goto ret;
-	}
-
-	struct File f = {
-		.inode = inode,
-		.flags = SYSOPEN_FLAG_READ
-	};
-	error = fsOpen(&f);
-	if (error) goto ret;
 
 	//Get the ELF header
 	struct ElfHeader header;
-	ssize_t read = fsRead(&f, &header, sizeof(struct ElfHeader));
+	ssize_t read = fsRead(executable, &header, sizeof(struct ElfHeader));
 	if (read != sizeof(struct ElfHeader)) {
 		//file too small or error occured during read
 		error = -EINVAL;
 		if (read < 0) {
 			error = read;
 		}
-		goto closef;
+		goto ret;
 	}
 	error = checkElfHeader(&header);
-	if (error) goto closef;
+	if (error) goto ret;
 
 	struct Process *proc = mainThread->process;
 
 	//loop over all program header entries
 	struct ElfPHEntry phEntry;
 	for (unsigned int i = 0; i < header.phnum; i++) {
-		error = fsSeek(&f, header.phOff + (i * sizeof(struct ElfPHEntry)), SEEK_SET);
-		if (error) goto closef;
-		ssize_t r = fsRead(&f, &phEntry, sizeof(struct ElfPHEntry));
+		error = fsSeek(executable, header.phOff + (i * sizeof(struct ElfPHEntry)), SEEK_SET);
+		if (error) goto ret;
+		ssize_t r = fsRead(executable, &phEntry, sizeof(struct ElfPHEntry));
 		if (r < 0) {
 			error = r;
 			goto dealloc;
@@ -200,7 +187,7 @@ static int execCommon(thread_t mainThread, const char *fileName, void **startAdd
 					goto dealloc;
 				}
 
-				error = elfLoad(&f, &phEntry);
+				error = elfLoad(executable, &phEntry);
 				if (error) goto dealloc;
 				struct MemoryEntry entry = {
 					.vaddr = (void *)(alignLow(phEntry.pVAddr, phEntry.alignment)),
@@ -230,12 +217,9 @@ static int execCommon(thread_t mainThread, const char *fileName, void **startAdd
 		PAGE_FLAG_INUSE | PAGE_FLAG_CLEAN | PAGE_FLAG_USER | PAGE_FLAG_WRITE);
 	*sp = (void *)((uintptr_t)*sp + THREAD_STACK_SIZE);
 
-	fsClose(&f);
 	return 0;
 
 	dealloc:
-	closef:
-	fsClose(&f);
 	ret:
 	return error;
 }
@@ -266,9 +250,22 @@ int execInit(const char *fileName) {
 	procHTAdd(&initProcess);
 	setpgid(&initProcess, 0);
 
+	struct Inode *inode = getInodeFromPath(initProcess.cwd, fileName);
+	if (!inode) {
+		error = -ENOENT;
+		goto ret;
+	}
+
+	struct File executable = {
+		.inode = inode,
+		.flags = SYSOPEN_FLAG_READ
+	};
+	error = fsOpen(&executable);
+	if (error) goto ret;
+
 	void *start;
 	long *sp;
-	error = execCommon(mainThread, fileName, &start, (void**)&sp, initProcess.cwd);
+	error = execCommon(mainThread, &executable, &start, (void**)&sp);
 	if (error) goto deallocMainThread;
 
 	//create empty argv
@@ -280,10 +277,12 @@ int execInit(const char *fileName) {
 
 	readyQueuePush(mainThread->queueEntry);
 
-	return 0;
+	goto closeExec;
 
 	deallocMainThread:
 	deallocPages((void *)kernelStackBottom, THREAD_STACK_SIZE);
+	closeExec:
+	fsClose(&executable);
 	ret:
 	return error;
 }
@@ -292,26 +291,38 @@ int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	if (!fileName || !argv || !envp) {
 		return -EINVAL;
 	}
-	int error;
-	int fnLen = validateUserStringL(fileName) + 1;
-	if (fnLen <= 0) {
-		return fnLen - 1;
+	int error = validateUserString(fileName);
+	if (error) {
+		return error;
 	}
-	if (fnLen > PAGE_SIZE) return -EINVAL;
-	char namebuf[fnLen];
 
-	error = sysAccess(AT_FDCWD, fileName, SYSACCESS_X);
-	if (error) return error;
+	//Open the executable
+	struct Inode *cwd = getCurrentThread()->process->cwd;
+	struct Inode *inode = getInodeFromPath(cwd, fileName);
+	if (!inode) {
+		error = -ENOENT;
+		goto ret;
+	}
 
-	memcpy(namebuf, fileName, fnLen);
+	if (!fsAccessAllowed(inode, PERM_X)) {
+		error = -EPERM;
+		goto ret;
+	}
+
+	struct File executable = {
+		.inode = inode,
+		.flags = SYSOPEN_FLAG_READ
+	};
+	error = fsOpen(&executable);
+	if (error) return error;;
 
 	error = fsCloseOnExec();
-	if (error) goto ret;
+	if (error) goto closeExec;
 
 	uintptr_t stack = (uintptr_t)allocKPages(PAGE_SIZE, PAGE_FLAG_WRITE);
 	if (!stack) {
 		error = -ENOMEM;
-		goto ret;
+		goto closeExec;
 	}
 	void *sp;
 	error = createStack(&sp, stack, argv, envp);
@@ -323,8 +334,10 @@ int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	
 	void *start;
 	void *userSP;
-	error = execCommon(curThread, namebuf, &start, &userSP, getCurrentThread()->process->cwd);
+	error = execCommon(curThread, &executable, &start, &userSP);
 	if (error) goto deallocStack;
+
+	fsClose(&executable);
 
 	userSP = (void *)((uintptr_t)userSP - spDiff);
 	memcpy(userSP,sp, spDiff);
@@ -350,11 +363,14 @@ int sysExec(const char *fileName, char *const argv[], char *const envp[]) {
 	return 0;
 
 	deallocStack:
+	fsClose(&executable);
 	deallocPages((void *)stack, PAGE_SIZE);
 	printk("err: %d", error);
 	struct Process *proc = getCurrentThread()->process;
 	proc->exitInfo.si_signo = SIGABRT;
 	signalExit();
+	closeExec:
+	fsClose(&executable);
 	ret:
 	return error;
 }

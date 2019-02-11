@@ -9,6 +9,7 @@
 #include <sched/spinlock.h>
 #include <fs/direntry.h>
 #include <uapi/fcntl.h>
+#include <uapi/types.h>
 
 #define NAME_MAX	256
 
@@ -16,6 +17,7 @@
 #define ITYPE_DIR	1
 #define ITYPE_FILE	2
 #define ITYPE_CHAR	3
+#define CREATE_PERM_SHIFT	8
 
 #define NROF_SYSOPEN_FLAGS		5
 
@@ -24,6 +26,21 @@
 #define RAMFS_DEVFILE	3
 
 #define FILE_FLAG_PIPE	1 //same bit as SYSOPEN_FLAG_CREATE
+
+#define PERM_MASK		7
+
+#define PERM_X			1
+#define PERM_W			2
+#define PERM_R			4
+
+
+//shifts
+#define PERM_OTHERS		0
+#define PERM_GROUP		3
+#define PERM_OWNER		6
+#define PERM_STICKY		9
+#define PERM_SETGID		10
+#define PERM_SETUID		11
 
 typedef int64_t ssize_t;
 
@@ -46,9 +63,9 @@ struct SuperBlock {
 };
 
 struct InodeAttributes {
-	uint32_t ownerID;
-	uint32_t groupID;
-	uint16_t accessPermissions;
+	uid_t uid;
+	gid_t gid;
+	int perm;
 
 	time_t creationTime;
 	time_t modificationTime;
@@ -157,6 +174,12 @@ int fsCloseOnExec(void);
 Renames a file
 */
 int fsRename(struct Inode *newDir, const char *newName, struct Inode *oldDir, const char *oldName, int flags);
+
+/*
+Returns true if access is allowed to an inode
+Where mode is PERM_R, PERM_W and/or PERM_X
+*/
+bool fsAccessAllowed(struct Inode *inode, int mode);
 
 //System calls
 

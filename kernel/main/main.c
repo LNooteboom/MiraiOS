@@ -59,7 +59,7 @@ void kmain(void) {
 	executeModuleCallLevel(2);
 	
 	//create /dev directory
-	fsCreate(NULL, rootDir, "dev", ITYPE_DIR);
+	fsCreate(NULL, rootDir, "dev", ITYPE_DIR | (0755 << CREATE_PERM_SHIFT));
 
 	//initialize drivers
 	executeModuleCallLevel(3);

@@ -177,6 +177,11 @@ static int copyFiles(struct Process *proc, struct Process *newProc) {
 	return 0;
 }
 
+static int copyPerm(struct Process *proc, struct Process *newProc) {
+	memcpy(&newProc->cred, &proc->cred, sizeof(proc->cred));
+	return 0;
+}
+
 void linkChild(struct Process *parent, struct Process *child) {
 	child->ppid = parent->pid;
 	child->parent = parent;
@@ -246,6 +251,9 @@ int sysFork(void) {
 
 	pid_t grp = curProc->pgid;
 	newProc->group = curProc->group;
+
+	error = copyPerm(curProc, newProc);
+	if (error) goto releaseProcLock;
 
 	releaseSpinlock(&curProc->lock);
 

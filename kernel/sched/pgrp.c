@@ -265,9 +265,51 @@ pid_t sysGetId(pid_t pid, int which) {
 		case SYSGETID_SID:
 			ret = proc->sid;
 			break;
+		case SYSGETID_UID:
+			ret = proc->cred.ruid;
+			break;
+		case SYSGETID_EUID:
+			ret = proc->cred.euid;
+			break;
+		case SYSGETID_GID:
+			ret = proc->cred.rgid;
+			break;
+		case SYSGETID_EGID:
+			ret = proc->cred.egid;
+			break;
 		default:
 			ret = -EINVAL;
 			break;
 	}
 	return ret;
+}
+
+int sysSetId(pid_t id, int which) {
+	if (id < 0) {
+		return -EINVAL;
+	}
+	thread_t curThread = getCurrentThread();
+	struct ProcessCred *cred = &curThread->process->cred;
+	switch (which) {
+		case SYSSETID_UID:
+			if (cred->euid) {
+				if (id == cred->ruid || id == cred->suid) {
+					cred->euid = id;
+					return 0;
+				}
+				return -EPERM;
+			}
+			cred->ruid = id;
+			cred->euid = id;
+			cred->suid = id;
+			return 0;
+		case SYSSETID_EUID:
+			if (cred->euid && id != cred->ruid && id != cred->suid) {
+				return -EPERM;
+			}
+			cred->euid = id;
+			return 0;
+		case SYSSETID_GID:
+			
+	}
 }
