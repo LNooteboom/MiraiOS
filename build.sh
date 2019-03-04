@@ -15,7 +15,7 @@ buildUserspace () {
 }
 
 #config options
-export TARGET_KERNEL=x86_64-elf
+#export TARGET_KERNEL=x86_64-elf
 export TARGET_USER=x86_64-miraios
 
 export DEPDIR=.d

@@ -18,7 +18,7 @@ FLAG_DEP = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 FLAG_NOFLOAT = -mno-mmx -mno-sse -mno-sse2
 
 CFLAG = $(FLAG_WARNINGS) $(FLAG_FREESTANDING) $(FLAG_KERNEL) $(FLAG_MEMMODEL) $(FLAG_INCLUDES) $(FLAG_DEBUG) $(FLAG_OPTIMIZE) $(FLAG_DEP) $(FLAG_NOFLOAT) -c
-CC := $(TARGET)-gcc
+#CC := $(TARGET)-gcc
 
 NASM := nasm
 NASMFLAG := -f elf64 -g -F dwarf

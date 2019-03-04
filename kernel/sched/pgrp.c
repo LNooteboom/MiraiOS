@@ -310,6 +310,6 @@ int sysSetId(pid_t id, int which) {
 			cred->euid = id;
 			return 0;
 		case SYSSETID_GID:
-			
+			return 0; //TODO
 	}
 }

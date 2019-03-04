@@ -52,7 +52,6 @@ struct sigaction;
 /*19*/ int sysSeek(int fd, int64_t offset, int whence);
 /*1A*/ int sysUnlink(int dirfd, const char *path, int flags);
 /*1B*/ int sysRename(int oldDirfd, const char *oldPath, int newDirfd, const char *newPath, int flags);
-
 //END
 
 #endif

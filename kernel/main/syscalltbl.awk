@@ -8,7 +8,7 @@ BEGIN {
 }
 {
 	if (table == 1) {
-		print "\t(void *)" substr($3, 0, index($3,"(") - 1) ","
+		print "\t(void *)" substr($3, 0, index($3,"(")) ","
 	}
 }
 /\/\/SYSCALLS/ {
