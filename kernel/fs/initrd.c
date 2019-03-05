@@ -101,7 +101,7 @@ static int parseInitrd(struct Inode *rootInode) {
 			break;
 		}
 		
-		//printk("[INITRD] Found file: %s\n", name);
+		printk("[INITRD] Found file: %s\n", name);
 		uint32_t fileSize = parseHex(initrdHeader->filesize);
 
 		curPosition += sizeof(struct CpioHeader) + nameLen;

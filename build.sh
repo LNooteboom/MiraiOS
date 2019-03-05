@@ -15,8 +15,9 @@ buildUserspace () {
 }
 
 #config options
-#export TARGET_KERNEL=x86_64-elf
+export TARGET_KERNEL=x86_64-elf
 export TARGET_USER=x86_64-miraios
+export PATH=${PATH}:$PWD/cross/bin
 
 export DEPDIR=.d
 export FLAG_DEP="-MT \$@ -MMD -MP -MF $DEPDIR/\$*.Td"
@@ -24,7 +25,6 @@ export CFLAG_USER="-Wall -Wextra -g -O2 -std=gnu99"
 
 BUILDDIR=build;
 
-export INITRDDIR=$PWD/initrd;
 export SYSROOT=$PWD/sysroot
 export PREFIX=$SYSROOT
 
@@ -34,7 +34,6 @@ KERNELNAME=miraiBoot;
 EFI=false;
 
 mkdir -p $BUILDDIR
-mkdir -p $INITRDDIR
 
 #build kernel
 make -j 4 -C $KERNELDIR
@@ -88,14 +87,15 @@ done
 cd ..
 
 #create initrd
-cd $INITRDDIR
-find * -type f | cpio --create --format=newc > ../$BUILDDIR/initrd
+cd $SYSROOT
+find . -type f | cpio --create --format=newc > ../$BUILDDIR/initrd
 
 cd ..
 
 #create iso
 if [ "$EFI" = true ]; then
-	xorrisofs -r -J -o out.iso build/
+	#xorrisofs -r -J -o out.iso build/
+	genisoimage -o out.iso build/
 else
 	mkdir -p $BUILDDIR/grub
 	cp grub.cfg $BUILDDIR/grub/

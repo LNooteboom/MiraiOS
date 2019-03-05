@@ -3,7 +3,7 @@ $(shell mkdir -p $(DEPDIR) > /dev/null)
 CC = $(TARGET_USER)-gcc
 CFLAG = $(CFLAG_USER) $(FLAG_DEP) -c
 
-LD = $(CC)
+LD = /home/ruka/MiraiOS/cross/bin/$(CC)
 
 OUTPUT = init
 OBJECTS = main.o
@@ -17,7 +17,8 @@ clean:
 
 $(OUTPUT): $(OBJECTS)
 	@echo "(LD)	$@"
-	@$(LD) -o $@ $+ $(LIBS)
+	echo $(PATH)
+	$(LD) -o $@ $+ $(LIBS)
 
 %.o: %.c
 %.o: %.c $(DEPDIR)/%.d

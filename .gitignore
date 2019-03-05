@@ -2,6 +2,7 @@
 build/
 initrd/
 sysroot
+cross
 .*/
 
 .*

@@ -7,7 +7,7 @@ BEGIN {
 }
 {
 	if (table == 1) {
-		funct = substr($3, 0, index($3,"(") - 1);
+		funct = substr($3, 0, index($3,"("));
 		print "global " funct ":function"
 		print funct ":"
 		print "\tmov eax, 0x" substr($1, 3, 2)

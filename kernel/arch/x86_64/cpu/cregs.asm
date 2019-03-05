@@ -12,7 +12,7 @@ setupCRegs:
 	cpuid
 
 	mov eax, (1 << 3) | (1 << 4) | (1 << 5) | (1 << 7) | (1 << 9) | (1 << 10)
-	test ebx, 7
+	test ebx, (1 << 7)
 	jz .noSMEP
 		or eax, (1 << 20)
 	.noSMEP:
