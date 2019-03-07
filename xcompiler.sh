@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 PREFIX=$PWD/cross
 TARGET_FREESTANDING=x86_64-elf
@@ -13,12 +13,11 @@ mkdir -p cross
 cd cross
 
 if [ ! -d binutils-${BINUTILS_VERSION} ]; then
-	if [ ! -f binutils-${BINUTILS_VERSION}.tar ]; then
+	if [ ! -f binutils-${BINUTILS_VERSION}.tar.xz ]; then
 		wget https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILS_VERSION}.tar.xz
-		unxz binutils-${BINUTILS_VERSION}.tar.xz
 	fi
 	echo Untarring binutils...
-	tar -xf binutils-${BINUTILS_VERSION}.tar
+	tar -xJf binutils-${BINUTILS_VERSION}.tar.xz
 	
 	cd binutils-${BINUTILS_VERSION}
 	echo Patching binutils configs...
@@ -41,12 +40,11 @@ if [ ! -d binutils-${BINUTILS_VERSION} ]; then
 fi
 
 if [ ! -d gcc-${GCC_VERSION} ]; then
-	if [ ! -f gcc-${GCC_VERSION}.tar ]; then
+	if [ ! -f gcc-${GCC_VERSION}.tar.xz ]; then
 		wget https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz
-		unxz gcc-${GCC_VERSION}.tar.xz
 	fi
 	echo Untarring gcc...
-	tar -xf gcc-${GCC_VERSION}.tar
+	tar -xJf gcc-${GCC_VERSION}.tar.xz
 
 	cd gcc-${GCC_VERSION}
 
@@ -152,3 +150,5 @@ if [ ! -f bin/x86_64-miraios-gcc ]; then
 	make install-target-libgcc
 	cd ..
 fi
+
+rm -rf build-binutils build-gcc binutils-${BINUTILS_VERSION} gcc-${GCC_VERSION}

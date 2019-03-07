@@ -33,7 +33,25 @@ KERNELNAME=miraiBoot;
 
 EFI=false;
 
+cd "$(dirname "$0")"
+
 mkdir -p $BUILDDIR
+
+#Check if the cross compiler is installed
+if [ ! -f cross/bin/x86_64-miraios-gcc ]; then
+	echo "A cross compiler has not yet been installed"
+	echo -n "Automatically install a cross compiler? (this may take a long time) [Y/n] "
+	read INPUT
+	if [ "$INPUT" = "" ] || [ "$INPUT" = "y" ] || [ "$INPUT" = "Y" ]; then
+		bash xcompiler.sh
+		OUT=$?
+		if [ ! $OUT -eq 0 ]; then
+			exit $OUT
+		fi
+	else
+		exit
+	fi
+fi
 
 #build kernel
 make -j 4 -C $KERNELDIR
@@ -101,3 +119,4 @@ else
 	cp grub.cfg $BUILDDIR/grub/
 	grub-mkrescue -o out.iso build/
 fi
+echo "Success! out.iso created."
