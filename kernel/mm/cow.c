@@ -4,6 +4,7 @@
 #include <mm/physpaging.h>
 #include <mm/memset.h>
 #include <mm/mmap.h>
+#include <mm/heap.h>
 #include <arch/tlb.h>
 #include <arch/map.h>
 #include <errno.h>
@@ -26,13 +27,27 @@ int mmDoCOW(uintptr_t addr) {
 	
 	excStackPush();
 
+	pageFlags_t oldPageFlags = (*pte & PAGE_FLAG_EXEC);
+
 	struct Process *proc = getCurrentThread()->process;
 	acquireSpinlock(&proc->memLock);
-	unsigned int flags = mmapGetEntry(proc, (void *)addr)->flags;
-	releaseSpinlock(&proc->memLock);
+	struct MemoryEntry *memEntry = mmapGetEntry(proc, (void *)addr);
 
+	unsigned int flags = memEntry->flags;
 	flags &= ~MMAP_FLAG_SHARED;
 	flags |= MMAP_FLAG_ANON | MMAP_FLAG_FIXED;
+
+	bool skip = (flags & MMAP_FLAG_SHARED) && (memEntry->shared->refCount == 1);
+	if (skip) {
+		*pte = (*pte & PAGE_MASK) | oldPageFlags | PAGE_FLAG_USER | PAGE_FLAG_WRITE | PAGE_FLAG_INUSE | PAGE_FLAG_PRESENT;
+		memEntry->flags = flags;
+		kfree(memEntry->shared);
+
+		releaseSpinlock(&proc->memLock);
+		error = 0;
+		goto ret;
+	}
+	releaseSpinlock(&proc->memLock);
 
 	physPage_t newPage = allocPhysPage();
 	if (!newPage) {
@@ -50,7 +65,7 @@ int mmDoCOW(uintptr_t addr) {
 
 	iounmap(new, PAGE_SIZE);
 
-	pageFlags_t oldPageFlags = (*pte & PAGE_FLAG_EXEC);
+	
 	struct MemoryEntry entry = {
 		.vaddr = (void *)addr,
 		.size = PAGE_SIZE,

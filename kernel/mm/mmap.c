@@ -120,8 +120,23 @@ int mmapCreateEntry(void **out, struct Process *proc, struct MemoryEntry *newEnt
 
 			size_t llSize = newStart - lowStart;
 			ssize_t lhSize = lowEnd - newEnd;
+			struct MemoryEntry *lh = NULL;
+
+			if (!llSize) {
+				struct MemoryEntry *prev = lower->prev;
+				deleteEntry(lower);
+				new->prev = prev;
+				if (prev) {
+					prev->next = new;
+				} else {
+					proc->firstMemEntry = new;
+				}
+			} else {
+				lower->size = llSize;
+			}
+
 			if (lhSize > 0) {
-				struct MemoryEntry *lh = kmalloc(sizeof(*lh));
+				lh = kmalloc(sizeof(*lh));
 				if (!lh) {
 					error = -ENOMEM;
 					goto release;
@@ -145,21 +160,6 @@ int mmapCreateEntry(void **out, struct Process *proc, struct MemoryEntry *newEnt
 					proc->lastMemEntry = lh;
 				}
 				new = lh;
-			}
-			if (!llSize) {
-				struct MemoryEntry *prev = lower->prev;
-				/*memcpy(lower, new, sizeof(*lower));
-				lower->prev = prev;
-				new = lower;*/
-				deleteEntry(lower);
-				new->prev = prev;
-				if (prev) {
-					prev->next = new;
-				} else {
-					proc->firstMemEntry = new;
-				}
-			} else {
-				lower->size = llSize;
 			}
 			//dealloc newStart to min(newEnd, lowEnd)
 			size_t deallocSize = ((newEnd > lowEnd)? lowEnd : newEnd) - newStart;

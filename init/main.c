@@ -17,9 +17,9 @@ int main(void) {
 		exit(1);
 	}
 
-	sysOpen(AT_FDCWD, "/dev/tty1", SYSOPEN_FLAG_READ); //stdin
-	sysOpen(AT_FDCWD, "/dev/tty1", SYSOPEN_FLAG_WRITE); //stdout
-	sysOpen(AT_FDCWD, "/dev/tty1", SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE); //stderr
+	sysOpen(AT_FDCWD, "/dev/tty0", SYSOPEN_FLAG_READ); //stdin
+	sysOpen(AT_FDCWD, "/dev/tty0", SYSOPEN_FLAG_WRITE); //stdout
+	sysOpen(AT_FDCWD, "/dev/tty0", SYSOPEN_FLAG_READ | SYSOPEN_FLAG_WRITE); //stderr
 
 	sysOpen(AT_FDCWD, "/tmp", SYSOPEN_FLAG_CREATE | SYSOPEN_FLAG_DIR);
 

@@ -23,7 +23,7 @@ $(OUTPUT): $(OBJECTS)
 %.o: %.c
 %.o: %.c $(DEPDIR)/%.d
 	@echo "(CC)	$@"
-	@${CC} ${CFLAG} -o $@ $<
+	${CC} ${CFLAG} -o $@ $<
 	@mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
 
 $(DEPDIR)/%.d: ;

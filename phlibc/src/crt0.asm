@@ -67,4 +67,4 @@ SECTION .bss
 environ: resq 1
 _PHAtExitFunc: resq 1
 
-errno: resd 1
+errno: resq 1

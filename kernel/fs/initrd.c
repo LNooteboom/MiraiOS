@@ -79,6 +79,7 @@ static int createDirs(struct Inode *root, char *name, size_t nameLen, uint32_t f
 	newInode->type = ITYPE_FILE;
 	newInode->superBlock = &ramfsSuperBlock;
 	newInode->attr.perm = 0664;
+	newInode->inodeID = ramfsSuperBlock.curInodeID++;
 
 	return fsLink(curDir, newInode, name + start);
 }
@@ -101,7 +102,7 @@ static int parseInitrd(struct Inode *rootInode) {
 			break;
 		}
 		
-		printk("[INITRD] Found file: %s\n", name);
+		//printk("[INITRD] Found file: %s\n", name);
 		uint32_t fileSize = parseHex(initrdHeader->filesize);
 
 		curPosition += sizeof(struct CpioHeader) + nameLen;

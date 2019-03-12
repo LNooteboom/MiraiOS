@@ -48,6 +48,7 @@ struct Inode;
 struct DirEntry;
 struct DevFileOps;
 
+// Opened file struct
 struct File {
 	spinlock_t lock;
 	atomic_uint refCount;

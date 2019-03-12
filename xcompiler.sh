@@ -9,6 +9,8 @@ GCC_VERSION=8.3.0
 
 #sudo apt-get install build-essential genisoimage automake wget nasm bison flex libgmp3-dev libmpc-dev libmpfr-dev texinfo
 
+SYSROOT=$PWD/sysroot
+
 mkdir -p cross
 cd cross
 
@@ -105,16 +107,16 @@ if [ ! -f bin/x86_64-elf-gcc ]; then
 	cd ..
 fi
 
-mkdir -p ../sysroot/include
-mkdir -p ../sysroot/lib
-mkdir -p ../sysroot/bin
-cp -r ../kernel/include/uapi ../sysroot/include
-cp -r ../phlibc/include/* ../sysroot/include
+mkdir -p $SYSROOT/include
+mkdir -p $SYSROOT/lib
+mkdir -p $SYSROOT/bin
+cp -r ../kernel/include/uapi $SYSROOT/include
+cp -r ../phlibc/include/* $SYSROOT/include
 
 if [ ! -f bin/x86_64-miraios-as ]; then
 	rm -rf build-binutils/*
 	cd build-binutils
-	../binutils-${BINUTILS_VERSION}/configure --target=$TARGET_HOSTED --prefix="$PREFIX" --with-sysroot=$PWD/../../sysroot --disable-werror
+	../binutils-${BINUTILS_VERSION}/configure --target=$TARGET_HOSTED --prefix="$PREFIX" --with-sysroot=$SYSROOT -werror
 	OUT=$?
 	if [ ! $OUT -eq 0 ]; then
 		exit $OUT
@@ -131,7 +133,7 @@ fi
 if [ ! -f bin/x86_64-miraios-gcc ]; then
 	rm -rf build-gcc/*
 	cd build-gcc
-	../gcc-${GCC_VERSION}/configure --target=$TARGET_HOSTED --prefix="$PREFIX" --with-sysroot=$PWD/../../sysroot --enable-languages=c
+	../gcc-${GCC_VERSION}/configure --target=$TARGET_HOSTED --prefix="$PREFIX" --with-sysroot=$SYSROOT --enable-languages=c
 	OUT=$?
 	if [ ! $OUT -eq 0 ]; then
 		exit $OUT

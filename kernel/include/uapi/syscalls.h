@@ -22,6 +22,7 @@
 
 struct GetDent;
 struct sigaction;
+struct stat;
 
 //SYSCALLS
 /*00*/ int sysRead(int fd, void *buffer, size_t size);
@@ -52,6 +53,10 @@ struct sigaction;
 /*19*/ int sysSeek(int fd, int64_t offset, int whence);
 /*1A*/ int sysUnlink(int dirfd, const char *path, int flags);
 /*1B*/ int sysRename(int oldDirfd, const char *oldPath, int newDirfd, const char *newPath, int flags);
+/*1C*/ int sysStat(const char *fileName, struct stat *statBuf);
+/*1D*/ int sysLstat(const char *fileName, struct stat *statBuf);
+/*1E*/ int sysFstatat(int dirfd, const char *fileName, struct stat *statBuf, int flags);
+/*1F*/ int sysSetReuid(uid_t ruid, uid_t euid, int which);
 //END
 
 #endif

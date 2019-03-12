@@ -310,6 +310,78 @@ int sysSetId(pid_t id, int which) {
 			cred->euid = id;
 			return 0;
 		case SYSSETID_GID:
-			return 0; //TODO
+			if (cred->egid) {
+				if (id == cred->rgid || id == cred->sgid) {
+					cred->egid = id;
+					return 0;
+				}
+				return -EPERM;
+			}
+			cred->rgid = id;
+			cred->egid = id;
+			cred->sgid = id;
+			return 0;
+		case SYSSETID_EGID:
+			if (cred->egid && id != cred->rgid && id != cred->sgid) {
+				return -EPERM;
+			}
+			cred->egid = id;
+			return 0;
+		default:
+			return -EINVAL;
 	}
+}
+
+int sysSetReuid(uid_t ruid, uid_t euid, int which) {
+	thread_t curThread = getCurrentThread();
+	struct ProcessCred *cred = &curThread->process->cred;
+	if (which) {
+		gid_t rgid = ruid;
+		gid_t egid = euid;
+		if (cred->egid) {
+			bool setEgid = false;
+			if (egid >= 0 && (egid == cred->rgid || egid == cred->egid || egid == cred->sgid)) {
+				setEgid = true;
+			} else if (egid >= 0) {
+				return -EPERM;
+			}
+			if (rgid >= 0 && (rgid == cred->rgid || rgid == cred->egid)) {
+				cred->rgid = rgid;
+			} else if (egid >= 0) {
+				return -EPERM;
+			}
+			if (setEgid) cred->egid = egid;
+		} else {
+			if (rgid >= 0) {
+				cred->rgid = rgid;
+			}
+			if (egid >= 0) {
+				cred->egid = egid;
+			}
+		}
+	} else {
+		if (cred->euid) {
+			bool setEuid = false;
+			if (euid >= 0 && (euid == cred->ruid || euid == cred->euid || euid == cred->suid)) {
+				//cred->euid = euid;
+				setEuid = true;
+			} else if (euid >= 0) {
+				return -EPERM;
+			}
+			if (ruid >= 0 && (ruid == cred->ruid || ruid == cred->euid)) {
+				cred->ruid = ruid;
+			} else if (euid >= 0) {
+				return -EPERM;
+			}
+			if (setEuid) cred->euid = euid;
+		} else {
+			if (ruid >= 0) {
+				cred->ruid = ruid;
+			}
+			if (euid >= 0) {
+				cred->euid = euid;
+			}
+		}
+	}
+	return 0;
 }
