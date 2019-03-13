@@ -10,6 +10,7 @@
 #include <fs/direntry.h>
 #include <uapi/fcntl.h>
 #include <uapi/types.h>
+#include <mm/cache.h>
 
 #define NAME_MAX	256
 
@@ -98,6 +99,8 @@ struct Inode {
 };
 
 extern struct Inode *rootDir;
+
+extern struct Cache inodeMem;
 
 static inline bool isDir(struct Inode *inode) {
 	return (inode->type & ITYPE_MASK) == ITYPE_DIR;

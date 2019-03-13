@@ -11,7 +11,7 @@
 
 #define IRQ_FLAG_SHARED		(1 << 0)
 
-typedef uint8_t interrupt_t;
+typedef uint32_t interrupt_t;
 
 /*
 Allocates an interrupt vector
@@ -25,8 +25,9 @@ void deallocIrqVec(interrupt_t vec);
 
 /*
 Routes an interrupt to a function
+flags is currently unused
 */
-int routeInterrupt(void (*handler)(void), interrupt_t vec, unsigned int flags, const char *name);
+int routeInterrupt(void (*handler)(void *), void *context, interrupt_t vec, unsigned int flags, const char *name);
 
 /*
 Unroutes an interrupt

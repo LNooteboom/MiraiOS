@@ -84,7 +84,8 @@ int fsCreate(struct File *f, struct Inode *dir, const char *name, uint32_t type)
 
 	struct Inode *newInode;
 	if (dir->ramfs) {
-		newInode = kmalloc(sizeof(struct Inode));
+		//newInode = kmalloc(sizeof(struct Inode));
+		newInode = cacheGet(&inodeMem);
 		if (!newInode) {
 			return -ENOMEM;
 		}
@@ -119,7 +120,8 @@ int fsCreate(struct File *f, struct Inode *dir, const char *name, uint32_t type)
 	releaseSpinlock(&dir->lock);
 
 	if (error) {
-		kfree(newInode);
+		//kfree(newInode);
+		cacheRelease(&inodeMem, newInode);
 		if (entry.nameLen > 31) {
 			kfree(entry.name);
 		}

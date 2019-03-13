@@ -115,9 +115,11 @@ static void heapFree(void *addr, memArea_t *heap, size_t heapSize) {
 }
 
 void *kmalloc(size_t size) {
+	//printk("hp %X\n", size);
 	if (size == 0) {
 		return NULL;
 	}
+	if (size < 64) size = 64;
 	if (size > MAX_ALLOC) {
 		printk("[HEAP] kmalloc: too big alloc: %d\n", size);
 		return NULL;

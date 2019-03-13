@@ -70,7 +70,8 @@ static int createDirs(struct Inode *root, char *name, size_t nameLen, uint32_t f
 		start = slash + 1;
 	}
 
-	struct Inode *newInode = kmalloc(sizeof(struct Inode));
+	//struct Inode *newInode = kmalloc(sizeof(struct Inode));
+	struct Inode *newInode = cacheGet(&inodeMem);
 	memset(newInode, 0, sizeof(struct Inode));
 
 	newInode->cachedData = data;
@@ -126,11 +127,14 @@ static int parseInitrd(struct Inode *rootInode) {
 int ramfsInit(void) {
 	//register driver
 
+	cacheCreate(&inodeMem, sizeof(struct Inode), "Inodes");
+
 	if (!bootInfo.initrd) {
 		return 0;
 	}
 	//create root inode
-	struct Inode *rootInode = kmalloc(sizeof(struct Inode));
+	//struct Inode *rootInode = kmalloc(sizeof(struct Inode));
+	struct Inode *rootInode = cacheGet(&inodeMem);
 	if (!rootInode) {
 		return -ENOMEM;
 	}

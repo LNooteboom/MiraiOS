@@ -9,6 +9,10 @@ static int (*stdout)(const char *str) = NULL;
 
 #define PRINTK_STACK_BUF_SZ	512
 
+static inline int isalpha(int c) {
+	return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
+}
+
 static void hexprint(char *dest, int len, uint64_t value) {
 	for (; len >= 0; len--) {
 		char currentNibble = (value >> (len * 4)) & 0x0F;
@@ -67,6 +71,7 @@ void vprintk(const char *fmt, va_list args) {
 			continue;
 		}
 		c++;
+		while (!isalpha(*c)) c++;
 		switch (*c) {
 			case 0:
 				return;

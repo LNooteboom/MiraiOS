@@ -59,7 +59,8 @@ static int deleteInode(struct Inode *inode) {
 			}
 		}
 		//delete inode
-		kfree(inode);
+		//kfree(inode);
+		cacheRelease(&inodeMem, inode);
 	} else {
 		//call fs drivers
 	}

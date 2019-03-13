@@ -12,7 +12,9 @@
 
 #define RSDPTR_BOUNDARY 16
 
-const char RSDP_SIG[8] = "RSD PTR ";
+uintptr_t acpiRsdpPhysAddr;
+
+static const char RSDP_SIG[8] = "RSD PTR ";
 
 static uint16_t *EBDASeg = (uint16_t*)(0x40E + (uintptr_t)&VMEM_OFFSET);
 
@@ -59,10 +61,12 @@ static struct RSDP *findRsdp(void) {
 void acpiGetRsdt(struct AcpiHeader **rsdt, bool *isXsdt) {
 	struct RSDP *rsdp;
 	if (bootInfo.rsdp) {
+		acpiRsdpPhysAddr = bootInfo.rsdp;
 		rsdp = ioremap(bootInfo.rsdp, sizeof(struct RSDP));
 		ACPI_LOG("Using EFI configuration table for RSDP");
 	} else {
 		rsdp = findRsdp();
+		acpiRsdpPhysAddr = (uintptr_t)rsdp - (uintptr_t)&VMEM_OFFSET;
 	}
 	*isXsdt = (rsdp->revision >= 2);
 	//*isXsdt = false;

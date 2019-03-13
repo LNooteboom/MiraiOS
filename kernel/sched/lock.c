@@ -3,9 +3,10 @@
 #include <sched/spinlock.h>
 #include <sched/readyqueue.h>
 #include <stddef.h>
-
+#include <mm/memset.h>
 
 void semInit(semaphore_t *semaphore, int value) {
+	memset(semaphore, 0, sizeof(semaphore_t));
 	semaphore->value = value;
 }
 

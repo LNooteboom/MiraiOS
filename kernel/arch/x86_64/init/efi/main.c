@@ -177,7 +177,8 @@ void efiMain(EFI_HANDLE _imageHandle, EFI_SYSTEM_TABLE *_efiSystemTable) {
 
 	efiCall2(efiSystemTable->ConOut->OutputString, (uint64_t)efiSystemTable->ConOut, (uint64_t)initrdLoadStr);
 	if (efiHandleInitrd())
-		goto error;
+		//goto error;
+		do {} while (0);
 
 	if (efiHandleGop())
 		goto error;

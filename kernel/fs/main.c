@@ -12,6 +12,8 @@ struct RbNode *activeInodes;
 
 struct Inode *rootDir;
 
+struct Cache inodeMem;
+
 int mountRoot(struct Inode *rootInode) {
 	rootDir = rootInode;
 	return 0;

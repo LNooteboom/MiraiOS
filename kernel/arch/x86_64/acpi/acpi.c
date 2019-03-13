@@ -10,11 +10,11 @@
 #include "madt.h"
 #include "header.h"
 
-bool isXsdt;
-struct AcpiHeader *rsdtHeader;
-uint64_t *xsdtContents = NULL; //if isXsdt == true
-uint32_t *rsdtContents = NULL; //if isXsdt == false
-uint32_t rsdtLength;
+static bool isXsdt;
+static struct AcpiHeader *rsdtHeader;
+static uint64_t *xsdtContents = NULL; //if isXsdt == true
+static uint32_t *rsdtContents = NULL; //if isXsdt == false
+static uint32_t rsdtLength;
 
 bool acpiVerifyChecksum(void *struc, size_t size) {
 	char *cstruc = (char*)struc;

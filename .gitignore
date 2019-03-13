@@ -22,6 +22,9 @@ cross
 kernel/main/syscalltbl.c
 phlibc/src/syscalls.asm
 
+kernel/drivers/acpica/src
+kernel/drivers/acpica/acpica*
+
 #Output files
 miraiBoot
 miraiBoot.efi

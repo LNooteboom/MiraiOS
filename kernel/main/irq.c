@@ -13,7 +13,8 @@ static spinlock_t irqBitmapLock;
 static uint32_t irqBitmap[IRQDESC_NROF_ENTRIES / 32];
 
 struct IrqDescriptor {
-	void (*handler)(void);
+	void (*handler)(void *);
+	void *context;
 	const char *name;
 	unsigned int flags;
 
@@ -56,7 +57,7 @@ void deallocIrqVec(interrupt_t vec) {
 	releaseSpinlock(&irqBitmapLock);
 }
 
-int routeInterrupt(void (*handler)(void), interrupt_t vec, unsigned int flags, const char *name) {
+int routeInterrupt(void (*handler)(void *), void *context, interrupt_t vec, unsigned int flags, const char *name) {
 	vec -= IRQDESC_START;
 	if (vec >= IRQDESC_NROF_ENTRIES) {
 		return -EINVAL;
@@ -93,7 +94,7 @@ void handleIRQ(interrupt_t vec) {
 	if (vec >= IRQDESC_NROF_ENTRIES || irqDescs[vec].handler == NULL) {
 		return;
 	}
-	irqDescs[vec].handler();
+	irqDescs[vec].handler(irqDescs[vec].context);
 	irqDescs[vec].irqCount++;
 }
 

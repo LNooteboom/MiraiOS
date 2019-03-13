@@ -23,7 +23,7 @@ struct Inode *fsCreateCharDev(struct Inode *dir, const char *name, struct DevFil
 
 	acquireSpinlock(&dir->lock);
 
-	struct Inode *newInode = kmalloc(sizeof(struct Inode));
+	struct Inode *newInode = cacheGet(&inodeMem);
 
 	memset(newInode, 0, sizeof(struct Inode));
 
@@ -45,7 +45,7 @@ struct Inode *fsCreateCharDev(struct Inode *dir, const char *name, struct DevFil
 	releaseSpinlock(&dir->lock);
 
 	if (error) {
-		kfree(newInode);
+		cacheRelease(&inodeMem, newInode);
 		return NULL;
 	} else {
 		return newInode;

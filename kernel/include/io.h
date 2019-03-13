@@ -35,4 +35,36 @@ static inline void out8(uint16_t port, uint8_t data) {
 	asm volatile ("out dx, al" : : "a" (data), "d" (port));
 }
 
+/*
+Reads an 16-bit value from an io-port
+*/
+static inline uint16_t in16(uint16_t port) {
+	uint16_t data;
+	asm volatile ("in ax, dx" : "=a" (data) : "d" (port));
+	return data;
+}
+
+/*
+Writes an 16-bit value to an io-port
+*/
+static inline void out16(uint16_t port, uint16_t data) {
+	asm volatile ("out dx, ax" : : "a" (data), "d" (port));
+}
+
+/*
+Reads an 32-bit value from an io-port
+*/
+static inline uint32_t in32(uint16_t port) {
+	uint32_t data;
+	asm volatile ("in eax, dx" : "=a" (data) : "d" (port));
+	return data;
+}
+
+/*
+Writes an 32-bit value to an io-port
+*/
+static inline void out32(uint16_t port, uint32_t data) {
+	asm volatile ("out dx, eax" : : "a" (data), "d" (port));
+}
+
 #endif

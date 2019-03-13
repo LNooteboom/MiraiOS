@@ -122,7 +122,8 @@ static int i8042SendPort1(uint8_t command) {
 	return ret;
 }
 
-static void i8042InterruptPort1(void) {
+static void i8042InterruptPort1(void *c) {
+	(void) c;
 	if (!i8042CmdSent && i8042Port1.connected && i8042Port1.dev != NULL) {
 		//call keyboard driver
 		i8042Port1.dev->drv->interrupt(i8042Port1.dev);
@@ -206,7 +207,7 @@ int i8042Init(void) {
 	interrupt_t vec = allocIrqVec();
 	if (!vec)
 		return -EBUSY;
-	if (routeInterrupt(i8042InterruptPort1, vec, 0, "PS/2 Keyboard")) {
+	if (routeInterrupt(i8042InterruptPort1, NULL, vec, 0, "PS/2 Keyboard")) {
 		deallocIrqVec(vec);
 		return -EIO;
 	}
