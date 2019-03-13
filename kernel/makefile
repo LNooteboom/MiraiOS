@@ -3,7 +3,7 @@ ARCH := x86_64
 
 KERNEL = miraiBoot
 
-KERNEL_ROOT := .
+KERNEL_ROOT := $(PWD)/kernel
 DEPDIR := .d
 $(shell mkdir -p $(DEPDIR) > /dev/null)
 
@@ -18,7 +18,7 @@ FLAG_DEP = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 FLAG_NOFLOAT = -mno-mmx -mno-sse -mno-sse2
 
 CFLAG = $(FLAG_WARNINGS) $(FLAG_FREESTANDING) $(FLAG_KERNEL) $(FLAG_MEMMODEL) $(FLAG_INCLUDES) $(FLAG_DEBUG) $(FLAG_OPTIMIZE) $(FLAG_DEP) $(FLAG_NOFLOAT) -c
-#CC := $(TARGET)-gcc
+export CC=$(TARGET)-gcc
 
 NASM := nasm
 NASMFLAG := -f elf64 -g -F dwarf
@@ -40,12 +40,12 @@ $(KERNEL).efi: $(KERNEL) $(EFIBUILD)
 	@./$(EFIBUILD) $(KERNEL) $@
 
 clean:
-	rm -rf $(obj-y) $(DEPDIR) $(KERNEL) $(KERNEL).efi $(EFIBUILD) $+
+	rm -rf $(obj-y) $(DEPDIR) $(KERNEL) drivers/acpica/src drivers/acpica/acpica-unix*/ $(KERNEL).efi $(EFIBUILD) $+
 else
 all: $(KERNEL)
 
 clean:
-	rm -rf $(obj-y) $(DEPDIR) $(KERNEL)
+	rm -rf $(obj-y) $(DEPDIR) $(KERNEL) drivers/acpica/src drivers/acpica/acpica-unix*
 endif
 
 #subdirs
@@ -93,6 +93,6 @@ $(KERNEL): $(obj-y) $(tools) $(LDSCRIPT) config
 
 %.d: ;
 
-.PRECIOUS: $(DEPDIR)/%.d
+.PRECIOUS: $(DEPDIR)/%.d %.c %.h
 
 include $(wildcard $(patsubst %,$(DEPDIR)/%.d,$(basename $(obj-y)) ))

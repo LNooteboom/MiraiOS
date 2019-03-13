@@ -2,6 +2,10 @@ sp := $(sp).x
 dirstack_$(sp) := $(d)
 d := $(dir)
 
+dir := $(d)/acpica
+$(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
+include $(dir)/Rules.mk
+
 dir := $(d)/tty
 $(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
 include $(dir)/Rules.mk
