@@ -63,7 +63,6 @@ thread_t readyQueuePop(void) {
 			continue;
 		}
 		acquireSpinlock(&cpuInfos[i].readyListLock);
-		//cprint('a');
 		if (cpuInfos[i].nrofReadyThreads > 0 && cpuInfos[i].threadLoad > load) {
 			busiestCPU = &cpuInfos[i];
 			load = cpuInfos[i].threadLoad;
@@ -109,7 +108,7 @@ void readyQueuePush(struct ThreadQueueEntry *qe) {
 			}
 		}
 	}
-
+	
 	acquireSpinlock(&cpuInfos[cpuIndex].readyListLock);
 	cpuInfos[cpuIndex].threadLoad += NROF_QUEUE_PRIORITIES - priority;
 	cpuInfos[cpuIndex].nrofReadyThreads++;

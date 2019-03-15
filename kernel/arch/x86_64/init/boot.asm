@@ -43,8 +43,8 @@ multiBootHeader:
 	.entryAddr:		dd __init
 	;vbe info
 	.modeType:		dd 0
-	.width:			dd 0
-	.height:		dd 0
+	.width:			dd 1024
+	.height:		dd 768
 	.depth:			dd 0
 
 SECTION boottext

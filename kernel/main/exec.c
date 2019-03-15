@@ -237,7 +237,7 @@ int execInit(const char *fileName) {
 
 	mainThread->priority = 1;
 	mainThread->jiffiesRemaining = TIMESLICE_BASE << 1;
-	mainThread->cpuAffinity = 1;
+	mainThread->cpuAffinity = 0;
 	mainThread->queueEntry = &mainThread->defaultQueueEntry;
 	mainThread->defaultQueueEntry.thread = mainThread;
 
