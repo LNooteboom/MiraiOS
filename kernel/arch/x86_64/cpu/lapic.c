@@ -153,7 +153,7 @@ void lapicSendIPIToAll(uint8_t vec, enum ipiTypes type) { //TODO test & fix this
 
 void lapicDoSMPBoot(void) {
 	if (nrofCPUs < 2) {
-		return;
+		goto out;
 	}
 
 	//Get cr3
@@ -190,6 +190,8 @@ void lapicDoSMPBoot(void) {
 		}
 		printk("[OK]\n");
 	}
+
+	out:
 	mmUnmapBootPages();
 	tlbReloadCR3();
 }

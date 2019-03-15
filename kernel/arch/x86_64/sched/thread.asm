@@ -123,6 +123,7 @@ kthreadExit:
 	mov eax, [r15 + 0x18]
 	mov r13d, 1
 	test eax, eax
+	mov r12, [r15 + 0x20]
 	jnz nextThread ;don't free joined if thread is detached
 		mov rdi, r15
 		call kthreadFreeJoined
@@ -408,11 +409,12 @@ kthreadStop:
 
 	and [r15 + 0x14], dword ~2
 	lea rdi, [r15 + 0x14]
+	mov r12, [r15 + 0x20]
 	call releaseSpinlock
 
 	xor r13d, r13d
 
-nextThread: ;r15 = old thread, r13 = clean up
+nextThread: ;r15 = old thread(do not dereference), r13 = clean up, r12 = old process
 	call readyQueuePop
 	mov r14, rax ;r14 = new thread
 
@@ -421,8 +423,7 @@ nextThread: ;r15 = old thread, r13 = clean up
 	jnz .load
 		test r15, r15
 		jz .load2
-		mov rcx, [r15 + 0x20]
-		test rcx, rcx
+		test r12, r12
 		jz .load2
 			mov rdx, [initProcess + 0x8]
 			mov cr3, rdx ;Do cr3 switch if old thread was userspace
@@ -446,20 +447,24 @@ nextThread: ;r15 = old thread, r13 = clean up
 		call acquireSpinlock
 	.sameThread:
 
-	mov rdi, r14
-	mov rsi, [r14]
-	mov r13, rsi
-	call handleSignal
+	
 
 	mov [r14 + 0x10], dword 1 ;set threadstate to RUNNING
 
 	cmp r14, r15
 	je .sameThread2
-		mov rsp, r13 ;switch to new stack
-
 		mov rdi, r14
 		call loadThread
+	.sameThread2:
 
+	mov rdi, r14
+	mov rsi, [r14]
+	mov r13, rsi
+	call handleSignal
+	
+	cmp r14, r15
+	je .sameThread3
+		mov rsp, r13 ;switch to new stack
 		lea rdi, [rsp + 0xA0]
 		mov [r14], rdi
 		call tssSetRSP0
@@ -469,7 +474,7 @@ nextThread: ;r15 = old thread, r13 = clean up
 
 		lea rdi, [r14 + 0x14]
 		call releaseSpinlock
-	.sameThread2:
+	.sameThread3:
 
 	test r15, r15
 	jz .notDetached

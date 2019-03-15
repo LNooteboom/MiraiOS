@@ -20,6 +20,10 @@
 #define SYSSETID_GID	6
 #define SYSSETID_EGID	7
 
+#define POWER_MAGIC		0xfee1dead
+#define POWER_SHUTDOWN	0xd7a2bc21
+#define POWER_REBOOT	0x88abe630
+
 struct GetDent;
 struct sigaction;
 struct stat;
@@ -57,6 +61,7 @@ struct stat;
 /*1D*/ int sysLstat(const char *fileName, struct stat *statBuf);
 /*1E*/ int sysFstatat(int dirfd, const char *fileName, struct stat *statBuf, int flags);
 /*1F*/ int sysSetReuid(uid_t ruid, uid_t euid, int which);
+/*20*/ int sysPower(uint32_t magic, uint32_t mode);
 //END
 
 #endif

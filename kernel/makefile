@@ -40,12 +40,12 @@ $(KERNEL).efi: $(KERNEL) $(EFIBUILD)
 	@./$(EFIBUILD) $(KERNEL) $@
 
 clean:
-	rm -rf $(obj-y) $(DEPDIR) $(KERNEL) drivers/acpica/src drivers/acpica/acpica-unix*/ $(KERNEL).efi $(EFIBUILD) $+
+	rm -rf $(obj-y) $(DEPDIR) $(KERNEL) $(KERNEL).efi $(EFIBUILD) $+
 else
 all: $(KERNEL)
 
 clean:
-	rm -rf $(obj-y) $(DEPDIR) $(KERNEL) drivers/acpica/src drivers/acpica/acpica-unix*
+	rm -rf $(obj-y) $(DEPDIR) $(KERNEL)
 endif
 
 #subdirs
@@ -77,12 +77,19 @@ dir := $(KERNEL_ROOT)/lib
 $(shell mkdir -p $(DEPDIR)/$(dir) > /dev/null)
 include $(dir)/Rules.mk
 
+config: config.example
+	cp $< $@
+	env editor $@
+
+include/config.h: config.h.awk config
+	awk -f $+ > $@
+
 $(KERNEL): $(obj-y) $(tools) $(LDSCRIPT) config
 	@echo "(LD) $@"
 	@$(LD) -z max-page-size=0x1000 -T $(LDSCRIPT) $(obj-y)
 
 %.o: %.c
-%.o: %.c $(DEPDIR)/%.d
+%.o: %.c $(DEPDIR)/%.d include/config.h
 	@echo "(CC)	$@"
 	@${CC} ${CFLAG} -o $@ $<
 	@mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@

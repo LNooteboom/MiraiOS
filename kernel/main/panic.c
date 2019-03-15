@@ -12,7 +12,7 @@ extern void fbPanicUpdate(void);
 
 uintptr_t panicStack;
 
-static __attribute__((noreturn)) void die(void *arg) {
+__attribute__((noreturn)) void die(void *arg) {
 	(void)(arg);
 	localInterruptDisable();
 	while(true) {

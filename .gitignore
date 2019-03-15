@@ -20,6 +20,7 @@ cross
 
 #Generated source files
 kernel/main/syscalltbl.c
+kernel/include/config.h
 phlibc/src/syscalls.asm
 
 kernel/drivers/acpica/src

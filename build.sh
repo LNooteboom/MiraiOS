@@ -115,8 +115,11 @@ if [ "$EFI" = true ]; then
 	#xorrisofs -r -J -o out.iso build/
 	genisoimage -o out.iso build/
 else
+	if [ ! -f cross/bin/grub-mkrescue ]; then
+		sh grub.sh
+	fi
 	mkdir -p $BUILDDIR/grub
 	cp grub.cfg $BUILDDIR/grub/
-	grub-mkrescue -o out.iso build/
+	cross/bin/grub-mkrescue -o out.iso build/
 fi
 echo "Success! out.iso created."

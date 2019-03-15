@@ -2,7 +2,7 @@
 #include <print.h>
 #include <mm/init.h>
 #include <arch.h>
-#include <sched/thread.h>
+#include <sched/process.h>
 #include <stddef.h>
 #include <sched/lock.h>
 #include <panic.h>
@@ -71,6 +71,14 @@ void kmain(void) {
 		panic("Failed to execute init: %d\n", error);
 	}
 	kthreadExit(NULL);
+}
+
+int kernelPrepareShutdown(int mode) {
+	(void) mode;
+
+	//send SIGKILL to all processes
+	killAllProcesses();
+	return 0;
 }
 
 __attribute__((noreturn)) void __stack_chk_fail(void) {

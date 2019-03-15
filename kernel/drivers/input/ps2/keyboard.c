@@ -98,17 +98,7 @@ static void kbInterrupt(struct Ps2Device *dev) {
 			}
 			keycode = (data < (sizeof(kbScanTable) / sizeof(kbScanTable[0]) )) ? kbScanTable[data] : KEY_RESERVED;
 			if (!kbDev->keyReleased) {
-				//printk("key: %d\n", keycode);
-				if (keycode == KEY_SYSRQ) {
-					//reset
-					uint8_t good = 0x02;
-					while (good & 0x02)
-						good = in8(0x64);
-					out8(0x64, 0xFE);
-					asm ("hlt");
-				} else {
-					ttyHandleKeyEvent(keycode, false);
-				}
+				ttyHandleKeyEvent(keycode, false);
 			} else {
 				kbDev->keyReleased = false;
 				ttyHandleKeyEvent(keycode, true);

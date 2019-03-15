@@ -75,6 +75,20 @@ void procHTDel(struct Process *proc) {
 	releaseSpinlock(&htLock);
 }
 
+void killAllProcesses(void) {
+	struct Process *cur = getCurrentThread()->process;
+	for (int i = 0 ; i < PROC_HT_SIZE; i++) {
+		struct Process *p = procHT[i].first;
+		while (p) {
+			struct Process *next = p->htNext;
+			if (p->pid != 1 && p != cur) {
+				sendSignal(p, SIGKILL);
+			}
+			p = next;
+		}
+	}
+}
+
 static int copyMem(struct Process *proc, struct Process *newProc) {
 	int error = 0;
 	struct MemoryEntry *curEntry = proc->firstMemEntry;

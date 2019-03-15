@@ -159,4 +159,6 @@ void procHTDel(struct Process *proc);
 
 struct Process *getProcFromPid(pid_t pid);
 
+void killAllProcesses(void);
+
 #endif
